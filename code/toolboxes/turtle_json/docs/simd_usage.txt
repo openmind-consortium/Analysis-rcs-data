@@ -1,0 +1,2 @@
+Function	SIMD Level
+_mm_cmpistri	SSE4.2
