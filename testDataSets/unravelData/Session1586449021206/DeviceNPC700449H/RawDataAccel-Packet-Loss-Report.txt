@@ -1,0 +1,3 @@
+approximate recording length 00:10:18
+0 gaps larger than 6.554 seconds found
+gap mode NaN, gap median NaN, max gap 
