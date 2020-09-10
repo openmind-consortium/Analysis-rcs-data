@@ -115,20 +115,20 @@ diff_PacketGenTime = [1; diff(dataTable.PacketGenTime) * 1e1];
 numChunks = length(chunkIndices);
 chunksToExclude = [];
 for iChunk = 1:numChunks
-    currentIndices = chunkIndices{iChunk};
+    currentTimestampIndices = chunkIndices{iChunk};
     
     % Chunks must have at least 2 packets in order to have a valid
     % diff_systemTick -- thus if chunk only one packet, it must be excluded
-    if length(currentIndices) == 1
+    if length(currentTimestampIndices) == 1
         chunksToExclude = [chunksToExclude iChunk];
     end
     % Always exclude the first packet of the chunk, because don't have an
     % accurate diff_systemTick value for this first packet
-    currentIndices = currentIndices(2:end);
+    currentTimestampIndices = currentTimestampIndices(2:end);
     
     % Differences between adjacent PacketGenTimes (in units of 1e-4
     % seconds)
-    error = expectedElapsed(currentIndices) - diff_PacketGenTime(currentIndices);
+    error = expectedElapsed(currentTimestampIndices) - diff_PacketGenTime(currentTimestampIndices);
     meanError(iChunk) = median(error);
 end
 %%
@@ -167,15 +167,12 @@ timeDomainData(samplesToRemove,:) = [];
 % using indicesOfTimestamps_cleaned
 indicesOfTimestamps_cleaned = find(timeDomainData.timestamp ~= 0);
 
-% Initalize column for derivedTimes
-timeDomainData.DerivedTimes = zeros(size(timeDomainData,1),1);
-
 % Map the chunk start/stop times back to samples
 for iChunk = 1:length(chunkIndices)
     currentPackets = chunkIndices{iChunk};
     chunkPacketStart(iChunk) = indicesOfTimestamps_cleaned(currentPackets(1));
     chunkSampleStart(iChunk) = indicesOfTimestamps_cleaned(currentPackets(1) - 1) + 1;
-    chunkSampleEnd(iChunk) = indicesOfTimestamps_cleaned(currentPackets(end)); 
+    chunkSampleEnd(iChunk) = indicesOfTimestamps_cleaned(currentPackets(end));
 end
 
 % Use correctedAlignTime and sampling rate to assign each included sample a
@@ -183,43 +180,50 @@ end
 for iChunk = 1:length(chunkIndices)
     % Assign derivedTimes to samples before first packet time -- all same
     % sampling rate
-    
-    deltaTime = (chunkPacketStart(iChunk) - chunkSampleStart(iChunk))*1/timeDomainData.samplerate(chunkPacketStart(iChunk));
+    currentFs = timeDomainData.samplerate(chunkPacketStart(iChunk));
+    elapsedTime_before = (chunkPacketStart(iChunk) - chunkSampleStart(iChunk)) * (1000/currentFs);
     
     timeDomainData.DerivedTime(chunkPacketStart(iChunk):-1:chunkSampleStart(iChunk)) = ...
-    correctedAlignTime(iChunk):-1/timeDomainData.samplerate(chunkPacketStart(iChunk)):correctedAlignTime(iChunk) - deltaTime;
+        correctedAlignTime(iChunk) : -1000/currentFs : correctedAlignTime(iChunk) - elapsedTime_before;
     
-   % Assign derivedTimes to samples after first packetTime -- check for
-   % differing sampling rates
-   
-   % KS HERE
+    % Assign derivedTimes to samples after first packetTime -- first check for
+    % differing sampling rates
     
+    % Check sampling rates for packets included in segment
+    currentSampleRange = chunkPacketStart(iChunk) + 1:chunkSampleEnd(iChunk);
+    currentTimestampIndices = currentSampleRange(ismember(currentSampleRange,indicesOfTimestamps_cleaned));
+    
+    if length(unique(timeDomainData.samplerate(currentTimestampIndices))) > 1
+        % TO DO: How to handle differing sampling rates?
+        
+    else
+        % Same sampling rate throughout segment
+        currentFs = unique(timeDomainData.samplerate(currentTimestampIndices));
+        elapsedTime_after = (chunkSampleEnd(iChunk) - chunkPacketStart(iChunk) + 1) * (1000/currentFs);
+        
+        timeDomainData.DerivedTime(chunkPacketStart(iChunk) + 1 : chunkSampleEnd(iChunk)) = ...
+            correctedAlignTime(iChunk) + (1000/currentFs) : 1000/currentFs : correctedAlignTime(iChunk) + elapsedTime_after - (1000/currentFs);
+        
+    end  
 end
-
-
 
 % All samples which do not have a derivedTime should be removed from final
 % timeDomainData table
 
+% KS TO DO: I think these should correspond to the packets in chunksToExclude 
+% verify this
 
-
+rowsToRemove = find(timeDomainData.DerivedTime == 0);
+timeDomainData(rowsToRemove,:) = [];
 
 end
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 %%
 % TO DO: Current minimum chunk size is 2 packets -- make this larger?
 
-% TO DO: Exclude chunksToExclude
+% TO DO: Need to shift chunks 2:end in order to align to multiple of 1/Fs
+% from the last valid sample; In other words, need to have a whole number
+% of 'missing' samples such that whole file on consistent Fs. How to do
+% this with varying sampling rates within file?
+
