@@ -21,4 +21,6 @@ Functions: this list contains the functions that have been tested in brach and p
 - ...
 
 In Dev Branch:
-- unravelData.m: Used in the processing pipeline for converting data in RawDataTD.json to Matlab table format. Takes output from deserializeJSON and converts to Matlab table, without remove any packets  
+- deserializeJSON: Used to read data from RawDataTD.json into Matlab
+    - fixMalformedJson
+- unravelData: Used in the processing pipeline for converting data in RawDataTD.json to Matlab table format. Takes output from deserializeJSON and converts to Matlab table, without remove any packets  
