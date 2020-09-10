@@ -19,3 +19,6 @@ Structure:
 Functions: this list contains the functions that have been tested in brach and pushed to master (brief description of function input output next to each function name)
 - function1: this function is doing X and requires an input argument/s Y1,Y2,Yn and outputs Z
 - ...
+
+In Dev Branch:
+- unravelData.m: Used in the processing pipeline for converting data in RawDataTD.json to Matlab table format. Takes output from deserializeJSON and converts to Matlab table, without remove any packets  
