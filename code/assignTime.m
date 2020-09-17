@@ -1,4 +1,4 @@
-function timeDomainData = assignTime(outtable_TD)
+function outputDataTable = assignTime(inputDataTable)
 %%
 % Function for creating timestamps for each sample of valid RC+S data. Given
 % known limitations of all recorded timestamps, need to use multiple variables
@@ -15,15 +15,16 @@ function timeDomainData = assignTime(outtable_TD)
 % have elapsed (as a function of sampling rate and number of samples
 % per packet).
 %
-% Input: Data table output from unravelData (data originating from RawDataTD.json)
+% Input: Data table output from createTimeDomainTable or createAccelTable
+% (data originating from RawDataTD.json or RawDataAccel.json)
 %
 % Output: Same as input table, with additional column of 'DerivedTimes' for
 % each sample
 %%
 
 % Pull out info for each packet
-indicesOfTimestamps = find(outtable_TD.timestamp ~= 0);
-dataTable_original = outtable_TD(indicesOfTimestamps,:);
+indicesOfTimestamps = find(inputDataTable.timestamp ~= 0);
+dataTable_original = inputDataTable(indicesOfTimestamps,:);
 
 %%
 % Identify packets for rejection
@@ -46,8 +47,13 @@ duplicate_firstIndex = intersect(find(diff(dataTable_original.dataTypeSequence) 
 % timestamp and PacketGenTime. This does not address packets which have
 % both 'bad' timestamp and PacketGenTime. Packets with only bad timestamp
 % may also be flagged
-normedTimestamps = dataTable_original.timestamp - dataTable_original(1,:).timestamp;
-normedGenTime_inSecs = (dataTable_original.PacketGenTime - dataTable_original(1,:).PacketGenTime)/1000;
+
+% Determine first packet with non-negative PacketGenTime -- use this packet
+% for normalizing timestamps and PacketGenTime
+firstGoodIndex = find(dataTable_original.PacketGenTime > 0,1);
+
+normedTimestamps = dataTable_original.timestamp - dataTable_original(firstGoodIndex,:).timestamp;
+normedGenTime_inSecs = (dataTable_original.PacketGenTime - dataTable_original(firstGoodIndex,:).PacketGenTime)/1000;
 
 timeDifferences = normedTimestamps - normedGenTime_inSecs;
 indices_outlierPacketGenTimes = find(abs(timeDifferences) > 1);
@@ -202,12 +208,12 @@ correctedAlignTime_shifted = NaN(size(correctedAlignTime));
 correctedAlignTime_shifted(1) = correctedAlignTime(1);
 for iTime = 2:length(correctedAlignTime)
     currentTime = correctedAlignTime(iTime);
-    [value, indexOfPossibleTimes] = ( min(abs(currentTime - allPossibleTimes)));
+    [~, indexOfPossibleTimes] = ( min(abs(currentTime - allPossibleTimes)));
     correctedAlignTime_shifted(iTime) = allPossibleTimes(indexOfPossibleTimes);
 end
 
 % Full form data table
-timeDomainData = outtable_TD;
+outputDataTable = inputDataTable;
 
 % Remove packets and samples identified above as lacking proper metadata
 samplesToRemove = [];
@@ -222,11 +228,11 @@ toRemove_stop = indicesOfTimestamps(packetsToRemove);
 for iPacket = 1:length(packetsToRemove)
     samplesToRemove = [samplesToRemove toRemove_start(iPacket):toRemove_stop(iPacket)];
 end
-timeDomainData(samplesToRemove,:) = [];
+outputDataTable(samplesToRemove,:) = [];
 
 % Indices referenced in chunkIndices can now be mapped back to timeDomainData
 % using indicesOfTimestamps_cleaned
-indicesOfTimestamps_cleaned = find(timeDomainData.timestamp ~= 0);
+indicesOfTimestamps_cleaned = find(outputDataTable.timestamp ~= 0);
 
 % Map the chunk start/stop times back to samples
 for iChunk = 1:length(chunkIndices)
@@ -245,24 +251,24 @@ end
 for iChunk = 1:length(chunkIndices)
     % Assign derivedTimes to samples before first packet time -- all same
     % sampling rate
-    currentFs = timeDomainData.samplerate(chunkPacketStart(iChunk));
+    currentFs = outputDataTable.samplerate(chunkPacketStart(iChunk));
     elapsedTime_before = (chunkPacketStart(iChunk) - chunkSampleStart(iChunk)) * (1000/currentFs);
     
-    timeDomainData.DerivedTime(chunkPacketStart(iChunk):-1:chunkSampleStart(iChunk)) = ...
+    outputDataTable.DerivedTime(chunkPacketStart(iChunk):-1:chunkSampleStart(iChunk)) = ...
         correctedAlignTime_shifted(iChunk) : -1000/currentFs : correctedAlignTime_shifted(iChunk) - elapsedTime_before;
     
     % Assign derivedTimes to samples after first packetTime -- all same
     % sampling rate (as change in Fs triggered creation of new chunk, above)
     elapsedTime_after = (chunkSampleEnd(iChunk) - chunkPacketStart(iChunk) + 1) * (1000/currentFs);
     
-    timeDomainData.DerivedTime(chunkPacketStart(iChunk) + 1 : chunkSampleEnd(iChunk)) = ...
+    outputDataTable.DerivedTime(chunkPacketStart(iChunk) + 1 : chunkSampleEnd(iChunk)) = ...
         correctedAlignTime_shifted(iChunk) + (1000/currentFs) : 1000/currentFs : correctedAlignTime_shifted(iChunk) + elapsedTime_after - (1000/currentFs);
 end
 
 % All samples which do not have a derivedTime should be removed from final
-% timeDomainData table
+% data table
 
-rowsToRemove = find(timeDomainData.DerivedTime == 0);
-timeDomainData(rowsToRemove,:) = [];
+rowsToRemove = find(outputDataTable.DerivedTime == 0);
+outputDataTable(rowsToRemove,:) = [];
 
 end
