@@ -13,7 +13,7 @@ dataSizes = [tmp.dataSize]';
 packetSizes = (dataSizes/8); % divide by 8 for now, this may need to be fixed
 nrows = sum(packetSizes);
 
-allVarNames = {'XSamples','YSamples','ZSamples','systemTick','timestamp','PacketGenTime',...
+allVarNames = {'XSamples','YSamples','ZSamples','systemTick','timestamp','samplerate','PacketGenTime',...
     'PacketRxUnixTime','packetsizes','dataTypeSequence'};
 % Pre allocate memory
 outdat = zeros(nrows, length(allVarNames));
@@ -31,10 +31,11 @@ for p = 1:size(dataSizes,1)
     outdat(rowidx, 3) = jsonobj_Accel.AccelData(p).ZSamples;
     outdat(packetidx, 4) = jsonobj_Accel.AccelData(p).Header.systemTick;
     outdat(packetidx, 5) = jsonobj_Accel.AccelData(p).Header.timestamp.seconds;
-    outdat(packetidx, 6) = jsonobj_Accel.AccelData(p).PacketGenTime;
-    outdat(packetidx, 7) = jsonobj_Accel.AccelData(p).PacketRxUnixTime;
-    outdat(packetidx, 8) = packetSizes(p);
-    outdat(packetidx, 9) = jsonobj_Accel.AccelData(p).Header.dataTypeSequence;
+    outdat(packetidx, 6) = srates(p);
+    outdat(packetidx, 7) = jsonobj_Accel.AccelData(p).PacketGenTime;
+    outdat(packetidx, 8) = jsonobj_Accel.AccelData(p).PacketRxUnixTime;
+    outdat(packetidx, 9) = packetSizes(p);
+    outdat(packetidx, 10) = jsonobj_Accel.AccelData(p).Header.dataTypeSequence;
 end
 
 %%
