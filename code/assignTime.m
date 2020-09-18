@@ -29,6 +29,7 @@ dataTable_original = inputDataTable(indicesOfTimestamps,:);
 %%
 % Identify packets for rejection
 
+disp('Identifying and removing bad packets')
 % Remove any packets with timestamp that are more than 24 hours from median timestamp
 medianTimestamp = median(dataTable_original.timestamp);
 numSecs = 24*60*60;
@@ -129,6 +130,7 @@ allFlaggedIndices = unique([indices_changeFs; indices_timestampFlagged;...
     indices_dataTypeSequenceFlagged; indices_systemTickFlagged],'sorted') ;
 
 %%
+disp('Chunking data')
 % Determine indices of packets which correspond to each data chunk
 if ~isempty(allFlaggedIndices)
     counter = 1;
@@ -154,6 +156,7 @@ end
 %%
 % Loop through each chunk to determine offset to apply (as determined by
 % average difference between packetGenTime and expectedElapsed)
+disp('Determining start time of each chunk')
 
 % PacketGenTime in ms; convert difference to 1e-4 seconds, units of
 % systemTick and expectedElapsed
@@ -161,6 +164,7 @@ diff_PacketGenTime = [1; diff(dataTable.PacketGenTime) * 1e1];
 
 numChunks = length(chunkIndices);
 chunksToExclude = [];
+meanError = NaN(1,numChunks);
 for iChunk = 1:numChunks
     currentTimestampIndices = chunkIndices{iChunk};
     
@@ -180,15 +184,16 @@ for iChunk = 1:numChunks
 end
 %%
 % Create corrected timing for each chunk
+counter = 1;
 for iChunk = 1:numChunks
     if ~ismember(iChunk,chunksToExclude)
-        alignTime(iChunk) = dataTable.PacketGenTime(chunkIndices{iChunk}(1));
+        alignTime = dataTable.PacketGenTime(chunkIndices{iChunk}(1));
+        % alignTime in ms; meanError in units of systemTick
+        correctedAlignTime(counter) = alignTime + meanError(iChunk)*1e-1;
+        % TO DO: add or subtract meanError above??
+        counter = counter + 1;
     end
 end
-
-% alignTime in ms; meanError in units of systemTick
-correctedAlignTime = alignTime + meanError*1e-1;
-% TO DO: add or subtract meanError above??
 
 %%
 % Indices in chunkIndices correspond to packets in dataTable.
@@ -203,6 +208,7 @@ correctedAlignTime(find(isnan(correctedAlignTime))) = [];
 % (1/Fs)
 deltaTime = 1/maxFs * 1000; % in milliseconds
 
+disp('Shifting chunks to align with sampling rate')
 allPossibleTimes = correctedAlignTime(1):deltaTime:correctedAlignTime(end) + deltaTime;
 correctedAlignTime_shifted = NaN(size(correctedAlignTime));
 correctedAlignTime_shifted(1) = correctedAlignTime(1);
@@ -246,6 +252,7 @@ for iChunk = 1:length(chunkIndices)
     chunkSampleEnd(iChunk) = indicesOfTimestamps_cleaned(currentPackets(end));
 end
 
+disp('Creating derivedTime for each sample')
 % Use correctedAlignTime and sampling rate to assign each included sample a
 % derivedTime
 for iChunk = 1:length(chunkIndices)
@@ -267,7 +274,7 @@ end
 
 % All samples which do not have a derivedTime should be removed from final
 % data table
-
+disp('Cleaning up output table')
 rowsToRemove = find(outputDataTable.DerivedTime == 0);
 outputDataTable(rowsToRemove,:) = [];
 
