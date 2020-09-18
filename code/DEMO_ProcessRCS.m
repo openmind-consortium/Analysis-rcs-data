@@ -1,10 +1,11 @@
-function [outdatcomplete, srates, unqsrates] = DEMO_ProcessRCS(varargin)
+function [combinedDataTable] = DEMO_ProcessRCS(varargin)
 %%
 % Demo wrapper script for importing raw .JSON files from RC+S, parsing
-% into Matlab table format, and handling missing packets / harmonizing 
-% timestamps across data streams.
+% into Matlab table format, and handling missing packets / harmonizing
+% timestamps across data streams. Currently assuming you always have
+% timeDomain data
 %
-% Depedencies: 
+% Depedencies:
 % https://github.com/JimHokanson/turtle_json
 % in the a folder called "toolboxes" in the same directory as the processing scripts
 %
@@ -32,24 +33,38 @@ end
 
 %%
 % TimeDomain data
+disp('Checking for Time Domain Data')
 TD_fileToLoad = [folderPath filesep 'RawDataTD.json'];
 if isfile(TD_fileToLoad)
     jsonobj_TD = deserializeJSON(TD_fileToLoad);
-    if ~isempty(jsonobj_TD)
+    if ~isempty(jsonobj_TD.TimeDomainData)
+        disp('Loading Time Domain Data')
         [outtable_TD, srates_TD] = createTimeDomainTable(jsonobj_TD);
+        disp('Creating derivedTimes for time domain:')
         timeDomainData = assignTime(outtable_TD);
+    else
+        timeDomainData = [];
     end
+else
+    timeDomainData = [];
 end
 
 %%
 % Accelerometer data
+disp('Checking for Accelerometer Data')
 Accel_fileToLoad = [folderPath filesep 'RawDataAccel.json'];
 if isfile(Accel_fileToLoad)
     jsonobj_Accel = deserializeJSON(Accel_fileToLoad);
-    if ~isempty(jsonobj_TD)
+    if ~isempty(jsonobj_Accel.AccelData)
+        disp('Loading Accelerometer Data')
         [outtable_Accel, srates_Accel] = createAccelTable(jsonobj_Accel);
+        disp('Creating derivedTimes for accelerometer:')
         AccelData = assignTime(outtable_Accel);
+    else
+        AccelData = [];
     end
+else
+    AccelData = [];
 end
 
 %%
@@ -65,17 +80,73 @@ end
 % time base
 
 derivedTime_TD = timeDomainData.DerivedTime;
-derivedTime_Accel = AccelData.DerivedTime;
 
-[baseTimeIndices,indicesToRemove] = harmonizeTimeAcrossDataStreams(derivedTime_TD, derivedTime_Accel, srates_Accel);
+% Harmonize Accel with TD
+if ~isempty(AccelData)
+    disp('Harmonizing time of Accelerometer data with Time Domain Data')
+    derivedTime_Accel = AccelData.DerivedTime;
+    [baseTimeIndices_forAccel,indicesToRemove_Accel] = harmonizeTimeAcrossDataStreams(derivedTime_TD, derivedTime_Accel, srates_Accel);
+    % Remove indicesToRemove_Accel from both Accel table and the
+    % baseTimeIndices_forAccel to keep aligned
+    AccelData(indicesToRemove_Accel,:) = [];
+    baseTimeIndices_forAccel(indicesToRemove_Accel) = [];
+end
 
-harmonizedAccelData = AccelData;
-harmonizedAccelData.DerivedTime = derivedTime_TD(baseTimeIndices);
-harmonizedAccelData(indicesToRemove,:) = [];
+% Harmonize Power with TD
+
+
+% Harmonize FFT with TD
+
 
 %%
-% To Do: Create table with all data streams
+% Create combined data table
+disp('Creating combined data table')
+combinedDataTable = table();
 
+numRows = length(timeDomainData.DerivedTime);
+% Copy TimeDomain data
+combinedDataTable.DerivedTime = timeDomainData.DerivedTime;
+combinedDataTable.TD0 = timeDomainData.key0;
+if ~isequal(sum(timeDomainData.key1),0)
+    combinedDataTable.TD1 = timeDomainData.key1;
+end
+if ~isequal(sum(timeDomainData.key2),0)
+    combinedDataTable.TD2 = timeDomainData.key2;
+end
+if ~isequal(sum(timeDomainData.key3),0)
+    combinedDataTable.TD3 = timeDomainData.key3;
+end
+
+% Temp for debugging
+TD_systemTick_withNans = timeDomainData.systemTick;
+TD_systemTick_withNans(TD_systemTick_withNans == 0) = NaN;
+combinedDataTable.TD_systemTick = TD_systemTick_withNans;
+
+TD_timestamp_withNans = timeDomainData.timestamp;
+TD_timestamp_withNans(TD_timestamp_withNans == 0) = NaN;
+combinedDataTable.TD_timestamp = TD_timestamp_withNans;
+
+TD_PacketGenTime_withNans = timeDomainData.PacketGenTime;
+TD_PacketGenTime_withNans(TD_PacketGenTime_withNans == 0) = NaN;
+combinedDataTable.TD_PacketGenTime = TD_PacketGenTime_withNans;
+
+% Copy Accel data
+if ~isempty(AccelData)
+    % Add Accel Data at appropriate rows with appropriate TimeDomain DerivedTime
+    combinedDataTable.Accel_X(baseTimeIndices_forAccel) = AccelData.XSamples;
+    combinedDataTable.Accel_Y(baseTimeIndices_forAccel) = AccelData.YSamples;
+    combinedDataTable.Accel_Z(baseTimeIndices_forAccel) = AccelData.ZSamples;
+    
+    % Temp for debugging
+    combinedDataTable.Accel_systemTick(baseTimeIndices_forAccel) = AccelData.systemTick;
+    combinedDataTable.Accel_timestamp(baseTimeIndices_forAccel) = AccelData.timestamp;
+    combinedDataTable.Accel_PacketGenTime(baseTimeIndices_forAccel) = AccelData.PacketGenTime;
+    
+end
+
+% Change zeros to NaNs (e.g. missing values; values not present)
+disp('Cleaning up combined data table')
+combinedDataTable = standardizeMissing(combinedDataTable,0);
 %%
 % To Do: Save output
 
