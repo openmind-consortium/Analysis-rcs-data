@@ -28,4 +28,4 @@ sratesout(srates==1) = 500;
 sratesout(srates==2) = 1000;
 
 
-clear temp*; 
+end
