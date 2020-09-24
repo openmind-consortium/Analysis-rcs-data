@@ -140,14 +140,15 @@ if ~isempty(allFlaggedIndices)
             chunkIndices{counter} = (1:allFlaggedIndices(1));
             currentStartIndex = 1;
             counter = counter + 1;
+        elseif iChunk == length(allFlaggedIndices)
+            chunkIndices{counter} = allFlaggedIndices(currentStartIndex) + 1:allFlaggedIndices(currentStartIndex + 1);
+            chunkIndices{counter + 1} = allFlaggedIndices(currentStartIndex + 1) + 1:numPackets;
         else
             chunkIndices{counter} = allFlaggedIndices(currentStartIndex) + 1:allFlaggedIndices(currentStartIndex + 1);
             currentStartIndex = currentStartIndex + 1;
             counter = counter + 1;
         end
-        % Last chunk, finishing with last packet
-        chunkIndices{counter} = allFlaggedIndices(currentStartIndex) + 1:numPackets;
-    end
+     end
 else
     % No identified missing packets, all packets in one chunk
     chunkIndices{1} = 1:numPackets;
