@@ -17,4 +17,4 @@ sratesout(srates==3) = 8;
 sratesout(srates==4) = 4;
 sratesout(srates==255) = NaN;
 
-clear temp*; 
+end 
