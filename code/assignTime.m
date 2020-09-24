@@ -253,6 +253,10 @@ disp('Creating derivedTime for each sample')
 % Initalize DerivedTime
 outputDataTable.DerivedTime = nan(size(outputDataTable,1),1);
 for iChunk = 1:length(chunkIndices)
+    % Display status
+    if iChunk > 0 && mod(iChunk, 1000) == 0
+        disp(['Currently on chunk ' num2str(iChunk) ' of ' num2str(length(chunkIndices))])
+    end
     % Assign derivedTimes to all samples (from before first packet time to end) -- all same
     % sampling rate
     currentFs = outputDataTable.samplerate(chunkPacketStart(iChunk));
