@@ -112,6 +112,7 @@ indices_dataTypeSequenceFlagged = intersect(find(diff(dataTable.dataTypeSequence
 % 'previous' to 'current' packets; diff_systemTick written to index of
 % second packet associated with that calculation
 numPackets = size(dataTable,1);
+diff_systemTick = nan(numPackets,1);
 for iPacket = 2:numPackets
     diff_systemTick(iPacket,1) = mod((dataTable.systemTick(iPacket) + (2^16)...
         - dataTable.systemTick(iPacket - 1)), 2^16);
