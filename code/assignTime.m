@@ -84,7 +84,7 @@ packetsToRemove = unique([badDatePackets; packetIndices_NegGenTime;...
 % Remove packets identified above for rejection
 packetsToKeep = setdiff(1:size(dataTable_original,1),packetsToRemove);
 dataTable = dataTable_original(packetsToKeep,:);
-
+clear dataTable_original
 %%
 % Identify gaps -- start with most obvious gaps, and then become more
 % refined
@@ -216,6 +216,7 @@ correctedAlignTime_shifted = correctedAlignTime(1) + (multiples * deltaTime);
 
 % Full form data table
 outputDataTable = inputDataTable;
+clear inputDataTable
 
 % Remove packets and samples identified above as lacking proper metadata
 samplesToRemove = [];
