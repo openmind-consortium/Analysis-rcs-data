@@ -209,14 +209,8 @@ correctedAlignTime(find(isnan(correctedAlignTime))) = [];
 deltaTime = 1/maxFs * 1000; % in milliseconds
 
 disp('Shifting chunks to align with sampling rate')
-allPossibleTimes = correctedAlignTime(1):deltaTime:correctedAlignTime(end) + deltaTime;
-correctedAlignTime_shifted = NaN(size(correctedAlignTime));
-correctedAlignTime_shifted(1) = correctedAlignTime(1);
-for iTime = 2:length(correctedAlignTime)
-    currentTime = correctedAlignTime(iTime);
-    [~, indexOfPossibleTimes] = ( min(abs(currentTime - allPossibleTimes)));
-    correctedAlignTime_shifted(iTime) = allPossibleTimes(indexOfPossibleTimes);
-end
+multiples = floor(((correctedAlignTime - correctedAlignTime(1))/deltaTime) + 0.5);
+correctedAlignTime_shifted = correctedAlignTime(1) + (multiples * deltaTime);
 
 % Full form data table
 outputDataTable = inputDataTable;
@@ -255,21 +249,18 @@ end
 disp('Creating derivedTime for each sample')
 % Use correctedAlignTime and sampling rate to assign each included sample a
 % derivedTime
+
+% Initalize DerivedTime
+outputDataTable.DerivedTime = nan(size(outputDataTable,1),1);
 for iChunk = 1:length(chunkIndices)
-    % Assign derivedTimes to samples before first packet time -- all same
+    % Assign derivedTimes to all samples (from before first packet time to end) -- all same
     % sampling rate
     currentFs = outputDataTable.samplerate(chunkPacketStart(iChunk));
     elapsedTime_before = (chunkPacketStart(iChunk) - chunkSampleStart(iChunk)) * (1000/currentFs);
+    elapsedTime_after = (chunkSampleEnd(iChunk) - chunkPacketStart(iChunk)) * (1000/currentFs);
     
-    outputDataTable.DerivedTime(chunkPacketStart(iChunk):-1:chunkSampleStart(iChunk)) = ...
-        correctedAlignTime_shifted(iChunk) : -1000/currentFs : correctedAlignTime_shifted(iChunk) - elapsedTime_before;
-    
-    % Assign derivedTimes to samples after first packetTime -- all same
-    % sampling rate (as change in Fs triggered creation of new chunk, above)
-    elapsedTime_after = (chunkSampleEnd(iChunk) - chunkPacketStart(iChunk) + 1) * (1000/currentFs);
-    
-    outputDataTable.DerivedTime(chunkPacketStart(iChunk) + 1 : chunkSampleEnd(iChunk)) = ...
-        correctedAlignTime_shifted(iChunk) + (1000/currentFs) : 1000/currentFs : correctedAlignTime_shifted(iChunk) + elapsedTime_after - (1000/currentFs);
+    outputDataTable.DerivedTime(chunkSampleStart(iChunk):chunkSampleEnd(iChunk)) = ...
+        correctedAlignTime_shifted(iChunk) - elapsedTime_before : 1000/currentFs : correctedAlignTime_shifted(iChunk) + elapsedTime_after;
 end
 
 % All samples which do not have a derivedTime should be removed from final
