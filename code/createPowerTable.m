@@ -1,14 +1,11 @@
 function [powerTable, pbOut]  = createPowerTable(folderPath)
 %%
 % Function to unravel Power data
-% Input: 
-%   jsonobj_Power: a structure of power data that is read from RawDataPower.json
-%   (To transform *.json file into structure use deserializeJSON.m)
-%
+% Input:
 %   folderPath: path to the Device* folder, which contains all the .json
 %   files for this recording
 %
-% Output: 
+% Output:
 %%
 % Load power data
 rawPowerData = jsondecode(fixMalformedJson(fileread([folderPath filesep 'RawDataPower.json']),'EventLog'));
@@ -17,7 +14,7 @@ rawPowerData = jsondecode(fixMalformedJson(fileread([folderPath filesep 'RawData
 powerTable = table();
 pbOut = struct();
 
-% If no power data, return empty tables, otherwise start parsing 
+% If no power data, return empty tables, otherwise start parsing
 if isempty(rawPowerData) || isempty(rawPowerData.PowerDomainData)
     fprintf('Power data  is empty\n');
     fprintf('Creating dummy event table\n');
@@ -43,7 +40,7 @@ else
     for iVariable = 1:length(variableNames)
         powerData.(variableNames{iVariable}) = [PowerDomainData.(variableNames{iVariable})]';
     end
-        
+    
     % Parsing data conatined in Bands
     bands = [PowerDomainData.Bands]';
     for iBand = 1:size(bands,2)
@@ -52,20 +49,19 @@ else
     end
     
     powerTable = struct2table(powerData);
-%%
     
-    % load device settings file as well to find out power bins in Hz
-    % this depends on running
-    % loadDeviceSettings.m
-    % and also depeends on having
-    % DeviceSettings.json in the same folder
-    % as the power data
-    [rootdir,filename] = fileparts(fn);
-    load(fullfile(rootdir,'DeviceSettings.mat'));
+    %%
+    % Get device settings
+    outRec = loadDeviceSettings([folderPath filesep 'DeviceSettings.json']);
+        
+    % Initalize powerBand output
     pbOut = struct();
-    for oo = 1:size(outRec,2)
-        sampleRate = str2double(strrep( outRec(oo).tdData(1).sampleRate,'Hz',''));
-        switch outRec(oo).fftConfig.size
+    
+    % KS HERE
+    for iSetting = 1:size(outRec,2)
+        sampleRate = str2double(strrep( outRec(iSetting).tdData(1).sampleRate,'Hz',''));
+        % Decode fftSize
+        switch outRec(iSetting).fftConfig.size
             case 0
                 fftSize = 64;
             case 1
@@ -73,15 +69,16 @@ else
             case 3
                 fftSize = 1024;
         end
+        
         powerChannelsIdxs = [];
-        idxCnt = 1;
-        for c = 1:4
-            for iBand = 0:1
+        counter = 1;
+        for iChan = 1:4 % max of 4 bipolar electrode pairs
+            for iBand = 0:1 % max of 2 bands on each bipolar electrode pair
                 fieldStart = sprintf('band%dStart',iBand);
                 fieldStop = sprintf('band%dStop',iBand);
-                powerChannelsIdxs(idxCnt,1) = outRec(oo).powerChannels(c).(fieldStart);
-                powerChannelsIdxs(idxCnt,2) = outRec(oo).powerChannels(c).(fieldStop);
-                idxCnt = idxCnt+1;
+                powerChannelsIdxs(counter,1) = outRec(iSetting).powerChannels(iChan).(fieldStart);
+                powerChannelsIdxs(counter,2) = outRec(iSetting).powerChannels(iChan).(fieldStop);
+                counter = counter+1;
             end
         end
         
@@ -128,13 +125,13 @@ else
             powerBandInHz{pc,1} = sprintf('%.2fHz-%.2fHz',...
                 lower(powerChannelsIdxs(pc,1)),upper(powerChannelsIdxs(pc,2)));
         end
-        pbOut(oo).powerBandInHz = powerBandInHz;
-        pbOut(oo).powerChannelsIdxs = powerChannelsIdxs;
-        pbOut(oo).fftSize = fftSize;
-        pbOut(oo).bins = bins;
-        pbOut(oo).numBins = numBins;
-        pbOut(oo).binWidth = binWidth;
-        pbOut(oo).sampleRate = sampleRate;
+        pbOut(iSetting).powerBandInHz = powerBandInHz;
+        pbOut(iSetting).powerChannelsIdxs = powerChannelsIdxs;
+        pbOut(iSetting).fftSize = fftSize;
+        pbOut(iSetting).bins = bins;
+        pbOut(iSetting).numBins = numBins;
+        pbOut(iSetting).binWidth = binWidth;
+        pbOut(iSetting).sampleRate = sampleRate;
     end
 end
 
