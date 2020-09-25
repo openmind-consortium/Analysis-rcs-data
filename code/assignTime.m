@@ -275,26 +275,6 @@ end
 disp('Cleaning up output table')
 outputDataTable.DerivedTime = DerivedTime;
 rowsToRemove = find(DerivedTime == 0);
-outputDataTable.DerivedTime = nan(size(outputDataTable,1),1);
-for iChunk = 1:length(chunkIndices)
-    % Display status
-    if iChunk > 0 && mod(iChunk, 1000) == 0
-        disp(['Currently on chunk ' num2str(iChunk) ' of ' num2str(length(chunkIndices))])
-    end
-    % Assign derivedTimes to all samples (from before first packet time to end) -- all same
-    % sampling rate
-    currentFs = outputDataTable.samplerate(chunkPacketStart(iChunk));
-    elapsedTime_before = (chunkPacketStart(iChunk) - chunkSampleStart(iChunk)) * (1000/currentFs);
-    elapsedTime_after = (chunkSampleEnd(iChunk) - chunkPacketStart(iChunk)) * (1000/currentFs);
-    
-    outputDataTable.DerivedTime(chunkSampleStart(iChunk):chunkSampleEnd(iChunk)) = ...
-        correctedAlignTime_shifted(iChunk) - elapsedTime_before : 1000/currentFs : correctedAlignTime_shifted(iChunk) + elapsedTime_after;
-end
-
-% All samples which do not have a derivedTime should be removed from final
-% data table
-disp('Cleaning up output table')
-rowsToRemove = find(outputDataTable.DerivedTime == 0);
 outputDataTable(rowsToRemove,:) = [];
 
 end
