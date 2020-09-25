@@ -69,7 +69,18 @@ end
 
 %%
 % Power data
-
+disp('Checking for Power Data')
+Power_fileToLoad = [folderPath filesep 'RawDataPower.json'];
+if isfile(Power_fileToLoad)
+    disp('Loading Power Data')
+    
+    [outtable_Power, pbOut] = createPowerTable(folderPath);
+    
+    
+    
+else
+    PowerData = [];
+end
 
 %%
 % FFT data
