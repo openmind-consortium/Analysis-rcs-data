@@ -32,6 +32,19 @@ end
 
 
 %%
+% DeviceSettings data
+disp('Collecting Device Settings data')
+DeviceSettings_fileToLoad = [folderPath filesep 'RawDataTD.json'];
+if isfile(DeviceSettings_fileToLoad)
+    % KS: want stimStatus and stimState below??
+    [deviceSettings, metaData, stimStatus, stimState] = createDeviceSettingsTable(folderPath);
+    
+    
+    
+else
+    error('No DeviceSettings.json file')
+end
+%%
 % TimeDomain data
 disp('Checking for Time Domain Data')
 TD_fileToLoad = [folderPath filesep 'RawDataTD.json'];
@@ -73,11 +86,19 @@ disp('Checking for Power Data')
 Power_fileToLoad = [folderPath filesep 'RawDataPower.json'];
 if isfile(Power_fileToLoad)
     disp('Loading Power Data')
+    % Checking if power data is empty happens within createPowerTable
+    % function
+    [outtable_Power] = createPowerTable(folderPath);
     
-    [outtable_Power, pbOut] = createPowerTable(folderPath);
+    if ~isempty(outtable_Power)
+    % Use deviceSettings to determine power bands
     
     
-    
+    % KS: Does assignTime work with outtable_Power?
+%         PowerData = ;
+    else
+       PowerData = []; 
+    end
 else
     PowerData = [];
 end
