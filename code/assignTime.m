@@ -168,7 +168,7 @@ diff_PacketGenTime = [1; diff(dataTable.PacketGenTime) * 1e1];
 
 numChunks = length(chunkIndices);
 chunksToExclude = [];
-meanError = NaN(1,numChunks);
+medianError = NaN(1,numChunks);
 for iChunk = 1:numChunks
     currentTimestampIndices = chunkIndices{iChunk};
     
@@ -184,17 +184,28 @@ for iChunk = 1:numChunks
     % Differences between adjacent PacketGenTimes (in units of 1e-4
     % seconds)
     error = expectedElapsed(currentTimestampIndices) - diff_PacketGenTime(currentTimestampIndices);
-    meanError(iChunk) = median(error);
+    medianError(iChunk) = median(error);
 end
 %%
 % Create corrected timing for each chunk
+% Pre-allocate array
+correctedAlignTime = zeros(1, numChunks - length(chunksToExclude));      
 counter = 1;
 for iChunk = 1:numChunks
     if ~ismember(iChunk,chunksToExclude)
         alignTime = dataTable.PacketGenTime(chunkIndices{iChunk}(1));
-        % alignTime in ms; meanError in units of systemTick
-        correctedAlignTime(counter) = alignTime + meanError(iChunk)*1e-1;
-        % TO DO: add or subtract meanError above??
+        % alignTime in ms; medianError in units of systemTick
+        correctedAlignTime(counter) = alignTime + medianError(iChunk)*1e-1;
+        
+        % Adding error above because we assume the expectedElapsed time (function of 
+        % sampling rate and number of samples in packet) represents the
+        % correct amount of elapsed time. We calculated the median difference
+        % between the expected elapsed time according to the packet size 
+        % and the diff PacketGenTime. The number of time units will be 
+        % negative if the diff PacketGenTime is consistently larger than 
+        % the expected elapsed time, so adding removes the bias. 
+        % The alternatiave would be if we thought PacketGenTime was a more 
+        % accurate representation of time, then we would want to subtract the value in medianError.
         counter = counter + 1;
     end
 end
@@ -256,7 +267,7 @@ disp('Creating derivedTime for each sample')
 % derivedTime
 
 % Initalize DerivedTime
-outputDataTable.DerivedTime = nan(size(outputDataTable,1),1);
+DerivedTime = nan(size(outputDataTable,1),1);
 for iChunk = 1:length(chunkIndices)
     % Display status
     if iChunk > 0 && mod(iChunk, 1000) == 0
@@ -268,14 +279,15 @@ for iChunk = 1:length(chunkIndices)
     elapsedTime_before = (chunkPacketStart(iChunk) - chunkSampleStart(iChunk)) * (1000/currentFs);
     elapsedTime_after = (chunkSampleEnd(iChunk) - chunkPacketStart(iChunk)) * (1000/currentFs);
     
-    outputDataTable.DerivedTime(chunkSampleStart(iChunk):chunkSampleEnd(iChunk)) = ...
+    DerivedTime(chunkSampleStart(iChunk):chunkSampleEnd(iChunk)) = ...
         correctedAlignTime_shifted(iChunk) - elapsedTime_before : 1000/currentFs : correctedAlignTime_shifted(iChunk) + elapsedTime_after;
 end
 
 % All samples which do not have a derivedTime should be removed from final
 % data table
 disp('Cleaning up output table')
-rowsToRemove = find(outputDataTable.DerivedTime == 0);
+outputDataTable.DerivedTime = DerivedTime;
+rowsToRemove = find(DerivedTime == 0);
 outputDataTable(rowsToRemove,:) = [];
 
 end
