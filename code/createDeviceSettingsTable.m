@@ -1,4 +1,4 @@
-function [deviceSettingsOut, stimStatus, stimState] = createDeviceSettingsTable(folderPath)
+function [deviceSettingsOut, metaData, stimStatus, stimState] = createDeviceSettingsTable(folderPath)
 %%
 %
 % Input: Folder path to Device* folder containing json files
@@ -16,7 +16,11 @@ if isstruct(DeviceSettings)
 end
 %%
 % UTC offset to determine timezone conversion
-UTCoffset = DeviceSettings{1,1}.UtcOffset;
+metaData.UTCoffset = DeviceSettings{1,1}.UtcOffset;
+
+
+% KS: Add battery info to metaData -- check chronic pain github for
+% desired variables
 
 %%
 deviceSettingsTable = table(); % Initalize table
@@ -42,6 +46,7 @@ while recordCounter <= length(DeviceSettings)
         if isfield(currentSettings.SensingConfig,'timeDomainChannels') ||...
                 isfield(currentSettings.SensingConfig,'powerChannels') ||...
                 isfield(currentSettings.SensingConfig,'fftConfig')
+            
             HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
             deviceSettingsTable.action{entryNumber} = 'Sense Config';
             deviceSettingsTable.recNum(entryNumber) = NaN;
@@ -58,6 +63,20 @@ while recordCounter <= length(DeviceSettings)
                 deviceSettingsTable.(fieldName){entryNumber} = TDsettings(iChan).chanFullStr;
             end
             deviceSettingsTable.tdDataStruc{entryNumber} = TDsettings;
+            
+            if recordCounter > 1
+                % Fill in most recent power domain settings
+                deviceSettingsTable.powerBands{entryNumber} = powerChannels;
+                
+                % Fill in most recent FFT settings
+                deviceSettingsTable.FFTbandFormationConfig(entryNumber) = fftConfig.bandFormationConfig;
+                deviceSettingsTable.FFTconfig(entryNumber) = fftConfig.config;
+                deviceSettingsTable.FFTinterval(entryNumber) = fftConfig.interval;
+                deviceSettingsTable.FFTsize(entryNumber) = fftConfig.size;
+                deviceSettingsTable.FFTstreamOffsetBins(entryNumber) = fftConfig.streamOffsetBins;
+                deviceSettingsTable.FFTstreamSizeBins(entryNumber) = fftConfig.streamSizeBins;
+                deviceSettingsTable.FFTwindowLoad(entryNumber) = fftConfig.windowLoad;
+            end
         end
         
         % Power domain data
@@ -71,6 +90,24 @@ while recordCounter <= length(DeviceSettings)
             % Settings will remain in powerChannels until updated
             powerChannels = currentSettings.SensingConfig.powerChannels;
             deviceSettingsTable.powerBands{entryNumber} = powerChannels;
+            
+            if recordCounter > 1
+                % Fill in most recent time domain data settings
+                for iChan = 1:4
+                    fieldName = sprintf('chan%d',iChan);
+                    deviceSettingsTable.(fieldName){entryNumber} = TDsettings(iChan).chanFullStr;
+                end
+                deviceSettingsTable.tdDataStruc{entryNumber} = TDsettings;
+                
+                % Fill in most recent FFT settings
+                deviceSettingsTable.FFTbandFormationConfig(entryNumber) = fftConfig.bandFormationConfig;
+                deviceSettingsTable.FFTconfig(entryNumber) = fftConfig.config;
+                deviceSettingsTable.FFTinterval(entryNumber) = fftConfig.interval;
+                deviceSettingsTable.FFTsize(entryNumber) = fftConfig.size;
+                deviceSettingsTable.FFTstreamOffsetBins(entryNumber) = fftConfig.streamOffsetBins;
+                deviceSettingsTable.FFTstreamSizeBins(entryNumber) = fftConfig.streamSizeBins;
+                deviceSettingsTable.FFTwindowLoad(entryNumber) = fftConfig.windowLoad;
+            end
         end
         
         % FFT data
@@ -84,6 +121,18 @@ while recordCounter <= length(DeviceSettings)
             deviceSettingsTable.FFTstreamOffsetBins(entryNumber) = fftConfig.streamOffsetBins;
             deviceSettingsTable.FFTstreamSizeBins(entryNumber) = fftConfig.streamSizeBins;
             deviceSettingsTable.FFTwindowLoad(entryNumber) = fftConfig.windowLoad;
+            
+            if recordCounter > 1
+                % Fill in most recent time domain data settings
+                for iChan = 1:4
+                    fieldName = sprintf('chan%d',iChan);
+                    deviceSettingsTable.(fieldName){entryNumber} = TDsettings(iChan).chanFullStr;
+                end
+                deviceSettingsTable.tdDataStruc{entryNumber} = TDsettings;
+                
+                % Fill in most recent power domain settings
+                deviceSettingsTable.powerBands{entryNumber} = powerChannels;
+            end
         end
         
         % If any of the above were updated, iterate entryNumber
@@ -190,6 +239,7 @@ while recordCounter <= length(DeviceSettings)
                         deviceSettingsTable.(fieldName){entryNumber} = TDsettings(iChan).chanFullStr;
                     end
                     deviceSettingsTable.tdDataStruc{entryNumber} = TDsettings;
+                    
                     % Fill in most recent power domain settings
                     deviceSettingsTable.powerBands{entryNumber} = powerChannels;
                     
@@ -222,6 +272,9 @@ end
 
 % KS: Check below (compare to FFTdata -- need to do anyting to accomodate
 % power or FFT??)
+
+% add info about FFT and power bands from deviceSettingsTable to
+% deviceSettingsOut. 
 
 %%
 % Loop through deviceSettingsTable to determine start and stop time for each
