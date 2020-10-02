@@ -1,9 +1,16 @@
-function [deviceSettingsOut, metaData, stimStatus, stimState] = createDeviceSettingsTable(folderPath)
+function [TD_SettingsOut, Power_SettingsOut, FFT_SettingsOut, metaData] = createDeviceSettingsTable(folderPath)
 %%
+% Extract information from DeviceSettings related to configuration for time domain,
+% power, and FFT channels. All fields are present in first entry, but subsequent 
+% entries only have fields which were updated. This function first collects
+% all configs, changes in configs, and stream starts/stops times 
+% (these gets stored in internal variables TD_SettingsTable, Power_SettingsTable, or
+% FFT_SettingsTable). Then, go through these tables to create a 'cleaned up'
+% version, collecting settings for enabled channels and streams
+% (stored in TD_SettingsOut, Power_SettingsOut, FFT_SettingsOut)
 %
 % Input: Folder path to Device* folder containing json files
-%
-% Output: *
+% Output: TD_SettingsOut, Power_SettingsOut, FFT_SettingsOut, metaData
 %
 % Requires convertTDcodes.m
 %%
@@ -25,68 +32,60 @@ metaData.estimatedCapacity = DeviceSettings{1}.BatteryStatus.estimatedCapacity;
 metaData.batterySOC = DeviceSettings{1}.BatteryStatus.batterySOC;
 
 %%
-deviceSettingsTable = table(); % Initalize table
-recordCounter = 1; % Initalize counter for records in DeviceSetting
-entryNumber = 1; % Initialize counter for populating entries to table
-inStream = 0; % Initalize as streaming off
-changeToInStream = 0;
-streamStartCounter = 1; % Initalize counter for streaming starts
-streamStopCounter = 1; % Initalize counter for streaming stops
+TD_SettingsTable = table(); % Initalize table
+Power_SettingsTable = table(); % Initalize table
+FFT_SettingsTable = table(); % Initalize table
 
-% All fields are present in first entry, but subsequent entries only have
-% fields which were updated. Go through all the entries in device settings,
-% checking for updates. First, collect all configs, changes in configs, and stream
-% starts/stops (this gets stored in DeviceSettingsTable). Then, go through
-% DeviceSettingsTable to create a 'cleaned up' version, collecting settings
-% for enabled channels and streams (stored in deviceSettingsOut)
+recordCounter = 1; % Initalize counter for records in DeviceSetting
+entryNumber_TD = 1; % Initialize counter for populating entries to table
+entryNumber_Power = 1; % Initialize counter for populating entries to table
+entryNumber_FFT = 1; % Initialize counter for populating entries to table
+
+inStream_TD = 0; % Initalize as streaming off
+inStream_Power = 0; % Initalize as streaming off
+inStream_FFT = 0; % Initalize as streaming off
+
+changeToInStream = 0;
+streamStartCounter_TD = 1; % Initalize counter for streaming starts
+streamStopCounter_TD = 1; % Initalize counter for streaming stops
+streamStartCounter_Power = 1; % Initalize counter for streaming starts
+streamStopCounter_Power = 1; % Initalize counter for streaming stops
+streamStartCounter_FFT = 1; % Initalize counter for streaming starts
+streamStopCounter_FFT = 1; % Initalize counter for streaming stops
 
 while recordCounter <= length(DeviceSettings)
     currentSettings = DeviceSettings{recordCounter};
     
-    createdEntry = 0;
     % Check if SensingConfig was updated
     if isfield(currentSettings,'SensingConfig')
         
-        % If timeDomain, power, or FFT is updated in this record, create
-        % new row in deviceSettingsTable and populate with metadata
-        if isfield(currentSettings.SensingConfig,'timeDomainChannels') ||...
-                isfield(currentSettings.SensingConfig,'powerChannels') ||...
-                isfield(currentSettings.SensingConfig,'fftConfig')
-            
-            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            deviceSettingsTable.action{entryNumber} = 'Sense Config';
-            deviceSettingsTable.recNum(entryNumber) = NaN;
-            deviceSettingsTable.time{entryNumber} = HostUnixTime;
-            createdEntry = 1;
-        end
-        
-        % Time domain data
+        % If timeDomain updated in this record, create
+        % new row in TD_SettingsTable and populate with metadata
         if isfield(currentSettings.SensingConfig,'timeDomainChannels')
+            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
+            TD_SettingsTable.action{entryNumber_TD} = 'Sense Config';
+            TD_SettingsTable.recNum(entryNumber_TD) = NaN;
+            TD_SettingsTable.time{entryNumber_TD} = HostUnixTime;
+            
             % Settings will remain in TDsettings until updated
             TDsettings = convertTDcodes(currentSettings.SensingConfig.timeDomainChannels);
             for iChan = 1:4
                 fieldName = sprintf('chan%d',iChan);
-                deviceSettingsTable.(fieldName){entryNumber} = TDsettings(iChan).chanFullStr;
+                TD_SettingsTable.(fieldName){entryNumber_TD} = TDsettings(iChan).chanFullStr;
             end
-            deviceSettingsTable.tdDataStruc{entryNumber} = TDsettings;
+            TD_SettingsTable.tdDataStruc{entryNumber_TD} = TDsettings;
             
-            if recordCounter > 1
-                % Fill in most recent power domain settings
-                deviceSettingsTable.powerBands{entryNumber} = powerChannels;
-                
-                % Fill in most recent FFT settings
-                deviceSettingsTable.FFTbandFormationConfig(entryNumber) = fftConfig.bandFormationConfig;
-                deviceSettingsTable.FFTconfig(entryNumber) = fftConfig.config;
-                deviceSettingsTable.FFTinterval(entryNumber) = fftConfig.interval;
-                deviceSettingsTable.FFTsize(entryNumber) = fftConfig.size;
-                deviceSettingsTable.FFTstreamOffsetBins(entryNumber) = fftConfig.streamOffsetBins;
-                deviceSettingsTable.FFTstreamSizeBins(entryNumber) = fftConfig.streamSizeBins;
-                deviceSettingsTable.FFTwindowLoad(entryNumber) = fftConfig.windowLoad;
-            end
+            entryNumber_TD = entryNumber_TD + 1;
         end
         
-        % Power domain data
+        % If power domain updated in this record, create
+        % new row in Power_SettingsTable and populate with metadata
         if isfield(currentSettings.SensingConfig,'powerChannels')
+            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
+            Power_SettingsTable.action{entryNumber_Power} = 'Sense Config';
+            Power_SettingsTable.recNum(entryNumber_Power) = NaN;
+            Power_SettingsTable.time{entryNumber_Power} = HostUnixTime;
+            
             % This populates information about the powerBands (coded
             % values, not in Hz). The bipolar channels associated with the
             % bands are defined above (from timeDomainChannels). Sense chan1: Bands
@@ -95,246 +94,290 @@ while recordCounter <= length(DeviceSettings)
             
             % Settings will remain in powerChannels until updated
             powerChannels = currentSettings.SensingConfig.powerChannels;
-            deviceSettingsTable.powerBands{entryNumber} = powerChannels;
+            Power_SettingsTable.powerBands{entryNumber_Power} = powerChannels;
             
-            if recordCounter > 1
-                % Fill in most recent time domain data settings
-                for iChan = 1:4
-                    fieldName = sprintf('chan%d',iChan);
-                    deviceSettingsTable.(fieldName){entryNumber} = TDsettings(iChan).chanFullStr;
-                end
-                deviceSettingsTable.tdDataStruc{entryNumber} = TDsettings;
-                
-                % Fill in most recent FFT settings
-                deviceSettingsTable.FFTbandFormationConfig(entryNumber) = fftConfig.bandFormationConfig;
-                deviceSettingsTable.FFTconfig(entryNumber) = fftConfig.config;
-                deviceSettingsTable.FFTinterval(entryNumber) = fftConfig.interval;
-                deviceSettingsTable.FFTsize(entryNumber) = fftConfig.size;
-                deviceSettingsTable.FFTstreamOffsetBins(entryNumber) = fftConfig.streamOffsetBins;
-                deviceSettingsTable.FFTstreamSizeBins(entryNumber) = fftConfig.streamSizeBins;
-                deviceSettingsTable.FFTwindowLoad(entryNumber) = fftConfig.windowLoad;
-            end
+            entryNumber_Power = entryNumber_Power + 1;
         end
         
-        % FFT data
+        % If FFT updated in this record, create
+        % new row in FFT_SettingsTable and populate with metadata
         if isfield(currentSettings.SensingConfig,'fftConfig')
+            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
+            FFT_SettingsTable.action{entryNumber_FFT} = 'Sense Config';
+            FFT_SettingsTable.recNum(entryNumber_FFT) = NaN;
+            FFT_SettingsTable.time{entryNumber_FFT} = HostUnixTime;
+            
             % Settings will remain in fftConfig until updated
             fftConfig = currentSettings.SensingConfig.fftConfig;
-            deviceSettingsTable.FFTbandFormationConfig(entryNumber) = fftConfig.bandFormationConfig;
-            deviceSettingsTable.FFTconfig(entryNumber) = fftConfig.config;
-            deviceSettingsTable.FFTinterval(entryNumber) = fftConfig.interval;
-            deviceSettingsTable.FFTsize(entryNumber) = fftConfig.size;
-            deviceSettingsTable.FFTstreamOffsetBins(entryNumber) = fftConfig.streamOffsetBins;
-            deviceSettingsTable.FFTstreamSizeBins(entryNumber) = fftConfig.streamSizeBins;
-            deviceSettingsTable.FFTwindowLoad(entryNumber) = fftConfig.windowLoad;
+            FFT_SettingsTable.FFTbandFormationConfig(entryNumber_FFT) = fftConfig.bandFormationConfig;
+            FFT_SettingsTable.FFTconfig(entryNumber_FFT) = fftConfig.config;
+            FFT_SettingsTable.FFTinterval(entryNumber_FFT) = fftConfig.interval;
+            FFT_SettingsTable.FFTsize(entryNumber_FFT) = fftConfig.size;
+            FFT_SettingsTable.FFTstreamOffsetBins(entryNumber_FFT) = fftConfig.streamOffsetBins;
+            FFT_SettingsTable.FFTstreamSizeBins(entryNumber_FFT) = fftConfig.streamSizeBins;
+            FFT_SettingsTable.FFTwindowLoad(entryNumber_FFT) = fftConfig.windowLoad;
             
-            if recordCounter > 1
-                % Fill in most recent time domain data settings
-                for iChan = 1:4
-                    fieldName = sprintf('chan%d',iChan);
-                    deviceSettingsTable.(fieldName){entryNumber} = TDsettings(iChan).chanFullStr;
-                end
-                deviceSettingsTable.tdDataStruc{entryNumber} = TDsettings;
-                
-                % Fill in most recent power domain settings
-                deviceSettingsTable.powerBands{entryNumber} = powerChannels;
-            end
-        end
-        
-        % If any of the above were updated, iterate entryNumber
-        if createdEntry == 1
-            entryNumber = entryNumber + 1;
+            entryNumber_FFT = entryNumber_FFT + 1;
         end
     end
-    
+    %%
     % Check if streaming has been turned on
     % (TDsettings, powerChannels, and fftConfig should have all been populated
     % with something because first record should have all variables)
     if isfield(currentSettings,'StreamState')
-        
-        % If any stream has been turned on, copy all settings and fill in
-        % dummy variables indicating which stream(s) are active
-        
-        % Variables to indicate which stream(s) are enabled; will get
-        % updated each time StreamState is present
-        TDenabled = currentSettings.StreamState.TimeDomainStreamEnabled;
-        PDenabled = currentSettings.StreamState.PowerDomainStreamEnabled;
-        FFTenabled = currentSettings.StreamState.FftStreamEnabled;
-        
-        if TDenabled || PDenabled || FFTenabled
-              % KS add adaptive stream to OR statement above
+        % TIME DOMAIN
+        if currentSettings.StreamState.TimeDomainStreamEnabled && ~inStream_TD % If not already inStream, then streaming is starting
+            % Create new row in TD_SettingsTable and populate with metadata
+            recordCounter
+            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
+            TD_SettingsTable.action{entryNumber_TD} = sprintf('Start Stream TD %d',streamStartCounter_TD);
+            TD_SettingsTable.recNum(entryNumber_TD) = streamStartCounter_TD;
+            TD_SettingsTable.time{entryNumber_TD} = HostUnixTime;
             
-            if ~inStream % If not already inStream, then streaming is starting
-                % Create new row in deviceSettingsTable and populate with metadata
-                HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-                deviceSettingsTable.action{entryNumber} = sprintf('Start Stream %d',streamStartCounter);
-                deviceSettingsTable.recNum(entryNumber) = streamStartCounter;
-                deviceSettingsTable.time{entryNumber} = HostUnixTime;
-                
-                % Time domain info
-                % Fill in most recent time domain data settings
-                for iChan = 1:4
-                    fieldName = sprintf('chan%d',iChan);
-                    deviceSettingsTable.(fieldName){entryNumber} = TDsettings(iChan).chanFullStr;
-                end
-                deviceSettingsTable.tdDataStruc{entryNumber} = TDsettings;
-                
-                % Power domain info
-                deviceSettingsTable.powerBands{entryNumber} = powerChannels;
-                
-                % FFT info
-                deviceSettingsTable.FFTbandFormationConfig(entryNumber) = fftConfig.bandFormationConfig;
-                deviceSettingsTable.FFTconfig(entryNumber) = fftConfig.config;
-                deviceSettingsTable.FFTinterval(entryNumber) = fftConfig.interval;
-                deviceSettingsTable.FFTsize(entryNumber) = fftConfig.size;
-                deviceSettingsTable.FFTstreamOffsetBins(entryNumber) = fftConfig.streamOffsetBins;
-                deviceSettingsTable.FFTstreamSizeBins(entryNumber) = fftConfig.streamSizeBins;
-                deviceSettingsTable.FFTwindowLoad(entryNumber) = fftConfig.windowLoad;
-                
-                % Copy info about which streams are active
-                deviceSettingsTable.TimeDomainEnabled(entryNumber) = currentSettings.StreamState.TimeDomainStreamEnabled;
-                deviceSettingsTable.PowerDomainEnabled(entryNumber) = currentSettings.StreamState.PowerDomainStreamEnabled;
-                deviceSettingsTable.FFTEnabled(entryNumber) = currentSettings.StreamState.FftStreamEnabled;
-                deviceSettingsTable.AccelEnabled(entryNumber) = currentSettings.StreamState.AccelStreamEnabled;
-                
-                % KS: Add adaptive stream
-                
-                streamStartCounter = streamStartCounter + 1;
-                inStream = 1;
-                entryNumber = entryNumber + 1;
-                
-                % Need to copy streaming status for each stream in order to
-                % check for each stream being disabled
-                TDstatus = TDenabled;
-                PDstatus = PDenabled;
-                FFTstatus = FFTenabled;
+            % Time domain info
+            % Fill in most recent time domain data settings
+            for iChan = 1:4
+                fieldName = sprintf('chan%d',iChan);
+                TD_SettingsTable.(fieldName){entryNumber_TD} = TDsettings(iChan).chanFullStr;
             end
+            TD_SettingsTable.tdDataStruc{entryNumber_TD} = TDsettings;
+            
+            streamStartCounter_TD = streamStartCounter_TD + 1;
+            entryNumber_TD = entryNumber_TD + 1;
+            inStream_TD = 1;
+        end
+        
+        % POWER DOMAIN
+        if currentSettings.StreamState.PowerDomainStreamEnabled && ~inStream_Power % If not already inStream, then streaming is starting
+            % Create new row in Power_SettingsTable and populate with metadata
+            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
+            Power_SettingsTable.action{entryNumber_Power} = sprintf('Start Stream Power %d',streamStartCounter_Power);
+            Power_SettingsTable.recNum(entryNumber_Power) = streamStartCounter_Power;
+            Power_SettingsTable.time{entryNumber_Power} = HostUnixTime;
+            
+            % Power domain info
+            Power_SettingsTable.powerBands{entryNumber_Power} = powerChannels;
+            
+            streamStartCounter_Power = streamStartCounter_Power + 1;
+            entryNumber_Power = entryNumber_Power + 1;
+            inStream_Power = 1;
+        end
+        
+        % FFT
+        if currentSettings.StreamState.FftStreamEnabled && ~inStream_FFT % If not already inStream, then streaming is starting
+            % Create new row in FFT_SettingsTable and populate with metadata
+            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
+            FFT_SettingsTable.action{entryNumber_FFT} = sprintf('Start Stream FFT %d',streamStartCounter_FFT);
+            FFT_SettingsTable.recNum(entryNumber_FFT) = streamStartCounter_FFT;
+            FFT_SettingsTable.time{entryNumber_FFT} = HostUnixTime;
+            
+            % FFT info
+            FFT_SettingsTable.FFTbandFormationConfig(entryNumber_FFT) = fftConfig.bandFormationConfig;
+            FFT_SettingsTable.FFTconfig(entryNumber_FFT) = fftConfig.config;
+            FFT_SettingsTable.FFTinterval(entryNumber_FFT) = fftConfig.interval;
+            FFT_SettingsTable.FFTsize(entryNumber_FFT) = fftConfig.size;
+            FFT_SettingsTable.FFTstreamOffsetBins(entryNumber_FFT) = fftConfig.streamOffsetBins;
+            FFT_SettingsTable.FFTstreamSizeBins(entryNumber_FFT) = fftConfig.streamSizeBins;
+            FFT_SettingsTable.FFTwindowLoad(entryNumber_FFT) = fftConfig.windowLoad;
+            
+            streamStartCounter_FFT = streamStartCounter_FFT + 1;
+            entryNumber_FFT = entryNumber_FFT + 1;
+            inStream_FFT = 1;
         end
     end
-    
+    %%
     % Check if streaming has been stopped - this can be done by turning
-    % streaming off, by turning sensing off, or by ending the session. 
-    % Use the same counter across the first two methods. Rather than just 
-    % looking to see if streaming is disabled, must confirm it was previously
-    % enabled and has switched to disabled (because looking across multiple streams)
+    % streaming off, by turning sensing off, or by ending the session.
+    % Use the same counter across the first two methods.
     
     % Option 1: Check if streaming has been stopped
     if isfield(currentSettings,'StreamState')
-        if inStream % Only continue if streaming is on
+        
+        % TIME DOMAIN
+        if inStream_TD && ~currentSettings.StreamState.TimeDomainStreamEnabled
+            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
+            TD_SettingsTable.action{entryNumber_TD} = sprintf('Stop Stream TD %d',streamStopCounter_TD);
+            TD_SettingsTable.recNum(entryNumber_TD) = streamStopCounter_TD;
+            TD_SettingsTable.time{entryNumber_TD} = HostUnixTime;
             
-            % TDenabled, PDenabled, FFTenabled have already been updated
-            % for currentSettings; check if there was a switch in streaming status
-            % of any of the streams
-            if ~isequal(TDstatus, TDenabled) || ~isequal(PDstatus, PDenabled) ||...
-                    ~isequal(FFTstatus, FFTenabled)
-                % One or more of the streams changed from enabled to disabled
-                % Create new row in deviceSettingsTable and populate with metadata
-                HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-                deviceSettingsTable.action{entryNumber} = sprintf('Stop Stream %d',streamStopCounter);
-                deviceSettingsTable.recNum(entryNumber) = streamStopCounter;
-                deviceSettingsTable.time{entryNumber} = HostUnixTime;
-                
-                % Fill in most recent time domain data settings
-                for iChan = 1:4
-                    fieldName = sprintf('chan%d',iChan);
-                    deviceSettingsTable.(fieldName){entryNumber} = TDsettings(iChan).chanFullStr;
-                end
-                deviceSettingsTable.tdDataStruc{entryNumber} = TDsettings;
-                
-                % Fill in most recent power domain settings
-                deviceSettingsTable.powerBands{entryNumber} = powerChannels;
-                
-                % Fill in most recent FFT settings
-                deviceSettingsTable.FFTbandFormationConfig(entryNumber) = fftConfig.bandFormationConfig;
-                deviceSettingsTable.FFTconfig(entryNumber) = fftConfig.config;
-                deviceSettingsTable.FFTinterval(entryNumber) = fftConfig.interval;
-                deviceSettingsTable.FFTsize(entryNumber) = fftConfig.size;
-                deviceSettingsTable.FFTstreamOffsetBins(entryNumber) = fftConfig.streamOffsetBins;
-                deviceSettingsTable.FFTstreamSizeBins(entryNumber) = fftConfig.streamSizeBins;
-                deviceSettingsTable.FFTwindowLoad(entryNumber) = fftConfig.windowLoad;
-                
-                inStream = 0;
-                streamStopCounter = streamStopCounter + 1;
-                entryNumber = entryNumber + 1;
+            % Fill in most recent time domain data settings
+            for iChan = 1:4
+                fieldName = sprintf('chan%d',iChan);
+                TD_SettingsTable.(fieldName){entryNumber_TD} = TDsettings(iChan).chanFullStr;
             end
+            TD_SettingsTable.tdDataStruc{entryNumber_TD} = TDsettings;
+            
+            inStream_TD = 0;
+            streamStopCounter_TD = streamStopCounter_TD + 1;
+            entryNumber_TD = entryNumber_TD + 1;
+            
+        end
+        
+        % POWER DOMAIN
+        if inStream_Power && ~currentSettings.StreamState.PowerDomainStreamEnabled
+            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
+            Power_SettingsTable.action{entryNumber_Power} = sprintf('Stop Stream Power %d',streamStopCounter_Power);
+            Power_SettingsTable.recNum(entryNumber_Power) = streamStopCounter_Power;
+            Power_SettingsTable.time{entryNumber_Power} = HostUnixTime;
+            
+            % Fill in most recent power domain settings
+            Power_SettingsTable.powerBands{entryNumber_Power} = powerChannels;
+            
+            inStream_Power = 0;
+            streamStopCounter_Power = streamStopCounter_Power + 1;
+            entryNumber_Power = entryNumber_Power + 1;
+            
+        end
+        
+        % FFT
+        if inStream_FFT && ~currentSettings.StreamState.FftStreamEnabled
+            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
+            FFT_SettingsTable.action{entryNumber_FFT} = sprintf('Stop Stream FFT %d',streamStopCounter_FFT);
+            FFT_SettingsTable.recNum(entryNumber_FFT) = streamStopCounter_FFT;
+            FFT_SettingsTable.time{entryNumber_FFT} = HostUnixTime;
+            
+            % Fill in most recent FFT settings
+            FFT_SettingsTable.FFTbandFormationConfig(entryNumber_FFT) = fftConfig.bandFormationConfig;
+            FFT_SettingsTable.FFTconfig(entryNumber_FFT) = fftConfig.config;
+            FFT_SettingsTable.FFTinterval(entryNumber_FFT) = fftConfig.interval;
+            FFT_SettingsTable.FFTsize(entryNumber_FFT) = fftConfig.size;
+            FFT_SettingsTable.FFTstreamOffsetBins(entryNumber_FFT) = fftConfig.streamOffsetBins;
+            FFT_SettingsTable.FFTstreamSizeBins(entryNumber_FFT) = fftConfig.streamSizeBins;
+            FFT_SettingsTable.FFTwindowLoad(entryNumber_FFT) = fftConfig.windowLoad;
+            
+            inStream_FFT = 0;
+            streamStopCounter_FFT = streamStopCounter_FFT + 1;
+            entryNumber_FFT = entryNumber_FFT + 1;
         end
     end
     
     % Option 2: Check if sense has been turned off
     if isfield(currentSettings,'SenseState')
-        if inStream % Only continue if streaming is on
-            if isfield(currentSettings.SenseState,'state')
-                senseState = dec2bin(currentSettings.SenseState.state,4);
-                % Check starting/stopping of time domain streaming. See
-                % documentation enum Medtronic.NeuroStim.Olympus.DataTypes.Sensing.SenseStates : byte
-                % for more details about binary number coding
+        % TIME DOMAIN
+        if inStream_TD && isfield(currentSettings.SenseState,'state')
+            senseState = dec2bin(currentSettings.SenseState.state,4);
+            % Check starting/stopping of time domain streaming. See
+            % documentation enum Medtronic.NeuroStim.Olympus.DataTypes.Sensing.SenseStates : byte
+            % for more details about binary number coding
+            
+            if strcmp(senseState(4),'0') % Time domain streaming is off
+                % Create new row in deviceSettingsTable and populate with metadata
+                HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
+                TD_SettingsTable.action{entryNumber_TD} = sprintf('Stop Sense TD %d',streamStopCounter_TD);
+                TD_SettingsTable.recNum(entryNumber_TD) = streamStopCounter_TD;
+                TD_SettingsTable.time{entryNumber_TD} = HostUnixTime;
                 
-                
-                % KS: NEED TO ADD CHECKING IF POWER OR FFT HAVE SWITCHED
-                % FROM ON TO OFF
-                
-                
-                if strcmp(senseState(4),'0') % Time domain streaming is off
-                    % Create new row in deviceSettingsTable and populate with metadata
-                    HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-                    deviceSettingsTable.action{entryNumber} = sprintf('Stop Sense %d',streamStopCounter);
-                    deviceSettingsTable.recNum(entryNumber) = streamStopCounter;
-                    deviceSettingsTable.time{entryNumber} = HostUnixTime;
-                    
-                    % Fill in most recent time domain data settings
-                    for iChan = 1:4
-                        fieldName = sprintf('chan%d',iChan);
-                        deviceSettingsTable.(fieldName){entryNumber} = TDsettings(iChan).chanFullStr;
-                    end
-                    deviceSettingsTable.tdDataStruc{entryNumber} = TDsettings;
-                    
-                    % Fill in most recent power domain settings
-                    deviceSettingsTable.powerBands{entryNumber} = powerChannels;
-                    
-                    % Fill in most recent FFT settings
-                    deviceSettingsTable.FFTbandFormationConfig(entryNumber) = fftConfig.bandFormationConfig;
-                    deviceSettingsTable.FFTconfig(entryNumber) = fftConfig.config;
-                    deviceSettingsTable.FFTinterval(entryNumber) = fftConfig.interval;
-                    deviceSettingsTable.FFTsize(entryNumber) = fftConfig.size;
-                    deviceSettingsTable.FFTstreamOffsetBins(entryNumber) = fftConfig.streamOffsetBins;
-                    deviceSettingsTable.FFTstreamSizeBins(entryNumber) = fftConfig.streamSizeBins;
-                    deviceSettingsTable.FFTwindowLoad(entryNumber) = fftConfig.windowLoad;
-                    
-                    inStream = 0;
-                    streamStopCounter = streamStopCounter + 1;
-                    entryNumber = entryNumber + 1;
+                % Fill in most recent time domain data settings
+                for iChan = 1:4
+                    fieldName = sprintf('chan%d',iChan);
+                    TD_SettingsTable.(fieldName){entryNumber_TD} = TDsettings(iChan).chanFullStr;
                 end
+                TD_SettingsTable.tdDataStruc{entryNumber_TD} = TDsettings;
+                inStream_TD = 0;
+                streamStopCounter_TD = streamStopCounter_TD + 1;
+                entryNumber_TD = entryNumber_TD + 1;
+            end
+        end
+        
+        % POWER DOMAIN
+        if inStream_Power && isfield(currentSettings.SenseState,'state')
+            % KS UPDATE LINE BELOW/ABOVE
+            senseState = dec2bin(currentSettings.SenseState.state,4);
+            % Check starting/stopping of time domain streaming. See
+            % documentation enum Medtronic.NeuroStim.Olympus.DataTypes.Sensing.SenseStates : byte
+            % for more details about binary number coding
+            
+            % KS UPDATE LINE BELOW
+            if strcmp(senseState(4),'0') % Time domain streaming is off
+                % Create new row in deviceSettingsTable and populate with metadata
+                HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
+                Power_SettingsTable.action{entryNumber_Power} = sprintf('Stop Sense Power %d',streamStopCounter_Power);
+                Power_SettingsTable.recNum(entryNumber_Power) = streamStopCounter_Power;
+                Power_SettingsTable.time{entryNumber_Power} = HostUnixTime;
+                
+                % Fill in most recent power domain settings
+                Power_SettingsTable.powerBands{entryNumber_Power} = powerChannels;
+                
+                inStream_Power = 0;
+                streamStopCounter_Power = streamStopCounter_Power + 1;
+                entryNumber_Power = entryNumber_Power + 1;
+            end
+            
+        end
+        
+        % FFT
+        if inStream_FFT && isfield(currentSettings.SenseState,'state')
+            % KS UPDATE SENSE STATE
+            senseState = dec2bin(currentSettings.SenseState.state,4);
+            % Check starting/stopping of time domain streaming. See
+            % documentation enum Medtronic.NeuroStim.Olympus.DataTypes.Sensing.SenseStates : byte
+            % for more details about binary number coding
+            
+            % KS IF STATEMENT MUST BE UPDATED
+            if strcmp(senseState(4),'0') % Time domain streaming is off
+                % Create new row in deviceSettingsTable and populate with metadata
+                HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
+                FFT_SettingsTable.action{entryNumber_FFT} = sprintf('Stop Sense FFT %d',streamStopCounter_FFT);
+                FFT_SettingsTable.recNum(entryNumber_FFT) = streamStopCounter_FFT;
+                FFT_SettingsTable.time{entryNumber_FFT} = HostUnixTime;
+                
+                % Fill in most recent FFT settings
+                FFT_SettingsTable.FFTbandFormationConfig(entryNumber_FFT) = fftConfig.bandFormationConfig;
+                FFT_SettingsTable.FFTconfig(entryNumber_FFT) = fftConfig.config;
+                FFT_SettingsTable.FFTinterval(entryNumber_FFT) = fftConfig.interval;
+                FFT_SettingsTable.FFTsize(entryNumber_FFT) = fftConfig.size;
+                FFT_SettingsTable.FFTstreamOffsetBins(entryNumber_FFT) = fftConfig.streamOffsetBins;
+                FFT_SettingsTable.FFTstreamSizeBins(entryNumber_FFT) = fftConfig.streamSizeBins;
+                FFT_SettingsTable.FFTwindowLoad(entryNumber_FFT) = fftConfig.windowLoad;
+                
+                inStream_FFT = 0;
+                streamStopCounter_FFT = streamStopCounter_FFT + 1;
+                entryNumber_FFT = entryNumber_FFT + 1;
             end
         end
     end
+    
     % Option 3: If last record, get HostUnixTime (can use in cases where no stop time
     % was recorded)
     if recordCounter == length(DeviceSettings)
-        deviceSettingsTable.action{entryNumber} = sprintf('Last record');
-        deviceSettingsTable.recNum(entryNumber) = NaN;
-        deviceSettingsTable.time{entryNumber} = HostUnixTime;
+        TD_SettingsTable.action{entryNumber_TD} = sprintf('Last record');
+        TD_SettingsTable.recNum(entryNumber_TD) = NaN;
+        TD_SettingsTable.time{entryNumber_TD} = HostUnixTime;
+        
+        Power_SettingsTable.action{entryNumber_Power} = sprintf('Last record');
+        Power_SettingsTable.recNum(entryNumber_Power) = NaN;
+        Power_SettingsTable.time{entryNumber_Power} = HostUnixTime;
+        
+        FFT_SettingsTable.action{entryNumber_FFT} = sprintf('Last record');
+        FFT_SettingsTable.recNum(entryNumber_FFT) = NaN;
+        FFT_SettingsTable.time{entryNumber_FFT} = HostUnixTime;
     end
     recordCounter = recordCounter + 1;
 end
 
 %%
-% Loop through deviceSettingsTable to determine start and stop time for each
+% Loop through each SettingsTable (TD_SettingsTable, Power_SettingsTable,
+% and FFT_SettingsTable) to determine start and stop time for each
 % recording segment in the file. deviceSettingOutput pulls relevant
 % information from deviceSettingsTable, only taking information about data
 % which was streamed
-deviceSettingsOut = table();
-
-% Indices in table of start/stop actions
-indices = ~isnan(deviceSettingsTable.recNum);
-recordingChunks = unique(deviceSettingsTable.recNum(indices));
 
 % Extract timing info and metadata about each recording chunk. Recording chunks are defined as
 % having a start and stop time in the deviceSettingsTable; the last
 % recording chunk in the file can use the last record time as the stop
 % time.
+
+%%
+% TIME DOMAIN
+TD_SettingsOut = table();
+
+% Indices in table of start/stop actions
+indices = ~isnan(TD_SettingsTable.recNum);
+recordingChunks = unique(TD_SettingsTable.recNum(indices));
+
 for iChunk = 1:length(recordingChunks)
-    currentIndices = deviceSettingsTable.recNum == recordingChunks(iChunk);
-    selectData = deviceSettingsTable(currentIndices,:);
+    currentIndices = TD_SettingsTable.recNum == recordingChunks(iChunk);
+    selectData = TD_SettingsTable(currentIndices,:);
     missingTime = 0;
     
     % If not the last chunk in the file, check for two times (assuming
@@ -355,7 +398,7 @@ for iChunk = 1:length(recordingChunks)
         % Check that second time is a stop time, or if last chunk can
         % have stop time missing and use 'last record' time
         if iChunk == length(recordingChunks) && size(selectData,1) ~= 2
-            timeStop = deviceSettingsTable.time{end};
+            timeStop = TD_SettingsTable.time{end};
         else
             if contains(selectData.action{2},'Stop')
                 timeStop = selectData.time{2};
@@ -367,107 +410,136 @@ for iChunk = 1:length(recordingChunks)
         
         % If no missing start or stop time, populate deviceSettingsOut
         if missingTime == 0
-            deviceSettingsOut.recNum(iChunk) = recordingChunks(iChunk);
-            deviceSettingsOut.duration(iChunk) = timeStop - timeStart;
-            deviceSettingsOut.timeStart(iChunk) = timeStart;
-            deviceSettingsOut.timeStop(iChunk) = timeStop;
+            TD_SettingsOut.recNum(iChunk) = recordingChunks(iChunk);
+            TD_SettingsOut.duration(iChunk) = timeStop - timeStart;
+            TD_SettingsOut.timeStart(iChunk) = timeStart;
+            TD_SettingsOut.timeStop(iChunk) = timeStop;
             
             % Loop through all TD channels to get sampling rate and acquistion parameters
             for iChan = 1:4
                 if ~strcmp(selectData.tdDataStruc{1}(iChan).sampleRate,'disabled') &&...
                         ~strcmp(selectData.tdDataStruc{1}(iChan).sampleRate,'unexpected')
-                    deviceSettingsOut.samplingRate(iChunk) = str2num(selectData.tdDataStruc{1}(iChan).sampleRate(1:end-2));
+                    TD_SettingsOut.samplingRate(iChunk) = str2num(selectData.tdDataStruc{1}(iChan).sampleRate(1:end-2));
                     fieldName = sprintf('chan%d',iChan);
-                    deviceSettingsOut.(fieldName){iChunk} = selectData.(fieldName){1};
+                    TD_SettingsOut.(fieldName){iChunk} = selectData.(fieldName){1};
                 end
             end
-            deviceSettingsOut.TimeDomainDataStruc{iChunk} = selectData.tdDataStruc{1};
-            
-            % Power data
-            deviceSettingsOut.powerBands{iChunk} = selectData.powerBands{1};
-            
-            % FFT data
-            deviceSettingsOut.FFTbandFormationConfig(iChunk) = selectData.FFTbandFormationConfig(1);
-            deviceSettingsOut.FFTconfig(iChunk) = selectData.FFTconfig(1);
-            deviceSettingsOut.FFTinterval(iChunk) = selectData.FFTinterval(1);
-            deviceSettingsOut.FFTsize(iChunk) = selectData.FFTsize(1);
-            deviceSettingsOut.FFTstreamOffsetBins(iChunk) = selectData.FFTstreamOffsetBins(1);
-            deviceSettingsOut.FFTstreamSizeBins(iChunk) = selectData.FFTstreamSizeBins(1);
-            deviceSettingsOut.FFTwindowLoad(iChunk) = selectData.FFTwindowLoad(1);
-            
+            TD_SettingsOut.TimeDomainDataStruc{iChunk} = selectData.tdDataStruc{1};
         end
     end
 end
+%%
+% POWER DOMAIN
+Power_SettingsOut = table();
 
+% Indices in table of start/stop actions
+indices = ~isnan(Power_SettingsTable.recNum);
+recordingChunks = unique(Power_SettingsTable.recNum(indices));
 
-%% load stimulation config
-% this code (re stim sweep part) assumes no change in stimulation from initial states
-% this code will fail for stim sweeps or if any changes were made to
-% stimilation
-% need to fix this to include stim changes and when the occured to color
-% data properly according to stim changes and when the took place for in
-% clinic testing
-
-therapyStatus = DeviceSettings{1}.GeneralData.therapyStatusData;
-groups = [0 1 2 3]; % max of 4 groups
-groupNames = {'A','B','C','D'};
-stimState = table();
-counter = 1;
-
-for iGroup = 1:length(groups)
-    fn = sprintf('TherapyConfigGroup%d',groups(iGroup));
-    for iProgram = 1:4 % max of 4 programs per group
-        if DeviceSettings{1}.TherapyConfigGroup0.programs(iProgram).isEnabled == 0
-            stimState.group(counter) = groupNames{iGroup};
-            if (iGroup-1) == therapyStatus.activeGroup
-                stimState.activeGroup(counter) = 1;
-                if therapyStatus.therapyStatus
-                    stimState.stimulation_on(counter) = 1;
-                else
-                    stimState.stimulation_on(counter) = 0;
-                end
+for iChunk = 1:length(recordingChunks)
+    currentIndices = Power_SettingsTable.recNum == recordingChunks(iChunk);
+    selectData = Power_SettingsTable(currentIndices,:);
+    missingTime = 0;
+    
+    % If not the last chunk in the file, check for two times (assuming
+    % start and stop times). Lack of two times indicates something wrong
+    % with streaming - do not keep these data
+    if size(selectData,1) ~= 2 && iChunk < length(recordingChunks)
+        warning('Streaming of power data does not have one start and one stop time')
+        missingTime = 1;
+    else
+        % Check that first time is a start time
+        if contains(selectData.action{1},'Start')
+            timeStart = selectData.time{1};
+        else
+            warning('Streaming of power data does not have start time')
+            missingTime = 1;
+        end
+        
+        % Check that second time is a stop time, or if last chunk can
+        % have stop time missing and use 'last record' time
+        if iChunk == length(recordingChunks) && size(selectData,1) ~= 2
+            timeStop = Power_SettingsTable.time{end};
+        else
+            if contains(selectData.action{2},'Stop')
+                timeStop = selectData.time{2};
             else
-                stimState.activeGroup(counter) = 0;
-                stimState.stimulation_on(counter) = 0;
+                warning('Streaming of power data does not have stop time')
+                missingTime = 1;
             end
+        end
+        
+        % If no missing start or stop time, populate deviceSettingsOut
+        if missingTime == 0
+            Power_SettingsOut.recNum(iChunk) = recordingChunks(iChunk);
+            Power_SettingsOut.duration(iChunk) = timeStop - timeStart;
+            Power_SettingsOut.timeStart(iChunk) = timeStart;
+            Power_SettingsOut.timeStop(iChunk) = timeStop;
             
-            stimState.program(counter) = iProgram;
-            stimState.pulseWidth_mcrSec(counter) = DeviceSettings{1}.(fn).programs(iProgram).pulseWidthInMicroseconds;
-            stimState.amplitude_mA(counter) = DeviceSettings{1}.(fn).programs(iProgram).amplitudeInMilliamps;
-            stimState.rate_Hz(counter) = DeviceSettings{1}.(fn).rateInHz;
-            electrodes = DeviceSettings{1}.(fn).programs(iProgram).electrodes.electrodes;
-            elecString = '';
-            for iElectrode = 1:length(electrodes)
-                if electrodes(iElectrode).isOff == 0 % Electrode is active
-                    % Determine if electrode is used
-                    if iElectrode == 17 % This refers to the can
-                        elecUsed = 'c';
-                    else
-                        elecUsed = num2str(iElectrode-1); % Electrodes are zero indexed
-                    end
-                    
-                    % Determine if electrode is anode or cathode
-                    if electrodes(iElectrode).electrodeType == 1
-                        elecSign = '-'; % Anode
-                    else
-                        elecSign = '+'; % Cathode
-                    end
-                    elecSnippet = [elecSign elecUsed ' '];
-                    elecString = [elecString elecSnippet];
-                end
-            end
-            
-            stimState.electrodes{counter} = elecString;
-            counter = counter + 1;
+            Power_SettingsOut.powerBands{iChunk} = selectData.powerBands{1};
         end
     end
 end
-if ~isempty(stimState)
-    stimStatus = stimState(logical(stimState.activeGroup),:);
-else
-    stimStatus = [];
+
+%%
+% FFT DATA
+FFT_SettingsOut = table();
+
+% Indices in table of start/stop actions
+indices = ~isnan(FFT_SettingsTable.recNum);
+recordingChunks = unique(FFT_SettingsTable.recNum(indices));
+
+for iChunk = 1:length(recordingChunks)
+    currentIndices = FFT_SettingsTable.recNum == recordingChunks(iChunk);
+    selectData = FFT_SettingsTable(currentIndices,:);
+    missingTime = 0;
+    
+    % If not the last chunk in the file, check for two times (assuming
+    % start and stop times). Lack of two times indicates something wrong
+    % with streaming - do not keep these data
+    if size(selectData,1) ~= 2 && iChunk < length(recordingChunks)
+        warning('Streaming of FFT data does not have one start and one stop time')
+        missingTime = 1;
+    else
+        % Check that first time is a start time
+        if contains(selectData.action{1},'Start')
+            timeStart = selectData.time{1};
+        else
+            warning('Streaming of FFT data does not have start time')
+            missingTime = 1;
+        end
+        
+        % Check that second time is a stop time, or if last chunk can
+        % have stop time missing and use 'last record' time
+        if iChunk == length(recordingChunks) && size(selectData,1) ~= 2
+            timeStop = FFT_SettingsTable.time{end};
+        else
+            if contains(selectData.action{2},'Stop')
+                timeStop = selectData.time{2};
+            else
+                warning('Streaming of FFT data does not have stop time')
+                missingTime = 1;
+            end
+        end
+        
+        % If no missing start or stop time, populate deviceSettingsOut
+        if missingTime == 0
+            FFT_SettingsOut.recNum(iChunk) = recordingChunks(iChunk);
+            FFT_SettingsOut.duration(iChunk) = timeStop - timeStart;
+            FFT_SettingsOut.timeStart(iChunk) = timeStart;
+            FFT_SettingsOut.timeStop(iChunk) = timeStop;
+            
+            FFT_SettingsOut.FFTbandFormationConfig(iChunk) = selectData.FFTbandFormationConfig(1);
+            FFT_SettingsOut.FFTconfig(iChunk) = selectData.FFTconfig(1);
+            FFT_SettingsOut.FFTinterval(iChunk) = selectData.FFTinterval(1);
+            FFT_SettingsOut.FFTsize(iChunk) = selectData.FFTsize(1);
+            FFT_SettingsOut.FFTstreamOffsetBins(iChunk) = selectData.FFTstreamOffsetBins(1);
+            FFT_SettingsOut.FFTstreamSizeBins(iChunk) = selectData.FFTstreamSizeBins(1);
+            FFT_SettingsOut.FFTwindowLoad(iChunk) = selectData.FFTwindowLoad(1);
+        end
+    end
 end
-end
+
 
 %%
 % KS NOTE: BELOW SECTION FROM DEVICESETTINGSFORMONTAGE.M
