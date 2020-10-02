@@ -18,21 +18,27 @@ end
 % UTC offset to determine timezone conversion
 metaData.UTCoffset = DeviceSettings{1,1}.UtcOffset;
 
-
-% KS: Add battery info to metaData -- check chronic pain github for
-% desired variables
+% Battery information, as of beginning of the current recording
+metaData.batteryLevelPercent = DeviceSettings{1}.BatteryStatus.batteryLevelPercent;
+metaData.batteryVoltage = DeviceSettings{1}.BatteryStatus.batteryVoltage;
+metaData.estimatedCapacity = DeviceSettings{1}.BatteryStatus.estimatedCapacity;
+metaData.batterySOC = DeviceSettings{1}.BatteryStatus.batterySOC;
 
 %%
 deviceSettingsTable = table(); % Initalize table
 recordCounter = 1; % Initalize counter for records in DeviceSetting
 entryNumber = 1; % Initialize counter for populating entries to table
 inStream = 0; % Initalize as streaming off
+changeToInStream = 0;
 streamStartCounter = 1; % Initalize counter for streaming starts
 streamStopCounter = 1; % Initalize counter for streaming stops
 
 % All fields are present in first entry, but subsequent entries only have
 % fields which were updated. Go through all the entries in device settings,
-% checking for updates.
+% checking for updates. First, collect all configs, changes in configs, and stream
+% starts/stops (this gets stored in DeviceSettingsTable). Then, go through
+% DeviceSettingsTable to create a 'cleaned up' version, collecting settings
+% for enabled channels and streams (stored in deviceSettingsOut)
 
 while recordCounter <= length(DeviceSettings)
     currentSettings = DeviceSettings{recordCounter};
@@ -145,7 +151,19 @@ while recordCounter <= length(DeviceSettings)
     % (TDsettings, powerChannels, and fftConfig should have all been populated
     % with something because first record should have all variables)
     if isfield(currentSettings,'StreamState')
-        if currentSettings.StreamState.TimeDomainStreamEnabled
+        
+        % If any stream has been turned on, copy all settings and fill in
+        % dummy variables indicating which stream(s) are active
+        
+        % Variables to indicate which stream(s) are enabled; will get
+        % updated each time StreamState is present
+        TDenabled = currentSettings.StreamState.TimeDomainStreamEnabled;
+        PDenabled = currentSettings.StreamState.PowerDomainStreamEnabled;
+        FFTenabled = currentSettings.StreamState.FftStreamEnabled;
+        
+        if TDenabled || PDenabled || FFTenabled
+              % KS add adaptive stream to OR statement above
+            
             if ~inStream % If not already inStream, then streaming is starting
                 % Create new row in deviceSettingsTable and populate with metadata
                 HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
@@ -153,6 +171,7 @@ while recordCounter <= length(DeviceSettings)
                 deviceSettingsTable.recNum(entryNumber) = streamStartCounter;
                 deviceSettingsTable.time{entryNumber} = HostUnixTime;
                 
+                % Time domain info
                 % Fill in most recent time domain data settings
                 for iChan = 1:4
                     fieldName = sprintf('chan%d',iChan);
@@ -160,10 +179,10 @@ while recordCounter <= length(DeviceSettings)
                 end
                 deviceSettingsTable.tdDataStruc{entryNumber} = TDsettings;
                 
-                % Fill in most recent power domain settings
+                % Power domain info
                 deviceSettingsTable.powerBands{entryNumber} = powerChannels;
                 
-                % Fill in most recent FFT settings
+                % FFT info
                 deviceSettingsTable.FFTbandFormationConfig(entryNumber) = fftConfig.bandFormationConfig;
                 deviceSettingsTable.FFTconfig(entryNumber) = fftConfig.config;
                 deviceSettingsTable.FFTinterval(entryNumber) = fftConfig.interval;
@@ -172,21 +191,43 @@ while recordCounter <= length(DeviceSettings)
                 deviceSettingsTable.FFTstreamSizeBins(entryNumber) = fftConfig.streamSizeBins;
                 deviceSettingsTable.FFTwindowLoad(entryNumber) = fftConfig.windowLoad;
                 
+                % Copy info about which streams are active
+                deviceSettingsTable.TimeDomainEnabled(entryNumber) = currentSettings.StreamState.TimeDomainStreamEnabled;
+                deviceSettingsTable.PowerDomainEnabled(entryNumber) = currentSettings.StreamState.PowerDomainStreamEnabled;
+                deviceSettingsTable.FFTEnabled(entryNumber) = currentSettings.StreamState.FftStreamEnabled;
+                deviceSettingsTable.AccelEnabled(entryNumber) = currentSettings.StreamState.AccelStreamEnabled;
+                
+                % KS: Add adaptive stream
+                
                 streamStartCounter = streamStartCounter + 1;
-                entryNumber = entryNumber + 1;
                 inStream = 1;
+                entryNumber = entryNumber + 1;
+                
+                % Need to copy streaming status for each stream in order to
+                % check for each stream being disabled
+                TDstatus = TDenabled;
+                PDstatus = PDenabled;
+                FFTstatus = FFTenabled;
             end
         end
     end
     
     % Check if streaming has been stopped - this can be done by turning
-    % streaming off or by turning sensing off. Use the same counter across
-    % these two methods
+    % streaming off, by turning sensing off, or by ending the session. 
+    % Use the same counter across the first two methods. Rather than just 
+    % looking to see if streaming is disabled, must confirm it was previously
+    % enabled and has switched to disabled (because looking across multiple streams)
     
     % Option 1: Check if streaming has been stopped
     if isfield(currentSettings,'StreamState')
         if inStream % Only continue if streaming is on
-            if ~currentSettings.StreamState.TimeDomainStreamEnabled % If stream is not enabled
+            
+            % TDenabled, PDenabled, FFTenabled have already been updated
+            % for currentSettings; check if there was a switch in streaming status
+            % of any of the streams
+            if ~isequal(TDstatus, TDenabled) || ~isequal(PDstatus, PDenabled) ||...
+                    ~isequal(FFTstatus, FFTenabled)
+                % One or more of the streams changed from enabled to disabled
                 % Create new row in deviceSettingsTable and populate with metadata
                 HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
                 deviceSettingsTable.action{entryNumber} = sprintf('Stop Stream %d',streamStopCounter);
@@ -218,6 +259,7 @@ while recordCounter <= length(DeviceSettings)
             end
         end
     end
+    
     % Option 2: Check if sense has been turned off
     if isfield(currentSettings,'SenseState')
         if inStream % Only continue if streaming is on
@@ -226,6 +268,12 @@ while recordCounter <= length(DeviceSettings)
                 % Check starting/stopping of time domain streaming. See
                 % documentation enum Medtronic.NeuroStim.Olympus.DataTypes.Sensing.SenseStates : byte
                 % for more details about binary number coding
+                
+                
+                % KS: NEED TO ADD CHECKING IF POWER OR FFT HAVE SWITCHED
+                % FROM ON TO OFF
+                
+                
                 if strcmp(senseState(4),'0') % Time domain streaming is off
                     % Create new row in deviceSettingsTable and populate with metadata
                     HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
@@ -259,7 +307,7 @@ while recordCounter <= length(DeviceSettings)
             end
         end
     end
-    % If last record, get HostUnixTime (useful in cases where no stop time
+    % Option 3: If last record, get HostUnixTime (can use in cases where no stop time
     % was recorded)
     if recordCounter == length(DeviceSettings)
         deviceSettingsTable.action{entryNumber} = sprintf('Last record');
@@ -268,13 +316,6 @@ while recordCounter <= length(DeviceSettings)
     end
     recordCounter = recordCounter + 1;
 end
-
-
-% KS: Check below (compare to FFTdata -- need to do anyting to accomodate
-% power or FFT??)
-
-% add info about FFT and power bands from deviceSettingsTable to
-% deviceSettingsOut. 
 
 %%
 % Loop through deviceSettingsTable to determine start and stop time for each
@@ -324,14 +365,14 @@ for iChunk = 1:length(recordingChunks)
             end
         end
         
-        % If no missing timestamps, populate deviceSettingsOut
+        % If no missing start or stop time, populate deviceSettingsOut
         if missingTime == 0
             deviceSettingsOut.recNum(iChunk) = recordingChunks(iChunk);
             deviceSettingsOut.duration(iChunk) = timeStop - timeStart;
             deviceSettingsOut.timeStart(iChunk) = timeStart;
             deviceSettingsOut.timeStop(iChunk) = timeStop;
             
-            % Loop through all channels to get sampling rate and acquistion parameters
+            % Loop through all TD channels to get sampling rate and acquistion parameters
             for iChan = 1:4
                 if ~strcmp(selectData.tdDataStruc{1}(iChan).sampleRate,'disabled') &&...
                         ~strcmp(selectData.tdDataStruc{1}(iChan).sampleRate,'unexpected')
@@ -341,6 +382,19 @@ for iChunk = 1:length(recordingChunks)
                 end
             end
             deviceSettingsOut.TimeDomainDataStruc{iChunk} = selectData.tdDataStruc{1};
+            
+            % Power data
+            deviceSettingsOut.powerBands{iChunk} = selectData.powerBands{1};
+            
+            % FFT data
+            deviceSettingsOut.FFTbandFormationConfig(iChunk) = selectData.FFTbandFormationConfig(1);
+            deviceSettingsOut.FFTconfig(iChunk) = selectData.FFTconfig(1);
+            deviceSettingsOut.FFTinterval(iChunk) = selectData.FFTinterval(1);
+            deviceSettingsOut.FFTsize(iChunk) = selectData.FFTsize(1);
+            deviceSettingsOut.FFTstreamOffsetBins(iChunk) = selectData.FFTstreamOffsetBins(1);
+            deviceSettingsOut.FFTstreamSizeBins(iChunk) = selectData.FFTstreamSizeBins(1);
+            deviceSettingsOut.FFTwindowLoad(iChunk) = selectData.FFTwindowLoad(1);
+            
         end
     end
 end
