@@ -92,9 +92,15 @@ while recordCounter <= length(DeviceSettings)
             % 1-2, sense chan2: Bands 3-4, Sense chan3: Bands 5-6, Sense
             % chan4: Bands 7-8
             
-            % Settings will remain in powerChannels until updated
+            % Settings will remain in powerChannels and TDsampleRate until
+            % updated; TDsampleRate needed in later processing for
+            % determinig powerBands
             powerChannels = currentSettings.SensingConfig.powerChannels;
+            for iChan = 1:4
+                TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
+            end
             Power_SettingsTable.powerBands{entryNumber_Power} = powerChannels;
+            Power_SettingsTable.TDsampleRates{entryNumber_Power} = TDsampleRates;
             
             entryNumber_Power = entryNumber_Power + 1;
         end
@@ -128,7 +134,6 @@ while recordCounter <= length(DeviceSettings)
         % TIME DOMAIN
         if currentSettings.StreamState.TimeDomainStreamEnabled && ~inStream_TD % If not already inStream, then streaming is starting
             % Create new row in TD_SettingsTable and populate with metadata
-            recordCounter
             HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
             TD_SettingsTable.action{entryNumber_TD} = sprintf('Start Stream TD %d',streamStartCounter_TD);
             TD_SettingsTable.recNum(entryNumber_TD) = streamStartCounter_TD;
@@ -157,6 +162,10 @@ while recordCounter <= length(DeviceSettings)
             
             % Power domain info
             Power_SettingsTable.powerBands{entryNumber_Power} = powerChannels;
+            for iChan = 1:4
+                TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
+            end
+            Power_SettingsTable.TDsampleRates{entryNumber_Power} = TDsampleRates;
             
             streamStartCounter_Power = streamStartCounter_Power + 1;
             entryNumber_Power = entryNumber_Power + 1;
@@ -222,6 +231,10 @@ while recordCounter <= length(DeviceSettings)
             
             % Fill in most recent power domain settings
             Power_SettingsTable.powerBands{entryNumber_Power} = powerChannels;
+            for iChan = 1:4
+                TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
+            end
+            Power_SettingsTable.TDsampleRates{entryNumber_Power} = TDsampleRates;
             
             inStream_Power = 0;
             streamStopCounter_Power = streamStopCounter_Power + 1;
@@ -297,6 +310,10 @@ while recordCounter <= length(DeviceSettings)
                 
                 % Fill in most recent power domain settings
                 Power_SettingsTable.powerBands{entryNumber_Power} = powerChannels;
+                for iChan = 1:4
+                    TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
+                end
+                Power_SettingsTable.TDsampleRates{entryNumber_Power} = TDsampleRates;
                 
                 inStream_Power = 0;
                 streamStopCounter_Power = streamStopCounter_Power + 1;
@@ -477,6 +494,7 @@ for iChunk = 1:length(recordingChunks)
             Power_SettingsOut.timeStop(iChunk) = timeStop;
             
             Power_SettingsOut.powerBands{iChunk} = selectData.powerBands{1};
+            Power_SettingsOut.TDsampleRates{iChunk} = selectData.TDsampleRates{1};
         end
     end
 end
