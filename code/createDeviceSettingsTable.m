@@ -1,9 +1,9 @@
 function [TD_SettingsOut, Power_SettingsOut, FFT_SettingsOut, metaData] = createDeviceSettingsTable(folderPath)
 %%
 % Extract information from DeviceSettings related to configuration for time domain,
-% power, and FFT channels. All fields are present in first entry, but subsequent 
+% power, and FFT channels. All fields are present in first entry, but subsequent
 % entries only have fields which were updated. This function first collects
-% all configs, changes in configs, and stream starts/stops times 
+% all configs, changes in configs, and stream starts/stops times
 % (these gets stored in internal variables TD_SettingsTable, Power_SettingsTable, or
 % FFT_SettingsTable). Then, go through these tables to create a 'cleaned up'
 % version, collecting settings for enabled channels and streams
@@ -92,15 +92,23 @@ while recordCounter <= length(DeviceSettings)
             % 1-2, sense chan2: Bands 3-4, Sense chan3: Bands 5-6, Sense
             % chan4: Bands 7-8
             
-            % Settings will remain in powerChannels and TDsampleRate until
-            % updated; TDsampleRate needed in later processing for
+            % Settings will remain in powerChannels, TDsampleRate, and fftConfig until
+            % updated; TDsampleRate and fftConfig needed in later processing for
             % determinig powerBands
             powerChannels = currentSettings.SensingConfig.powerChannels;
+            Power_SettingsTable.powerBands{entryNumber_Power} = powerChannels;
+            
+            % Get sample rate for each TD channel
             for iChan = 1:4
                 TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
             end
-            Power_SettingsTable.powerBands{entryNumber_Power} = powerChannels;
             Power_SettingsTable.TDsampleRates{entryNumber_Power} = TDsampleRates;
+            
+            % Get fftConfig info if updated
+            if isfield(currentSettings.SensingConfig,'fftConfig')
+                fftConfig = currentSettings.SensingConfig.fftConfig;
+            end
+            Power_SettingsTable.fftConfig(entryNumber_Power) = fftConfig;
             
             entryNumber_Power = entryNumber_Power + 1;
         end
@@ -166,6 +174,7 @@ while recordCounter <= length(DeviceSettings)
                 TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
             end
             Power_SettingsTable.TDsampleRates{entryNumber_Power} = TDsampleRates;
+            Power_SettingsTable.fftConfig(entryNumber_Power) = fftConfig;
             
             streamStartCounter_Power = streamStartCounter_Power + 1;
             entryNumber_Power = entryNumber_Power + 1;
@@ -235,6 +244,7 @@ while recordCounter <= length(DeviceSettings)
                 TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
             end
             Power_SettingsTable.TDsampleRates{entryNumber_Power} = TDsampleRates;
+            Power_SettingsTable.fftConfig(entryNumber_Power) = fftConfig;
             
             inStream_Power = 0;
             streamStopCounter_Power = streamStopCounter_Power + 1;
@@ -314,6 +324,7 @@ while recordCounter <= length(DeviceSettings)
                     TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
                 end
                 Power_SettingsTable.TDsampleRates{entryNumber_Power} = TDsampleRates;
+                Power_SettingsTable.fftConfig(entryNumber_Power) = fftConfig;
                 
                 inStream_Power = 0;
                 streamStopCounter_Power = streamStopCounter_Power + 1;
@@ -495,6 +506,7 @@ for iChunk = 1:length(recordingChunks)
             
             Power_SettingsOut.powerBands{iChunk} = selectData.powerBands{1};
             Power_SettingsOut.TDsampleRates{iChunk} = selectData.TDsampleRates{1};
+            Power_SettingsOut.fftConfig{iChunk} = selectData.fftConfig(1);
         end
     end
 end
