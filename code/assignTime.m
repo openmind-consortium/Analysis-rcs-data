@@ -287,7 +287,7 @@ end
 % data table
 disp('Cleaning up output table')
 outputDataTable.DerivedTime = DerivedTime;
-rowsToRemove = find(DerivedTime == 0);
+rowsToRemove = find(isnan(DerivedTime));
 outputDataTable(rowsToRemove,:) = [];
 
 end
