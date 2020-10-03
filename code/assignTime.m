@@ -143,6 +143,11 @@ if ~isempty(allFlaggedIndices)
             chunkIndices{counter} = (1:allFlaggedIndices(1));
             currentStartIndex = 1;
             counter = counter + 1;
+            % Edge case: Only one flagged index; automatically create
+            % second chunk to end of data
+            if length(allFlaggedIndices) == 1
+                chunkIndices{counter} = allFlaggedIndices(currentStartIndex) + 1:numPackets;
+            end
         elseif iChunk == length(allFlaggedIndices)
             chunkIndices{counter} = allFlaggedIndices(currentStartIndex) + 1:allFlaggedIndices(currentStartIndex + 1);
             chunkIndices{counter + 1} = allFlaggedIndices(currentStartIndex + 1) + 1:numPackets;
