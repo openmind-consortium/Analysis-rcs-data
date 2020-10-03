@@ -36,14 +36,15 @@ end
 disp('Collecting Device Settings data')
 DeviceSettings_fileToLoad = [folderPath filesep 'RawDataTD.json'];
 if isfile(DeviceSettings_fileToLoad)
-    % KS: want stimStatus and stimState below??
-    [deviceSettings, metaData, stimStatus, stimState] = createDeviceSettingsTable(folderPath);
-    
-    
-    
+    [timeDomainSettings, powerSettings, fftSettings, metaData] = createDeviceSettingsTable(folderPath);
 else
     error('No DeviceSettings.json file')
 end
+%%
+% Stimulation settings
+
+
+
 %%
 % TimeDomain data
 disp('Checking for Time Domain Data')
@@ -91,13 +92,36 @@ if isfile(Power_fileToLoad)
     [outtable_Power] = createPowerTable(folderPath);
     
     if ~isempty(outtable_Power)
-    % Use deviceSettings to determine power bands
-    
-    
-    % KS: Does assignTime work with outtable_Power?
-%         PowerData = ;
+        % Translate powerSettings.powerBands into Hz
+        numSettings = size(powerSettings,1);
+        for iSetting = 1:numSettings
+            powerBands_toConvert = powerSettings.powerBands{iSetting};
+            currentTDsampleRate = unique(powerSettings.TDsampleRates{iSetting});
+            currentFFTconfig = powerSettings.fftConfig{iSetting};
+            if length(currentTDsampleRate) > 1
+                error('More than one sampling rate (simultaneously) across different time domain channels')
+            end
+            [currentPowerBands] = getPowerBands(powerBands_toConvert,currentTDsampleRate,currentFFTconfig);
+            powerBands(iSetting) = currentPowerBands;
+        end
+        
+        % Determine if more than one sampling rate across recording
+        for iSetting = 1:numSettings
+            all_powerFs(iSetting) =  1/((powerSettings.fftConfig{iSetting}.interval)/1000);
+        end
+        
+        if length(unique(all_powerFs)) > 1
+            % KS TO DO: HOW TO MATCH TIMES FROM POWERSETTINGS TO outtable_Power??
+            
+        else
+            % Same sample rate for power data for the full file
+            powerDomain_sampleRate = unique(all_powerFs);
+            outtable_Power.samplerate(:) = powerDomain_sampleRate;
+            outtable_Power.packetsizes(:) = 1;
+        end
+        PowerData = assignTime(outtable_Power);
     else
-       PowerData = []; 
+        PowerData = [];
     end
 else
     PowerData = [];
