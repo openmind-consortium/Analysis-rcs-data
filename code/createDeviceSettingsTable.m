@@ -98,11 +98,14 @@ while recordCounter <= length(DeviceSettings)
             powerChannels = currentSettings.SensingConfig.powerChannels;
             Power_SettingsTable.powerBands{entryNumber_Power} = powerChannels;
             
-            % Get sample rate for each TD channel
+            % Get sample rate for each TD channel; all TD channels have
+            % same Fs (or is listed as NaN)
             for iChan = 1:4
                 TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
             end
-            Power_SettingsTable.TDsampleRates{entryNumber_Power} = TDsampleRates;
+            TDsampleRates = unique(TDsampleRates);
+            currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
+            Power_SettingsTable.TDsampleRates{entryNumber_Power} = currentTDsampleRate;
             
             % Get fftConfig info if updated
             if isfield(currentSettings.SensingConfig,'fftConfig')
@@ -123,15 +126,17 @@ while recordCounter <= length(DeviceSettings)
             
             % Settings will remain in fftConfig until updated
             fftConfig = currentSettings.SensingConfig.fftConfig;
-            FFT_SettingsTable.FFTbandFormationConfig(entryNumber_FFT) = fftConfig.bandFormationConfig;
-            FFT_SettingsTable.FFTconfig(entryNumber_FFT) = fftConfig.config;
-            FFT_SettingsTable.FFTinterval(entryNumber_FFT) = fftConfig.interval;
-            FFT_SettingsTable.FFTsize(entryNumber_FFT) = fftConfig.size;
-            FFT_SettingsTable.FFTstreamOffsetBins(entryNumber_FFT) = fftConfig.streamOffsetBins;
-            FFT_SettingsTable.FFTstreamSizeBins(entryNumber_FFT) = fftConfig.streamSizeBins;
-            FFT_SettingsTable.FFTwindowLoad(entryNumber_FFT) = fftConfig.windowLoad;
-            
+            FFT_SettingsTable.fftConfig(entryNumber_FFT) = fftConfig;
             entryNumber_FFT = entryNumber_FFT + 1;
+            
+            % Get sample rate for each TD channel; all TD channels have
+            % same Fs (or is listed as NaN)
+            for iChan = 1:4
+                TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
+            end
+            TDsampleRates = unique(TDsampleRates);
+            currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
+            FFT_SettingsTable.TDsampleRates{entryNumber_FFT} = currentTDsampleRate;
         end
     end
     %%
@@ -173,7 +178,9 @@ while recordCounter <= length(DeviceSettings)
             for iChan = 1:4
                 TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
             end
-            Power_SettingsTable.TDsampleRates{entryNumber_Power} = TDsampleRates;
+            TDsampleRates = unique(TDsampleRates);
+            currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
+            Power_SettingsTable.TDsampleRates{entryNumber_Power} = currentTDsampleRate;
             Power_SettingsTable.fftConfig(entryNumber_Power) = fftConfig;
             
             streamStartCounter_Power = streamStartCounter_Power + 1;
@@ -190,13 +197,17 @@ while recordCounter <= length(DeviceSettings)
             FFT_SettingsTable.time{entryNumber_FFT} = HostUnixTime;
             
             % FFT info
-            FFT_SettingsTable.FFTbandFormationConfig(entryNumber_FFT) = fftConfig.bandFormationConfig;
-            FFT_SettingsTable.FFTconfig(entryNumber_FFT) = fftConfig.config;
-            FFT_SettingsTable.FFTinterval(entryNumber_FFT) = fftConfig.interval;
-            FFT_SettingsTable.FFTsize(entryNumber_FFT) = fftConfig.size;
-            FFT_SettingsTable.FFTstreamOffsetBins(entryNumber_FFT) = fftConfig.streamOffsetBins;
-            FFT_SettingsTable.FFTstreamSizeBins(entryNumber_FFT) = fftConfig.streamSizeBins;
-            FFT_SettingsTable.FFTwindowLoad(entryNumber_FFT) = fftConfig.windowLoad;
+            FFT_SettingsTable.fftConfig(entryNumber_FFT) = fftConfig;
+            
+            % Get sample rate for each TD channel; all TD channels have
+            % same Fs (or is listed as NaN)
+            for iChan = 1:4
+                TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
+            end
+            TDsampleRates = unique(TDsampleRates);
+            currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
+            FFT_SettingsTable.TDsampleRates{entryNumber_FFT} = currentTDsampleRate;
+            
             
             streamStartCounter_FFT = streamStartCounter_FFT + 1;
             entryNumber_FFT = entryNumber_FFT + 1;
@@ -243,7 +254,9 @@ while recordCounter <= length(DeviceSettings)
             for iChan = 1:4
                 TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
             end
-            Power_SettingsTable.TDsampleRates{entryNumber_Power} = TDsampleRates;
+            TDsampleRates = unique(TDsampleRates);
+            currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
+            Power_SettingsTable.TDsampleRates{entryNumber_Power} = currentTDsampleRate;
             Power_SettingsTable.fftConfig(entryNumber_Power) = fftConfig;
             
             inStream_Power = 0;
@@ -260,13 +273,16 @@ while recordCounter <= length(DeviceSettings)
             FFT_SettingsTable.time{entryNumber_FFT} = HostUnixTime;
             
             % Fill in most recent FFT settings
-            FFT_SettingsTable.FFTbandFormationConfig(entryNumber_FFT) = fftConfig.bandFormationConfig;
-            FFT_SettingsTable.FFTconfig(entryNumber_FFT) = fftConfig.config;
-            FFT_SettingsTable.FFTinterval(entryNumber_FFT) = fftConfig.interval;
-            FFT_SettingsTable.FFTsize(entryNumber_FFT) = fftConfig.size;
-            FFT_SettingsTable.FFTstreamOffsetBins(entryNumber_FFT) = fftConfig.streamOffsetBins;
-            FFT_SettingsTable.FFTstreamSizeBins(entryNumber_FFT) = fftConfig.streamSizeBins;
-            FFT_SettingsTable.FFTwindowLoad(entryNumber_FFT) = fftConfig.windowLoad;
+            FFT_SettingsTable.fftConfig(entryNumber_FFT) = fftConfig;
+            
+            % Get sample rate for each TD channel; all TD channels have
+            % same Fs (or is listed as NaN)
+            for iChan = 1:4
+                TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
+            end
+            TDsampleRates = unique(TDsampleRates);
+            currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
+            FFT_SettingsTable.TDsampleRates{entryNumber_FFT} = currentTDsampleRate;
             
             inStream_FFT = 0;
             streamStopCounter_FFT = streamStopCounter_FFT + 1;
@@ -304,13 +320,11 @@ while recordCounter <= length(DeviceSettings)
         
         % POWER DOMAIN
         if inStream_Power && isfield(currentSettings.SenseState,'state')
-            % KS UPDATE LINE BELOW/ABOVE
             senseState = dec2bin(currentSettings.SenseState.state,4);
             % Check starting/stopping of time domain streaming. See
             % documentation enum Medtronic.NeuroStim.Olympus.DataTypes.Sensing.SenseStates : byte
             % for more details about binary number coding
-            
-            % KS UPDATE LINE BELOW
+            % Same code for all streams to indicate sense off
             if strcmp(senseState(4),'0') % Time domain streaming is off
                 % Create new row in deviceSettingsTable and populate with metadata
                 HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
@@ -323,7 +337,9 @@ while recordCounter <= length(DeviceSettings)
                 for iChan = 1:4
                     TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
                 end
-                Power_SettingsTable.TDsampleRates{entryNumber_Power} = TDsampleRates;
+                TDsampleRates = unique(TDsampleRates);
+                currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
+                Power_SettingsTable.TDsampleRates{entryNumber_Power} = currentTDsampleRate;
                 Power_SettingsTable.fftConfig(entryNumber_Power) = fftConfig;
                 
                 inStream_Power = 0;
@@ -335,13 +351,12 @@ while recordCounter <= length(DeviceSettings)
         
         % FFT
         if inStream_FFT && isfield(currentSettings.SenseState,'state')
-            % KS UPDATE SENSE STATE
             senseState = dec2bin(currentSettings.SenseState.state,4);
             % Check starting/stopping of time domain streaming. See
             % documentation enum Medtronic.NeuroStim.Olympus.DataTypes.Sensing.SenseStates : byte
             % for more details about binary number coding
             
-            % KS IF STATEMENT MUST BE UPDATED
+            % Same code for all streams to indicate sense off
             if strcmp(senseState(4),'0') % Time domain streaming is off
                 % Create new row in deviceSettingsTable and populate with metadata
                 HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
@@ -350,13 +365,16 @@ while recordCounter <= length(DeviceSettings)
                 FFT_SettingsTable.time{entryNumber_FFT} = HostUnixTime;
                 
                 % Fill in most recent FFT settings
-                FFT_SettingsTable.FFTbandFormationConfig(entryNumber_FFT) = fftConfig.bandFormationConfig;
-                FFT_SettingsTable.FFTconfig(entryNumber_FFT) = fftConfig.config;
-                FFT_SettingsTable.FFTinterval(entryNumber_FFT) = fftConfig.interval;
-                FFT_SettingsTable.FFTsize(entryNumber_FFT) = fftConfig.size;
-                FFT_SettingsTable.FFTstreamOffsetBins(entryNumber_FFT) = fftConfig.streamOffsetBins;
-                FFT_SettingsTable.FFTstreamSizeBins(entryNumber_FFT) = fftConfig.streamSizeBins;
-                FFT_SettingsTable.FFTwindowLoad(entryNumber_FFT) = fftConfig.windowLoad;
+                FFT_SettingsTable.fftConfig(entryNumber_FFT) = fftConfig;
+                
+                % Get sample rate for each TD channel; all TD channels have
+                % same Fs (or is listed as NaN)
+                for iChan = 1:4
+                    TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
+                end
+                TDsampleRates = unique(TDsampleRates);
+                currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
+                FFT_SettingsTable.TDsampleRates{entryNumber_FFT} = currentTDsampleRate;
                 
                 inStream_FFT = 0;
                 streamStopCounter_FFT = streamStopCounter_FFT + 1;
@@ -558,14 +576,8 @@ for iChunk = 1:length(recordingChunks)
             FFT_SettingsOut.duration(iChunk) = timeStop - timeStart;
             FFT_SettingsOut.timeStart(iChunk) = timeStart;
             FFT_SettingsOut.timeStop(iChunk) = timeStop;
-            
-            FFT_SettingsOut.FFTbandFormationConfig(iChunk) = selectData.FFTbandFormationConfig(1);
-            FFT_SettingsOut.FFTconfig(iChunk) = selectData.FFTconfig(1);
-            FFT_SettingsOut.FFTinterval(iChunk) = selectData.FFTinterval(1);
-            FFT_SettingsOut.FFTsize(iChunk) = selectData.FFTsize(1);
-            FFT_SettingsOut.FFTstreamOffsetBins(iChunk) = selectData.FFTstreamOffsetBins(1);
-            FFT_SettingsOut.FFTstreamSizeBins(iChunk) = selectData.FFTstreamSizeBins(1);
-            FFT_SettingsOut.FFTwindowLoad(iChunk) = selectData.FFTwindowLoad(1);
+            FFT_SettingsOut.fftConfig{iChunk} = selectData.fftConfig(1);
+            FFT_SettingsOut.TDsampleRates{iChunk} = selectData.TDsampleRates{1};
         end
     end
 end
