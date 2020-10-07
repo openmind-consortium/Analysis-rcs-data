@@ -32,10 +32,13 @@ else
     timestamps = [Header.timestamp];
     powerData.timestamp =  struct2array(timestamps)';
     
+    % Converting TD samplerate
+    powerData.TDsamplerate = getSampleRate([rawPowerData.PowerDomainData.SampleRate]');
+    
     % Parsing data conatined in rawPowerData.PowerDomainData
     PowerDomainData = [rawPowerData.PowerDomainData];
     variableNames = {'PacketGenTime','PacketRxUnixTime',...
-        'ExternalValuesMask','FftSize','IsPowerChannelOverrange','SampleRate','ValidDataMask'};
+        'ExternalValuesMask','FftSize','IsPowerChannelOverrange','ValidDataMask'};
     for iVariable = 1:length(variableNames)
         powerData.(variableNames{iVariable}) = [PowerDomainData.(variableNames{iVariable})]';
     end
