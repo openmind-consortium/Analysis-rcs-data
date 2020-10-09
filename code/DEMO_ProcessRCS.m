@@ -35,7 +35,7 @@ end
 %%
 % DeviceSettings data
 disp('Collecting Device Settings data')
-DeviceSettings_fileToLoad = [folderPath filesep 'RawDataTD.json'];
+DeviceSettings_fileToLoad = [folderPath filesep 'DeviceSettings.json'];
 if isfile(DeviceSettings_fileToLoad)
     [timeDomainSettings, powerSettings, fftSettings, metaData] = createDeviceSettingsTable(folderPath);
 else
