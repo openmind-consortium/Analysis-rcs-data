@@ -21,6 +21,7 @@ There are multiple challenges associated with these .json file and analyzing the
 ## RC+S raw data structures
 Each of the .json files has packets which were streamed from the RC+S using a UDP protocol. This means that some packets may have been lost in transmission (e.g. if patient walks out of range) and/or they may be received out of order. Below is a non-comprehensive guide regarding the main datatypes that exists within each .json file as well as their organization when imported into Matlab table format. In the Matlab tables, samples are in rows and data features are in columns. Note: much of the metadata contained in the .json files is not human readable -- sample rates are stored in binary format or coded values that must be converted to Hz. 
 
+### Data in .json files
 - **RawDataTD.json**: Contains continuous raw time domain data in packet form. Each packet has timing information (and packet sizes are not consistant). Data can be streamed from up to 4 time domain channels (2 on each bore) at 250Hz and 500Hz or up to 2 time domain channels at 1000Hz. A timestamp and systemTick is only available for the last element of each data packet and timing information for each sample must be deduced. *See section below on timestamp and systemTick*
 - **RawDataAccel.json**: Contains continuous raw onboard 3-axis accelerometry data as well as timing information. The structure and timing information is similar to the time domain files.
 - **DeviceSettings.json**: Contains information about which datastreams were enabled, start and stop times of streaming, stimulation settings, and device parameters (e.g. sampling rate, montage configuration [which electrodes are being recorded from], power bands limits, etc). Many of these settings can be changed within a given recording; each time such a change is made, another packet is written to DeviceSettings.json file. 
@@ -34,6 +35,38 @@ Each of the .json files has packets which were streamed from the RC+S using a UD
 - **TimeSync.json**: Not currently used
 
 Note that in each recording session, all .json files will be created and saved. If a particular datastream (e.g. FFT) is not enabled to stream, that .json file will be mostly empty, containing only minimal metadata.
+
+### Data imported into Matlab 
+
+- RawDataTD.json
+
+- RawDataAccel.json
+
+- DeviceSettings.json 
+[examples from different files]
+  + timeDomainSettings
+  
+    ![timeDomainSettings](https://github.com/openmind-consortium/Analysis-rcs-data/blob/DocumentationUpdate/documentationFigures/timeDomain.PNG)
+  
+  + powerSettings
+  
+    ![powerSettings](https://github.com/openmind-consortium/Analysis-rcs-data/blob/DocumentationUpdate/documentationFigures/powerSettings_2.PNG)
+  
+  + fftSettings
+    ![fftSettings](https://github.com/openmind-consortium/Analysis-rcs-data/blob/DocumentationUpdate/documentationFigures/fftSettings.PNG)
+  
+  + metaData
+
+- RawDataFFT.json
+
+- RawDataPower.json
+
+- AdaptiveLog.json: TBD
+- StimLog.json: TBD
+- ErrorLog.json: Not currently used
+- EventLog.json: TBD
+- DiagnosticsLog.json: TBD
+- TimeSync.json: Not currently used
 
 ## Structure:
 - **code**
