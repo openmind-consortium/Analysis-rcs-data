@@ -38,28 +38,94 @@ Note that in each recording session, all .json files will be created and saved. 
 
 ### Data imported into Matlab 
 
-- RawDataTD.json
-
-- RawDataAccel.json
+- RawDataTD.json --> timeDomainData:
+  - key0
+  - key1
+  - key2
+  - key3
+  - systemTick
+  - timestamp
+  - samplerate
+  - PacketGenTime
+  - PacketRxUnixTime
+  - packetsizes
+  - dataTypeSequence
+  - DerivedTime
+  
+- RawDataAccel.json --> AccelData
+  - XSamples
+  - YSamples
+  - ZSamples
+  - systemTick
+  - timestamp
+  - samplerate
+  - PacketGenTime
+  - PacketRxUnixTime
+  - packetsizes
+  - dataTypeSequence
+  - DerivedTime
 
 - DeviceSettings.json 
 [examples from different files]
-  + timeDomainSettings
+  - timeDomainSettings
   
     ![timeDomainSettings](https://github.com/openmind-consortium/Analysis-rcs-data/blob/DocumentationUpdate/documentationFigures/timeDomain.PNG)
   
-  + powerSettings
+  - powerSettings
   
     ![powerSettings](https://github.com/openmind-consortium/Analysis-rcs-data/blob/DocumentationUpdate/documentationFigures/powerSettings_2.PNG)
   
-  + fftSettings
+  - fftSettings
     ![fftSettings](https://github.com/openmind-consortium/Analysis-rcs-data/blob/DocumentationUpdate/documentationFigures/fftSettings.PNG)
   
-  + metaData
+  - metaData
 
-- RawDataFFT.json
-
-- RawDataPower.json
+- RawDataFFT.json --> FFTData
+  - PacketGenTime
+  - PacketRxUnixTime
+  - Channel
+  - FftSize
+  - FftOutput
+  - Units
+  - TDsamplerate
+  - dataSize
+  - dataType
+  - dataTypeSequence
+  - globalSequence
+  - info
+  - systemTick
+  - user1
+  - user2
+  - timestamp
+  - samplerate
+  - packetsizes
+  - DerivedTIme
+    
+- RawDataPower.json --> PowerData
+  - dataSize
+  - dataType
+  - dataTypeSequence
+  - globalSequence
+  - info
+  - systemTick
+  - timestamp
+  - TDsamplerate
+  - PacketGenTime
+  - PacketRxUnixTime
+  - ExternalValueMask
+  - FFTSize
+  - IsPowerChannelOverrange
+  - Band1
+  - Band2
+  - Band3
+  - Band4
+  - Band5
+  - Band6
+  - Band7
+  - Band8
+  - samplerate
+  - packetsizes
+  - DerivedTime
 
 - AdaptiveLog.json: TBD
 - StimLog.json: TBD
@@ -68,7 +134,7 @@ Note that in each recording session, all .json files will be created and saved. 
 - DiagnosticsLog.json: TBD
 - TimeSync.json: Not currently used
 
-## Structure:
+## Structure of Repository:
 - **code**
   + functions: code for specific needs; [TBD if these are further organized in subfolders]
   + toolboxes: turtle_son, etc...
