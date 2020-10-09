@@ -9,36 +9,39 @@ Collaborators: Simon.Little@ucsf.edu, Prasad.Shirvalkar@ucsf.edu, Roee.Gilron@uc
 
 Policy: Master will contain functions that have been tested in branch and pushed after pull request reviewers have approved. The collaborator doing the initial development and testing of a function in a testing branch (e.g. in 'importRawData') will make a pull request and assign 1-2 reviewers of the group who will review the code structure and the output of each function.
 
-Structure:
-- code
+## Structure:
+- **code**
   + functions: code for specific needs; [TBD if these are further organized in subfolders]
   + toolboxes: turtle_son, etc...
-- testDataSets: benchtop generated test data sets for validation of code; often generated signals are simultaneously recorded with DAQ to allow for verification of timing across data streams. 
-- outputFigs: will contain the output of function testing to the specified test dataset
+- **testDataSets**: benchtop generated test data sets for validation of code; often generated signals are simultaneously recorded with DAQ to allow for verification of timing across data streams. 
+- **outputFigs**: will contain the output of function testing to the specified test dataset
 
-Functions: this list contains the functions that have been tested in brach and pushed to master (brief description of function input output next to each function name)
+_______________________________________________________________________________________________________
 
-Wrappers
-- DEMO_ProcessRCS: Demo wrapper script for importing raw .JSON files from RC+S, parsing into Matlab table format, and handling missing packets / harmonizing timestamps across data streams
+## Functions: 
+This list contains the functions that have been tested in brach and pushed to master (brief description of function input output next to each function name)
 
-CreateTables
-- createDeviceSettingsTable: Extract information from DeviceSettings related to configuration for time domain, power, and FFT channels
-- createTimeDomainTable: Create Matlab table of raw data from RawDataTD.json
-- createAccelTable: Create Matlab table of raw data from RawDataAccel.json
-- createPowerTable: Create Matlab table of raw data from RawDataPower.json
-- createFFTtable: Create Matlab table of raw data from RawDataFFT.json
+### Wrappers
+- **DEMO_ProcessRCS**: Demo wrapper script for importing raw .JSON files from RC+S, parsing into Matlab table format, and handling missing packets / harmonizing timestamps across data streams
 
-Utility
-- deserializeJSON: Reads .json files and loads into Matlab
-- fixMalfomedJSON: Checks for and replaces missing brackets and braces in json file, which can prevent proper loading
-- convertTDcodes: Conversion of Medtronic numeric codes into values (e.g. Hz)
-- getSampleRate: Convert Medtronic codes to sample rates in Hz for time domain data
-- getSampleRateAcc: Convert Medtronic codes to sample rates in Hz for accelerometer data
-- getPowerBands: Calculate lower and upper bounds, in Hz, for each power domain timeseries
-- getFFTparameters: Determine FFT parameters from FFTconfig and TD sample rate
+### CreateTables
+- **createDeviceSettingsTable**: Extract information from DeviceSettings related to configuration for time domain, power, and FFT channels
+- **createTimeDomainTable**: Create Matlab table of raw data from RawDataTD.json
+- **createAccelTable**: Create Matlab table of raw data from RawDataAccel.json
+- **createPowerTable**: Create Matlab table of raw data from RawDataPower.json
+- **createFFTtable**: Create Matlab table of raw data from RawDataFFT.json
 
-(Pre)Processing
-- assignTime: Function for creating timestamps for each sample of valid RC+S data. 
+### Utility
+- **deserializeJSON**: Reads .json files and loads into Matlab
+- **fixMalfomedJSON**: Checks for and replaces missing brackets and braces in json file, which can prevent proper loading
+- **convertTDcodes**: Conversion of Medtronic numeric codes into values (e.g. Hz)
+- **getSampleRate**: Convert Medtronic codes to sample rates in Hz for time domain data
+- **getSampleRateAcc**: Convert Medtronic codes to sample rates in Hz for accelerometer data
+- **getPowerBands**: Calculate lower and upper bounds, in Hz, for each power domain timeseries
+- **getFFTparameters**: Determine FFT parameters from FFTconfig and TD sample rate
+
+### (Pre)Processing
+- **assignTime**: Function for creating timestamps for each sample of valid RC+S data. 
 
 _______________________________________________________________________________________________________
 
