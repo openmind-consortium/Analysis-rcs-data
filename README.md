@@ -18,6 +18,19 @@ The Medtronic API saves data into a session directory. There are 11 .json files 
 
 There are multiple challenges associated with these .json file and analyzing them: Interpreting metadata within and across the files, handling invalid / missing / misordered packets, creating a timestamp value for each sample, aligning timestamps (and samples) across data streams, and parsing the data streams when there was a change in recording or stimulation parameters. See below for the current approach for how to tackle these challenges.
 
+## Data parsing overview
+
+To facilitate most standard analyses of time-series data, we would optimally like the data formatted in a matrix with samples in rows, data features in columns, and a timestamp assigned to each row. The difference in time between the rows is either 1/Fs or 1/Fs\*x, where x is any whole number multiple. (In the latter case, the user could fill the missing rows with NaNs, if desired). There are many challenges in transforming RC+S data into such a matrix. Here, we provide an overview of the overall approach. More detailed information on specific steps can be found **HERE** and **HERE** and **HERE**
+
+
+
+
+
+
+[Diagram showing general data flow]
+
+
+
 ## RC+S raw data structures
 Each of the .json files has packets which were streamed from the RC+S using a UDP protocol. This means that some packets may have been lost in transmission (e.g. if patient walks out of range) and/or they may be received out of order. Below is a non-comprehensive guide regarding the main datatypes that exists within each .json file as well as their organization when imported into Matlab table format. In the Matlab tables, samples are in rows and data features are in columns. Note: much of the metadata contained in the .json files is not human readable -- sample rates are stored in binary format or coded values that must be converted to Hz. 
 
@@ -39,23 +52,23 @@ Note that in each recording session, all .json files will be created and saved. 
 ### Data imported into Matlab 
 
 - RawDataTD.json --> timeDomainData:
-  - key0
-  - key1
-  - key2
-  - key3
-  - systemTick
-  - timestamp
-  - samplerate
-  - PacketGenTime
-  - PacketRxUnixTime
-  - packetsizes
-  - dataTypeSequence
-  - DerivedTime
+  - key0: Channel 0 on the first INS bore (assuming no bridging); contains numerical data in millivolts
+  - key1: Channel 1 on the first INS bore (assuming no bridging); contains numerical data in millivolts
+  - key2: Channel 2 on the first INS bore (assuming no bridging); contains numerical data in millivolts
+  - key3: Channel 3 on the first INS bore (assuming no bridging); contains numerical data in millivolts
+  - systemTick: 16-bit INS clock timer that rolls over every 2^16 values. Highest resolution is 100 microseconds. One value per packet, corresponding to last sample in the packet. *See section on systemTick and timestamp*
+  - timestamp: INS clock driven timer that does not roll over. Highest resolution is 1 second. Total elaped time since March 1, 2000 at midnight. One value per packet, corresponding to last sample in the packet. *See section on systemTick and timestamp*
+  - samplerate: Fs in Hz; only written in rows corresponding to last sample of each packet.
+  - PacketGenTime: API estimate of when the packet was created on the INS within the PC clock domain. Estimate created by using results of latest latency check (one is done at system initialization, but can re-perform whenever you want) and time sync streaming. Only accurate within ~50ms.
+  - PacketRxUnixTime: PC clock-driven time when the packet was received. Highly inaccurate after packet drops.
+  - packetsizes: Number of samples per packet. Written in rows corresponding to the last sample of each packet.
+  - dataTypeSequence: 8-bit packet number counter that rolls over, ranging from 0 to 255; can be used to help identify if packets are in order or are missing. Should run continuously, but instances of resetting have been observed.
+  - DerivedTime: Computed time for each sample - see *Calculating DerivedTime* for more information
   
 - RawDataAccel.json --> AccelData
-  - XSamples
-  - YSamples
-  - ZSamples
+  - XSamples: X-axis
+  - YSamples: Y-axis
+  - ZSamples: Z-axis
   - systemTick
   - timestamp
   - samplerate
@@ -136,12 +149,10 @@ Note that in each recording session, all .json files will be created and saved. 
 
 ## Structure of Repository:
 - **code**
-  + functions: code for specific needs; [TBD if these are further organized in subfolders]
-  + toolboxes: turtle_son, etc...
+  - functions: code for specific needs; [TBD if these are further organized in subfolders]
+  - toolboxes: turtle_son, etc...
 - **testDataSets**: benchtop generated test data sets for validation of code; often generated signals are simultaneously recorded with DAQ to allow for verification of timing across data streams. 
 - **outputFigs**: will contain the output of function testing to the specified test dataset
-
-_______________________________________________________________________________________________________
 
 ## Functions: 
 This list contains the functions that have been tested in brach and pushed to master (brief description of function input output next to each function name)
@@ -168,10 +179,13 @@ This list contains the functions that have been tested in brach and pushed to ma
 ### (Pre)Processing
 - **assignTime**: Function for creating timestamps for each sample of valid RC+S data. 
 
-_______________________________________________________________________________________________________
 
 
-[Diagram showing general data flow]
+## SystemTick and Timestamp
+
+The function assignTime is designed to * 
+
+
 
 
 
