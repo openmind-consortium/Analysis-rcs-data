@@ -20,22 +20,15 @@ There are multiple challenges associated with these .json file and analyzing the
 
 ## Data parsing overview
 
-To facilitate most standard analyses of time-series data, we would optimally like the data formatted in a matrix with samples in rows, data features in columns, and a timestamp assigned to each row. The difference in time between the rows is either 1/Fs or 1/Fs\*x, where x is any whole number multiple. (In the latter case, the user could fill the missing rows with NaNs, if desired). There are many challenges in transforming RC+S data into such a matrix. Here, we provide an overview of the overall approach. More detailed information on specific steps can be found **HERE** and **HERE** and **HERE**
+To facilitate most standard analyses of time-series data, we would optimally like the data formatted in a matrix with samples in rows, data features in columns, and a timestamp assigned to each row. The difference in time between the rows is either 1/Fs or 1/Fs\*x, where x is any whole number multiple. (In the latter case, the user could fill the missing rows with NaNs, if desired). There are many challenges in transforming RC+S data into such a matrix. Here, we provide an overview of the overall approach. More detailed information on specific steps can be found below.
 
-
-
-
-
-
-[Diagram showing general data flow]
-
-
+![DataFlow](documentationFigures/RCS_DataFlow_Overview.png)
 
 ## RC+S raw data structures
 Each of the .json files has packets which were streamed from the RC+S using a UDP protocol. This means that some packets may have been lost in transmission (e.g. if patient walks out of range) and/or they may be received out of order. Below is a non-comprehensive guide regarding the main datatypes that exists within each .json file as well as their organization when imported into Matlab table format. In the Matlab tables, samples are in rows and data features are in columns. Note: much of the metadata contained in the .json files is not human readable -- sample rates are stored in binary format or coded values that must be converted to Hz. 
 
 ### Data in .json files
-- **RawDataTD.json**: Contains continuous raw time domain data in packet form. Each packet has timing information (and packet sizes are not consistant). Data can be streamed from up to 4 time domain channels (2 on each bore) at 250Hz and 500Hz or up to 2 time domain channels at 1000Hz. A timestamp and systemTick is only available for the last element of each data packet and timing information for each sample must be deduced. *See section below on timestamp and systemTick*
+- **RawDataTD.json**: Contains continuous raw time domain data in packet form. Each packet has timing information (and packet sizes are not consistant). Data can be streamed from up to 4 time domain channels (2 on each bore) at 250Hz and 500Hz or up to 2 time domain channels at 1000Hz. A timestamp and systemTick is only available for the last element of each data packet and timing information for each sample must be deduced. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
 - **RawDataAccel.json**: Contains continuous raw onboard 3-axis accelerometry data as well as timing information. The structure and timing information is similar to the time domain files.
 - **DeviceSettings.json**: Contains information about which datastreams were enabled, start and stop times of streaming, stimulation settings, and device parameters (e.g. sampling rate, montage configuration [which electrodes are being recorded from], power bands limits, etc). Many of these settings can be changed within a given recording; each time such a change is made, another packet is written to DeviceSettings.json file. 
 - **RawDataFFT.json** - Contains continuous information streamed from the onboard (on-chip) FFT engine. The structure and timing information is similar to the time domain files.
@@ -43,7 +36,7 @@ Each of the .json files has packets which were streamed from the RC+S using a UD
 - **AdaptiveLog.json** - Contains any information from the embedded adaptive detector. The structure and timing information is similar to the time domain files.
 - **StimLog.json** - Contains information about the stimulation setup (e.g. which group, program, rate and amplitude the device is currently using for stimulation). The structure and timing information is similar to the time domain files. Much of this information is duplicated in DeviceSettings.json.
 - **ErrorLog.json**- Contains information about errors. Not currently used.
-- **EventLog.json** - Contains discrete information we write into the device. These can be experimental timings or patient report of his state if streaming at home. Note that this information only contains timing information in computer time, whereas all other .json files have timing relative to (on-board) INS time. *See section below on timestamp and systemTick for more information*.
+- **EventLog.json** - Contains discrete information we write into the device. These can be experimental timings or patient report of his state if streaming at home. Note that this information only contains timing information in computer time, whereas all other .json files have timing relative to (on-board) INS time. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
 - **DiagnosticsLog.json** - Contains discrete information that can be used for error checking.
 - **TimeSync.json**: Not currently used
 
@@ -56,8 +49,8 @@ Note that in each recording session, all .json files will be created and saved. 
   - key1: Channel 1 on the first INS bore (assuming no bridging); contains numerical data in millivolts
   - key2: Channel 2 on the first INS bore (assuming no bridging); contains numerical data in millivolts
   - key3: Channel 3 on the first INS bore (assuming no bridging); contains numerical data in millivolts
-  - systemTick: 16-bit INS clock timer that rolls over every 2^16 values. Highest resolution is 100 microseconds. One value per packet, corresponding to last sample in the packet. *See section on systemTick and timestamp*
-  - timestamp: INS clock driven timer that does not roll over. Highest resolution is 1 second. Total elaped time since March 1, 2000 at midnight. One value per packet, corresponding to last sample in the packet. *See section on systemTick and timestamp*
+  - systemTick: 16-bit INS clock timer that rolls over every 2^16 values. Highest resolution is 100 microseconds. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
+  - timestamp: INS clock driven timer that does not roll over. Highest resolution is 1 second. Total elaped time since March 1, 2000 at midnight. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
   - samplerate: Fs in Hz; only written in rows corresponding to last sample of each packet.
   - PacketGenTime: API estimate of when the packet was created on the INS within the PC clock domain. Estimate created by using results of latest latency check (one is done at system initialization, but can re-perform whenever you want) and time sync streaming. Only accurate within ~50ms.
   - PacketRxUnixTime: PC clock-driven time when the packet was received. Highly inaccurate after packet drops.
@@ -69,7 +62,6 @@ Note that in each recording session, all .json files will be created and saved. 
   - XSamples: X-axis
   - YSamples: Y-axis
   - ZSamples: Z-axis
-  - systemTick
   - timestamp
   - samplerate
   - PacketGenTime
@@ -183,11 +175,66 @@ This list contains the functions that have been tested in brach and pushed to ma
 
 ## SystemTick and Timestamp
 
-The function assignTime is designed to * 
+Each packet has one value for each of the following, corresponding to the last sample in the packet: systemTick, timestamp, and packetGenTime. Theoretically, systemTick and timestamp can be used to recreate the time of each packet and convert to unixtime (by aligning with PacketGenTime). However, we have observed from empirical data (both recorded in a patient and using a benchtop test system) that the clocks of systemTick and timestamp accumulate error relative to each other during long recordings (e.g. 10 hours). Using systemTick and timestamp to recreate time may be an acceptable solution for short recordings, but because long recordings are often conducted, we have chosen to move away from this implementation. 
 
+Evidence of accumulating drift between systemTick and timestamp:
 
+In a given recording, we observed the following pairs of systemTick and timestamp near the beginning of the recording:
 
+| systemTick | timestamp |
+| ---------- | --------- |
+| 19428	| 641771410 | 
+| 20417	| 641771411 |
+| 21393	| 641771411 |
+| 22393	| 641771411 |
+| 23408	| 641771411 |
+| 24408	| 641771411 |
+| 25408	| 641771411 |
+| 26398	| 641771411 |
+| 27408	| 641771411 |
+| 28411	| 641771411 |
+| 29398	| 641771411 |
+| 30411	| 641771412 |
 
+And in the same recording, we observed these pairs of systemTick and timestamp near the end of the recording:
+
+| systemTick | timestamp |
+| ---------- | --------- |
+| 17358 |	641805097 |
+| 18353 |	641805098 |
+| 19368 |	641805098 |
+| 20371 |	641805098 |
+| 21368 |	641805098 |
+| 22358 |	641805098 |
+| 23368 |	641805098 |
+| 24371 |	641805098 |
+| 25358 |	641805098 |
+| 26371 |	641805098 |
+| 27368 |	641805098 |
+| 28361 |	641805099 |
+
+Between these timestamps, 33687 seconds have elapsed. That means we would expect (33687 * 10000) systemTicks to have elapsed. Accounting for rollover every 2^16 systemTicks, that would put us at expecting systemTicks between 35377 and 44358 to be paired with timestamp 641805098.  
+
+As you can see – this is a multiple second discrepancy – we should be in the systemTick range of 35377 to 44358 but rather we are in the range of 18353 to 27368.
+
+## Factors Impacting Packet Loss
+
+A number of factors impact the fidelity with which the RC+S streams data to the host computer. Several RC+S streaming parameters can be configured depending on the use case:
+
+### CTM Mode:
+- The RC+S CTM can operate in two different modes, Mode 3 or Mode 4
+  - Mode 3: Optimal for streaming data across longer distances at a slower rate
+  - Mode 4: Optimal for streaming data across shorter distances at a faster rate
+
+### CTM Ratio:
+- This is a ratio between [the number of packets sent by the INS to the host computer] vs [the number of packets sent by the host computer to the INS]
+- In general, hight CTM ratios should be used for high-throughput sensing applications; low CTM ratios should be used when the INS parameters must be updated rapidly (as would be the case during distributed DBS)
+
+### Other Factors which impact streaming performance:
+- Distances between the host computer, CTM, and INS
+- 60/50 Hz environmental noise
+- Number of channels being streamed
+- Sampling frequency
 
 __________________________________________________________________________________________________________
 
