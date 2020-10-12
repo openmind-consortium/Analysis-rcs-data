@@ -20,16 +20,9 @@ There are multiple challenges associated with these .json file and analyzing the
 
 ## Data parsing overview
 
-To facilitate most standard analyses of time-series data, we would optimally like the data formatted in a matrix with samples in rows, data features in columns, and a timestamp assigned to each row. The difference in time between the rows is either 1/Fs or 1/Fs\*x, where x is any whole number multiple. (In the latter case, the user could fill the missing rows with NaNs, if desired). There are many challenges in transforming RC+S data into such a matrix. Here, we provide an overview of the overall approach. More detailed information on specific steps can be found **HERE** and **HERE** and **HERE**
+To facilitate most standard analyses of time-series data, we would optimally like the data formatted in a matrix with samples in rows, data features in columns, and a timestamp assigned to each row. The difference in time between the rows is either 1/Fs or 1/Fs\*x, where x is any whole number multiple. (In the latter case, the user could fill the missing rows with NaNs, if desired). There are many challenges in transforming RC+S data into such a matrix. Here, we provide an overview of the overall approach. More detailed information on specific steps can be found **HERE** and **HERE** and **HERE** [lints to other sections of readme]
 
-
-
-
-
-
-[Diagram showing general data flow]
-
-
+![DataFlow](documentationFigures/RCS_DataFlow_Overview.png)
 
 ## RC+S raw data structures
 Each of the .json files has packets which were streamed from the RC+S using a UDP protocol. This means that some packets may have been lost in transmission (e.g. if patient walks out of range) and/or they may be received out of order. Below is a non-comprehensive guide regarding the main datatypes that exists within each .json file as well as their organization when imported into Matlab table format. In the Matlab tables, samples are in rows and data features are in columns. Note: much of the metadata contained in the .json files is not human readable -- sample rates are stored in binary format or coded values that must be converted to Hz. 
@@ -183,8 +176,47 @@ This list contains the functions that have been tested in brach and pushed to ma
 
 ## SystemTick and Timestamp
 
-The function assignTime is designed to * 
+Each packet has one value for each of the following, corresponding to the last sample in the packet: systemTick, timestamp, and packetGenTime. Theoretically, systemTick and timestamp can be used to recreate the time of each packet and convert to unixtime (by aligning with PacketGenTime). However, we have observed from empirical data (both recorded in a patient and using a benchtop test system) that the clocks of systemTick and timestamp accumulate error relative to each other during long recordings (e.g. 10 hours). Using systemTick and timestamp to recreate time may be an acceptable solution for short recordings, but because long recordings are often conducted, we have chosen to move away from this implementation. 
 
+Evidence of accumulating drift between systemTick and timestamp:
+
+In a given recording, we observed the following pairs of systemTick and timestamp near the beginning of the recording:
+
+| systemTick | timestamp |
+| ---------- | --------- |
+| 19428	| 641771410 | 
+| 20417	| 641771411 |
+| 21393	| 641771411 |
+| 22393	| 641771411 |
+| 23408	| 641771411 |
+| 24408	| 641771411 |
+| 25408	| 641771411 |
+| 26398	| 641771411 |
+| 27408	| 641771411 |
+| 28411	| 641771411 |
+| 29398	| 641771411 |
+| 30411	| 641771412 |
+
+And in the same recording, we observed these pairs of systemTick and timestamp near the end of the recording:
+
+| systemTick | timestamp |
+| ---------- | --------- |
+| 17358 |	641805097 |
+| 18353 |	641805098 |
+| 19368 |	641805098 |
+| 20371 |	641805098 |
+| 21368 |	641805098 |
+| 22358 |	641805098 |
+| 23368 |	641805098 |
+| 24371 |	641805098 |
+| 25358 |	641805098 |
+| 26371 |	641805098 |
+| 27368 |	641805098 |
+| 28361 |	641805099 |
+
+Between these timestamps, 33687 seconds have elapsed. That means we would expect (33687 * 10000) systemTicks to have elapsed. Accounting for rollover every 2^16 systemTicks, that would put us at expecting systemTicks between 35377 and 44358 to be paired with timestamp 641805098.  
+
+As you can see – this is a multiple second discrepancy – we should be in the systemTick range of 35377 to 44358 but rather we are in the range of 18353 to 27368.
 
 
 
