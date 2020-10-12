@@ -20,7 +20,7 @@ There are multiple challenges associated with these .json file and analyzing the
 
 ## Data parsing overview
 
-To facilitate most standard analyses of time-series data, we would optimally like the data formatted in a matrix with samples in rows, data features in columns, and a timestamp assigned to each row. The difference in time between the rows is either 1/Fs or 1/Fs\*x, where x is any whole number multiple. (In the latter case, the user could fill the missing rows with NaNs, if desired). There are many challenges in transforming RC+S data into such a matrix. Here, we provide an overview of the overall approach. More detailed information on specific steps can be found **HERE** and **HERE** and **HERE** [lints to other sections of readme]
+To facilitate most standard analyses of time-series data, we would optimally like the data formatted in a matrix with samples in rows, data features in columns, and a timestamp assigned to each row. The difference in time between the rows is either 1/Fs or 1/Fs\*x, where x is any whole number multiple. (In the latter case, the user could fill the missing rows with NaNs, if desired). There are many challenges in transforming RC+S data into such a matrix. Here, we provide an overview of the overall approach. More detailed information on specific steps can be found below.
 
 ![DataFlow](documentationFigures/RCS_DataFlow_Overview.png)
 
@@ -217,8 +217,24 @@ Between these timestamps, 33687 seconds have elapsed. That means we would expect
 
 As you can see – this is a multiple second discrepancy – we should be in the systemTick range of 35377 to 44358 but rather we are in the range of 18353 to 27368.
 
+## Factors Impacting Packet Loss
 
+A number of factors impact the fidelity with which the RC+S streams data to the host computer. Several RC+S streaming parameters can be configured depending on the use case:
 
+### CTM Mode:
+- The RC+S CTM can operate in two different modes, Mode 3 or Mode 4
+  - Mode 3: Optimal for streaming data across longer distances at a slower rate
+  - Mode 4: Optimal for streaming data across shorter distances at a faster rate
+
+### CTM Ratio:
+- This is a ratio between [the number of packets sent by the INS to the host computer] vs [the number of packets sent by the host computer to the INS]
+- In general, hight CTM ratios should be used for high-throughput sensing applications; low CTM ratios should be used when the INS parameters must be updated rapidly (as would be the case during distributed DBS)
+
+### Other Factors which impact streaming performance:
+- Distances between the host computer, CTM, and INS
+- 60/50 Hz environmental noise
+- Number of channels being streamed
+- Sampling frequency
 
 __________________________________________________________________________________________________________
 
