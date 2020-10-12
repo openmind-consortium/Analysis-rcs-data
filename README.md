@@ -44,7 +44,7 @@ Note that in each recording session, all .json files will be created and saved. 
 
 ### Data imported into Matlab 
 
-- RawDataTD.json --> timeDomainData:
+- **RawDataTD.json** --> timeDomainData:
   - key0: Channel 0 on the first INS bore (assuming no bridging); contains numerical data in millivolts
   - key1: Channel 1 on the first INS bore (assuming no bridging); contains numerical data in millivolts
   - key2: Channel 2 on the first INS bore (assuming no bridging); contains numerical data in millivolts
@@ -58,7 +58,7 @@ Note that in each recording session, all .json files will be created and saved. 
   - dataTypeSequence: 8-bit packet number counter that rolls over, ranging from 0 to 255; can be used to help identify if packets are in order or are missing. Should run continuously, but instances of resetting have been observed.
   - DerivedTime: Computed time for each sample - see *Calculating DerivedTime* for more information
   
-- RawDataAccel.json --> AccelData
+- **RawDataAccel.json** --> AccelData
   - XSamples: X-axis
   - YSamples: Y-axis
   - ZSamples: Z-axis
@@ -70,7 +70,7 @@ Note that in each recording session, all .json files will be created and saved. 
   - dataTypeSequence
   - DerivedTime
 
-- DeviceSettings.json 
+- **DeviceSettings.json** 
 [examples from different files]
   - timeDomainSettings
   
@@ -85,7 +85,7 @@ Note that in each recording session, all .json files will be created and saved. 
   
   - metaData
 
-- RawDataFFT.json --> FFTData
+- **RawDataFFT.json** --> FFTData
   - PacketGenTime
   - PacketRxUnixTime
   - Channel
@@ -106,7 +106,7 @@ Note that in each recording session, all .json files will be created and saved. 
   - packetsizes
   - DerivedTIme
     
-- RawDataPower.json --> PowerData
+- **RawDataPower.json** --> PowerData
   - dataSize
   - dataType
   - dataTypeSequence
@@ -132,12 +132,12 @@ Note that in each recording session, all .json files will be created and saved. 
   - packetsizes
   - DerivedTime
 
-- AdaptiveLog.json: TBD
-- StimLog.json: TBD
-- ErrorLog.json: Not currently used
-- EventLog.json: TBD
-- DiagnosticsLog.json: TBD
-- TimeSync.json: Not currently used
+- **AdaptiveLog.json**: TBD
+- **StimLog.json**: TBD
+- **ErrorLog.json**: Not currently used
+- **EventLog.json**: TBD
+- **DiagnosticsLog.json**: TBD
+- **TimeSync.json**: Not currently used
 
 ## Structure of Repository:
 - **code**
@@ -171,11 +171,22 @@ This list contains the functions that have been tested in brach and pushed to ma
 ### (Pre)Processing
 - **assignTime**: Function for creating timestamps for each sample of valid RC+S data. 
 
+## How to get a time value for each sample of data
+Ideally, there would be a value reported with each packet from which we could easily re-create unix time for each sample. Nominally, this would be PacketGenTime. However, upon inspection we see that: 
+- **(1)** The difference between adjacent PacketGenTime values does not always equal the expect amount of elapsed time, where the expected amount of elapsed time is calculated by the number of samples in the packet and the sampling rate. This is a serious problem. In cases where there is missing time, we would lose the stereotyped 1/Fs duration between samples. In cases of overlap, how do we account for having more than one value sampled at the same time?
+- **(2)** PacketGenTime has suspect values across packets and relative to other timing variables. Together, these indicate that PacketGenTimeis  unreliable when high precision time reconstruction is required (as for some task-locked analyses, looking at ERPs, etc).
 
+Drift between timestamp and PacketGenTime across a long recording (9.3 hours):
+
+![Timestamp_vs_PacketGenTime](https://github.com/openmind-consortium/Analysis-rcs-data/blob/DocumentationUpdate/documentationFigures/TimestampVsPacketGenTime.png)
+
+Given that PacketGenTime does not provide a complete solution, we next looked at systemTick and timestamp.
 
 ## SystemTick and Timestamp
 
-Each packet has one value for each of the following, corresponding to the last sample in the packet: systemTick, timestamp, and packetGenTime. Theoretically, systemTick and timestamp can be used to recreate the time of each packet and convert to unixtime (by aligning with PacketGenTime). However, we have observed from empirical data (both recorded in a patient and using a benchtop test system) that the clocks of systemTick and timestamp accumulate error relative to each other during long recordings (e.g. 10 hours). Using systemTick and timestamp to recreate time may be an acceptable solution for short recordings, but because long recordings are often conducted, we have chosen to move away from this implementation. 
+Each packet has one value for each of the following, corresponding to the last sample in the packet: systemTick, timestamp, and packetGenTime. Theoretically, systemTick and timestamp can be used to recreate the time of each packet, and then we can depend upon one value of PacketGenTime in order to convert to unix time. However, we have observed from empirical data (both recorded in a patient and using a benchtop test system) that the clocks of systemTick and timestamp accumulate error relative to each other during long recordings (e.g. 10 hours). Using systemTick and timestamp to recreate time may be an acceptable solution for short recordings, but because long recordings are often conducted, we have chosen to move away from this implementation. 
+
+Stated a different way, for each unit of timestamp (1 second), we would expect 10,000 units of systemTick. However, this is not what we observe.
 
 Evidence of accumulating drift between systemTick and timestamp:
 
@@ -217,6 +228,24 @@ Between these timestamps, 33687 seconds have elapsed. That means we would expect
 
 As you can see – this is a multiple second discrepancy – we should be in the systemTick range of 35377 to 44358 but rather we are in the range of 18353 to 27368.
 
+Because of this accumulated error, we instead take a different approach for how to calculate DerivedTime
+
+## How to calculate DerivedTime
+
+Because of the above described unreliability of PacketGenTime and the offset in the clocks creating timestamp and systemTick, we take a different approach for calculating DerivedTime. DerivedTime refers to a new timestamp, in unix time, assigned to each sample. DerivedTime is calculated after removing packets which have faulty information (e.g. PacketGenTime is negative). This is our best estimation of when these samples were recorded. The processing steps described below are implemented in `assignTime.m`. Note -- the implementation of this approach relies on the assumption that only full packets of data are missing, but there are no individual samples missing between packets (this has been shown to be the case through elegant work at Brown University). We do depend on PacketGenTime in order to convert to unix time, but we only use one PacketGenTime value per chunk of data (rather than using PacketGenTime to align each packet of data).
+
+- Identify and remove packets with faulty meta-data or which indicate samples will be hard to place in continuous stream (e.g. packets with timestamp that is more than 24 hours away from median timestamp; packets with negative PacketGenTime; packets with outlier packetGenTimes; packets where packetGenTime goes backwards in time)
+- Chunk data -- chunks are defined as segments of data which were continuously sampled. Breaks between chunks can occur because packets were removed in the previous step, because there were were dropped packets (never acquired), or because streaming was stopped but the recording was continued. Changes in time domain sampling rate will also result in a new chunk. Chunks are identified by looking at the adjacent values of dataTypeSequence, timestamp and systemTick as a function of sampling rate and number of samples per packet.
+- We need to align each chunk to a time; instead of just using the PacketGenTime of the first packet in the chunk, we look across all the packets in the chunk and calculate the average offset between each packetGenTime and the amount of time that is expected to have elapsed (calculated based on sampling rate and number of samples in the packet). We then apply this offset to the packetGenTime corresponding to the first packet of the chunk. We can now calculate a time for each sample in the chunk, as a function of the sampling rate. This process is repeated separately for each chunk.
+
+DerivedTimes are created separately for each data stream (e.g. TimeDomain, Accelerometer, PowerDomain), as each of these streams have systemTick and timestamp values reported per packet. Harmonization of derivedTimes across data streams happens next.
+
+## Harmonization of DerivedTimes across data streams
+
+TBD
+
+
+
 ## Factors Impacting Packet Loss
 
 A number of factors impact the fidelity with which the RC+S streams data to the host computer. Several RC+S streaming parameters can be configured depending on the use case:
@@ -235,20 +264,3 @@ A number of factors impact the fidelity with which the RC+S streams data to the 
 - 60/50 Hz environmental noise
 - Number of channels being streamed
 - Sampling frequency
-
-__________________________________________________________________________________________________________
-
-assignTime.m: Function for creating timestamps for each sample of valid RC+S data. 
-
-Given known limitations of all recorded timestamps, need to use multiple variables to derive time.
-
-General approach: Remove packets with faulty meta-data. Identify gaps in data (by checking deltas in timestamp, systemTick, and dataTypeSequence). Consecutive packets of data without gaps are referred to as 'chunks'. For each chunk, determine best estimate of the first packet time, and then calculate time for each  sample based on sampling rate -- assume no missing samples. Best estimate of start time for each chunk is determined by taking median (across all packets in that chunk) of the offset between delta PacketGenTime and expected time to have elapsed (as a function of sampling rate and number of samples per packet).
-
-
-__________________________________________________________________________________________________________
-
-
-
-
-
-
