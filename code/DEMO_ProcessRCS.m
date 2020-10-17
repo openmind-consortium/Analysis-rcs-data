@@ -43,6 +43,14 @@ else
 end
 %%
 % Stimulation settings
+disp('Collecting Stimulation Settings from Device Settings file')
+if isfile(DeviceSettings_fileToLoad)
+    [stimSettingsOut, stimMetaData] = createStimSettingsFromDeviceSettings(folderPath);
+else
+    error('No DeviceSettings.json file')
+end
+
+
 
 
 
