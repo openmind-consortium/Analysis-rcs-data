@@ -37,9 +37,6 @@ Power_SettingsTable = table(); % Initalize table
 FFT_SettingsTable = table(); % Initalize table
 
 recordCounter = 1; % Initalize counter for records in DeviceSetting
-entryNumber_TD = 1; % Initialize counter for populating entries to table
-entryNumber_Power = 1; % Initialize counter for populating entries to table
-entryNumber_FFT = 1; % Initialize counter for populating entries to table
 
 inStream_TD = 0; % Initalize as streaming off
 inStream_Power = 0; % Initalize as streaming off
@@ -63,28 +60,37 @@ while recordCounter <= length(DeviceSettings)
         % new row in TD_SettingsTable and populate with metadata
         if isfield(currentSettings.SensingConfig,'timeDomainChannels')
             HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            TD_SettingsTable.action{entryNumber_TD} = 'Sense Config';
-            TD_SettingsTable.recNum(entryNumber_TD) = NaN;
-            TD_SettingsTable.time{entryNumber_TD} = HostUnixTime;
-            
+            % Create 'toAdd' with the new entry -- ensures that all table
+            % fields are filled for each entry (otherwise warning will
+            % print)
+            toAdd.action = 'Sense Config';
+            toAdd.recNum = NaN;
+            toAdd.time = HostUnixTime;
             % Settings will remain in TDsettings until updated
             TDsettings = convertTDcodes(currentSettings.SensingConfig.timeDomainChannels);
             for iChan = 1:4
                 fieldName = sprintf('chan%d',iChan);
-                TD_SettingsTable.(fieldName){entryNumber_TD} = TDsettings(iChan).chanFullStr;
+                toAdd.(fieldName) = TDsettings(iChan).chanFullStr;
             end
-            TD_SettingsTable.tdDataStruc{entryNumber_TD} = TDsettings;
+            toAdd.tdDataStruc = TDsettings;
             
-            entryNumber_TD = entryNumber_TD + 1;
+            % If TD_SettingsTable is empty, need to populate fields; for subsequent
+            % records just add as new row
+            if isempty(TD_SettingsTable)
+                TD_SettingsTable = struct2table(toAdd,'AsArray',true);
+            else
+                TD_SettingsTable = [TD_SettingsTable; struct2table(toAdd,'AsArray',true)];
+            end
+            clear toAdd
         end
         
         % If power domain updated in this record, create
         % new row in Power_SettingsTable and populate with metadata
         if isfield(currentSettings.SensingConfig,'powerChannels')
             HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            Power_SettingsTable.action{entryNumber_Power} = 'Sense Config';
-            Power_SettingsTable.recNum(entryNumber_Power) = NaN;
-            Power_SettingsTable.time{entryNumber_Power} = HostUnixTime;
+            toAdd.action = 'Sense Config';
+            toAdd.recNum = NaN;
+            toAdd.time = HostUnixTime;
             
             % This populates information about the powerBands (coded
             % values, not in Hz). The bipolar channels associated with the
@@ -96,7 +102,7 @@ while recordCounter <= length(DeviceSettings)
             % updated; TDsampleRate and fftConfig needed in later processing for
             % determinig powerBands
             powerChannels = currentSettings.SensingConfig.powerChannels;
-            Power_SettingsTable.powerBands{entryNumber_Power} = powerChannels;
+            toAdd.powerBands = powerChannels;
             
             % Get sample rate for each TD channel; all TD channels have
             % same Fs (or is listed as NaN)
@@ -105,29 +111,36 @@ while recordCounter <= length(DeviceSettings)
             end
             TDsampleRates = unique(TDsampleRates);
             currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
-            Power_SettingsTable.TDsampleRates{entryNumber_Power} = currentTDsampleRate;
+            toAdd.TDsampleRates = currentTDsampleRate;
             
             % Get fftConfig info if updated
             if isfield(currentSettings.SensingConfig,'fftConfig')
                 fftConfig = currentSettings.SensingConfig.fftConfig;
             end
-            Power_SettingsTable.fftConfig(entryNumber_Power) = fftConfig;
+            toAdd.fftConfig = fftConfig;
             
-            entryNumber_Power = entryNumber_Power + 1;
+            % If Power_SettingsTable is empty, need to populate fields; for subsequent
+            % records just add as new row
+            if isempty(Power_SettingsTable)
+                Power_SettingsTable = struct2table(toAdd,'AsArray',true);
+            else
+                Power_SettingsTable = [Power_SettingsTable; struct2table(toAdd,'AsArray',true)];
+            end
+            clear toAdd
         end
         
         % If FFT updated in this record, create
         % new row in FFT_SettingsTable and populate with metadata
         if isfield(currentSettings.SensingConfig,'fftConfig')
             HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            FFT_SettingsTable.action{entryNumber_FFT} = 'Sense Config';
-            FFT_SettingsTable.recNum(entryNumber_FFT) = NaN;
-            FFT_SettingsTable.time{entryNumber_FFT} = HostUnixTime;
+            toAdd.action = 'Sense Config';
+            toAdd.recNum = NaN;
+            toAdd.time = HostUnixTime;
             
             % Settings will remain in fftConfig until updated
             fftConfig = currentSettings.SensingConfig.fftConfig;
-            FFT_SettingsTable.fftConfig(entryNumber_FFT) = fftConfig;
-            entryNumber_FFT = entryNumber_FFT + 1;
+            toAdd.fftConfig = fftConfig;
+            
             
             % Get sample rate for each TD channel; all TD channels have
             % same Fs (or is listed as NaN)
@@ -136,7 +149,16 @@ while recordCounter <= length(DeviceSettings)
             end
             TDsampleRates = unique(TDsampleRates);
             currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
-            FFT_SettingsTable.TDsampleRates{entryNumber_FFT} = currentTDsampleRate;
+            toAdd.TDsampleRates = currentTDsampleRate;
+            
+            % If FFT_SettingsTable is empty, need to populate fields; for subsequent
+            % records just add as new row
+            if isempty(FFT_SettingsTable)
+                FFT_SettingsTable = struct2table(toAdd,'AsArray',true);
+            else
+                FFT_SettingsTable = [FFT_SettingsTable; struct2table(toAdd,'AsArray',true)];
+            end
+            clear toAdd
         end
     end
     %%
@@ -146,58 +168,70 @@ while recordCounter <= length(DeviceSettings)
     if isfield(currentSettings,'StreamState')
         % TIME DOMAIN
         if currentSettings.StreamState.TimeDomainStreamEnabled && ~inStream_TD % If not already inStream, then streaming is starting
-            % Create new row in TD_SettingsTable and populate with metadata
+            % Create new entry for TD_SettingsTable and populate with metadata
             HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            TD_SettingsTable.action{entryNumber_TD} = sprintf('Start Stream TD %d',streamStartCounter_TD);
-            TD_SettingsTable.recNum(entryNumber_TD) = streamStartCounter_TD;
-            TD_SettingsTable.time{entryNumber_TD} = HostUnixTime;
+            toAdd.action = sprintf('Start Stream TD %d',streamStartCounter_TD);
+            toAdd.recNum = streamStartCounter_TD;
+            toAdd.time = HostUnixTime;
             
             % Time domain info
             % Fill in most recent time domain data settings
             for iChan = 1:4
                 fieldName = sprintf('chan%d',iChan);
-                TD_SettingsTable.(fieldName){entryNumber_TD} = TDsettings(iChan).chanFullStr;
+                toAdd.(fieldName) = TDsettings(iChan).chanFullStr;
             end
-            TD_SettingsTable.tdDataStruc{entryNumber_TD} = TDsettings;
+            toAdd.tdDataStruc = TDsettings;
+            
+            if isempty(TD_SettingsTable)
+                TD_SettingsTable = struct2table(toAdd,'AsArray',true);
+            else
+                TD_SettingsTable = [TD_SettingsTable; struct2table(toAdd,'AsArray',true)];
+            end
+            clear toAdd
             
             streamStartCounter_TD = streamStartCounter_TD + 1;
-            entryNumber_TD = entryNumber_TD + 1;
             inStream_TD = 1;
         end
         
         % POWER DOMAIN
         if currentSettings.StreamState.PowerDomainStreamEnabled && ~inStream_Power % If not already inStream, then streaming is starting
-            % Create new row in Power_SettingsTable and populate with metadata
+            % Create new entry for Power_SettingsTable and populate with metadata
             HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            Power_SettingsTable.action{entryNumber_Power} = sprintf('Start Stream Power %d',streamStartCounter_Power);
-            Power_SettingsTable.recNum(entryNumber_Power) = streamStartCounter_Power;
-            Power_SettingsTable.time{entryNumber_Power} = HostUnixTime;
+            toAdd.action = sprintf('Start Stream Power %d',streamStartCounter_Power);
+            toAdd.recNum = streamStartCounter_Power;
+            toAdd.time = HostUnixTime;
             
             % Power domain info
-            Power_SettingsTable.powerBands{entryNumber_Power} = powerChannels;
+            toAdd.powerBands = powerChannels;
             for iChan = 1:4
                 TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
             end
             TDsampleRates = unique(TDsampleRates);
             currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
-            Power_SettingsTable.TDsampleRates{entryNumber_Power} = currentTDsampleRate;
-            Power_SettingsTable.fftConfig(entryNumber_Power) = fftConfig;
+            toAdd.TDsampleRates = currentTDsampleRate;
+            toAdd.fftConfig = fftConfig;
+            
+            if isempty(Power_SettingsTable)
+                Power_SettingsTable = struct2table(toAdd,'AsArray',true);
+            else
+                Power_SettingsTable = [Power_SettingsTable; struct2table(toAdd,'AsArray',true)];
+            end
+            clear toAdd
             
             streamStartCounter_Power = streamStartCounter_Power + 1;
-            entryNumber_Power = entryNumber_Power + 1;
             inStream_Power = 1;
         end
         
         % FFT
         if currentSettings.StreamState.FftStreamEnabled && ~inStream_FFT % If not already inStream, then streaming is starting
-            % Create new row in FFT_SettingsTable and populate with metadata
+            % Create new entry for FFT_SettingsTable and populate with metadata
             HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            FFT_SettingsTable.action{entryNumber_FFT} = sprintf('Start Stream FFT %d',streamStartCounter_FFT);
-            FFT_SettingsTable.recNum(entryNumber_FFT) = streamStartCounter_FFT;
-            FFT_SettingsTable.time{entryNumber_FFT} = HostUnixTime;
+            toAdd.action = sprintf('Start Stream FFT %d',streamStartCounter_FFT);
+            toAdd.recNum = streamStartCounter_FFT;
+            toAdd.time = HostUnixTime;
             
             % FFT info
-            FFT_SettingsTable.fftConfig(entryNumber_FFT) = fftConfig;
+            toAdd.fftConfig = fftConfig;
             
             % Get sample rate for each TD channel; all TD channels have
             % same Fs (or is listed as NaN)
@@ -206,11 +240,16 @@ while recordCounter <= length(DeviceSettings)
             end
             TDsampleRates = unique(TDsampleRates);
             currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
-            FFT_SettingsTable.TDsampleRates{entryNumber_FFT} = currentTDsampleRate;
+            toAdd.TDsampleRates = currentTDsampleRate;
             
+            if isempty(FFT_SettingsTable)
+                FFT_SettingsTable = struct2table(toAdd,'AsArray',true);
+            else
+                FFT_SettingsTable = [FFT_SettingsTable; struct2table(toAdd,'AsArray',true)];
+            end
+            clear toAdd
             
             streamStartCounter_FFT = streamStartCounter_FFT + 1;
-            entryNumber_FFT = entryNumber_FFT + 1;
             inStream_FFT = 1;
         end
     end
@@ -225,55 +264,65 @@ while recordCounter <= length(DeviceSettings)
         % TIME DOMAIN
         if inStream_TD && ~currentSettings.StreamState.TimeDomainStreamEnabled
             HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            TD_SettingsTable.action{entryNumber_TD} = sprintf('Stop Stream TD %d',streamStopCounter_TD);
-            TD_SettingsTable.recNum(entryNumber_TD) = streamStopCounter_TD;
-            TD_SettingsTable.time{entryNumber_TD} = HostUnixTime;
+            toAdd.action = sprintf('Stop Stream TD %d',streamStopCounter_TD);
+            toAdd.recNum = streamStopCounter_TD;
+            toAdd.time = HostUnixTime;
             
             % Fill in most recent time domain data settings
             for iChan = 1:4
                 fieldName = sprintf('chan%d',iChan);
-                TD_SettingsTable.(fieldName){entryNumber_TD} = TDsettings(iChan).chanFullStr;
+                toAdd.(fieldName) = TDsettings(iChan).chanFullStr;
             end
-            TD_SettingsTable.tdDataStruc{entryNumber_TD} = TDsettings;
+            toAdd.tdDataStruc = TDsettings;
+            
+            if isempty(TD_SettingsTable)
+                TD_SettingsTable = struct2table(toAdd,'AsArray',true);
+            else
+                TD_SettingsTable = [TD_SettingsTable; struct2table(toAdd,'AsArray',true)];
+            end
+            clear toAdd
             
             inStream_TD = 0;
             streamStopCounter_TD = streamStopCounter_TD + 1;
-            entryNumber_TD = entryNumber_TD + 1;
-            
         end
         
         % POWER DOMAIN
         if inStream_Power && ~currentSettings.StreamState.PowerDomainStreamEnabled
             HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            Power_SettingsTable.action{entryNumber_Power} = sprintf('Stop Stream Power %d',streamStopCounter_Power);
-            Power_SettingsTable.recNum(entryNumber_Power) = streamStopCounter_Power;
-            Power_SettingsTable.time{entryNumber_Power} = HostUnixTime;
+            toAdd.action = sprintf('Stop Stream Power %d',streamStopCounter_Power);
+            toAdd.recNum = streamStopCounter_Power;
+            toAdd.time = HostUnixTime;
             
             % Fill in most recent power domain settings
-            Power_SettingsTable.powerBands{entryNumber_Power} = powerChannels;
+            toAdd.powerBands = powerChannels;
             for iChan = 1:4
                 TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
             end
             TDsampleRates = unique(TDsampleRates);
             currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
-            Power_SettingsTable.TDsampleRates{entryNumber_Power} = currentTDsampleRate;
-            Power_SettingsTable.fftConfig(entryNumber_Power) = fftConfig;
+            toAdd.TDsampleRates = currentTDsampleRate;
+            toAdd.fftConfig = fftConfig;
+            
+            if isempty(Power_SettingsTable)
+                Power_SettingsTable = struct2table(toAdd,'AsArray',true);
+            else
+                Power_SettingsTable = [Power_SettingsTable; struct2table(toAdd,'AsArray',true)];
+            end
+            clear toAdd
             
             inStream_Power = 0;
             streamStopCounter_Power = streamStopCounter_Power + 1;
-            entryNumber_Power = entryNumber_Power + 1;
-            
         end
         
         % FFT
         if inStream_FFT && ~currentSettings.StreamState.FftStreamEnabled
             HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            FFT_SettingsTable.action{entryNumber_FFT} = sprintf('Stop Stream FFT %d',streamStopCounter_FFT);
-            FFT_SettingsTable.recNum(entryNumber_FFT) = streamStopCounter_FFT;
-            FFT_SettingsTable.time{entryNumber_FFT} = HostUnixTime;
+            toAdd.action = sprintf('Stop Stream FFT %d',streamStopCounter_FFT);
+            toAdd.recNum = streamStopCounter_FFT;
+            toAdd.time = HostUnixTime;
             
             % Fill in most recent FFT settings
-            FFT_SettingsTable.fftConfig(entryNumber_FFT) = fftConfig;
+            toAdd.fftConfig = fftConfig;
             
             % Get sample rate for each TD channel; all TD channels have
             % same Fs (or is listed as NaN)
@@ -282,11 +331,17 @@ while recordCounter <= length(DeviceSettings)
             end
             TDsampleRates = unique(TDsampleRates);
             currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
-            FFT_SettingsTable.TDsampleRates{entryNumber_FFT} = currentTDsampleRate;
+            toAdd.TDsampleRates = currentTDsampleRate;
+            
+            if isempty(FFT_SettingsTable)
+                FFT_SettingsTable = struct2table(toAdd,'AsArray',true);
+            else
+                FFT_SettingsTable = [FFT_SettingsTable; struct2table(toAdd,'AsArray',true)];
+            end
+            clear toAdd
             
             inStream_FFT = 0;
             streamStopCounter_FFT = streamStopCounter_FFT + 1;
-            entryNumber_FFT = entryNumber_FFT + 1;
         end
     end
     
@@ -302,19 +357,26 @@ while recordCounter <= length(DeviceSettings)
             if strcmp(senseState(4),'0') % Time domain streaming is off
                 % Create new row in deviceSettingsTable and populate with metadata
                 HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-                TD_SettingsTable.action{entryNumber_TD} = sprintf('Stop Sense TD %d',streamStopCounter_TD);
-                TD_SettingsTable.recNum(entryNumber_TD) = streamStopCounter_TD;
-                TD_SettingsTable.time{entryNumber_TD} = HostUnixTime;
+                toAdd.action = sprintf('Stop Sense TD %d',streamStopCounter_TD);
+                toAdd.recNum = streamStopCounter_TD;
+                toAdd.time = HostUnixTime;
                 
                 % Fill in most recent time domain data settings
                 for iChan = 1:4
                     fieldName = sprintf('chan%d',iChan);
-                    TD_SettingsTable.(fieldName){entryNumber_TD} = TDsettings(iChan).chanFullStr;
+                    toAdd.(fieldName) = TDsettings(iChan).chanFullStr;
                 end
-                TD_SettingsTable.tdDataStruc{entryNumber_TD} = TDsettings;
+                toAdd.tdDataStruc = TDsettings;
+                
+                if isempty(TD_SettingsTable)
+                    TD_SettingsTable = struct2table(toAdd,'AsArray',true);
+                else
+                    TD_SettingsTable = [TD_SettingsTable; struct2table(toAdd,'AsArray',true)];
+                end
+                clear toAdd
+                
                 inStream_TD = 0;
                 streamStopCounter_TD = streamStopCounter_TD + 1;
-                entryNumber_TD = entryNumber_TD + 1;
             end
         end
         
@@ -328,23 +390,29 @@ while recordCounter <= length(DeviceSettings)
             if strcmp(senseState(4),'0') % Time domain streaming is off
                 % Create new row in deviceSettingsTable and populate with metadata
                 HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-                Power_SettingsTable.action{entryNumber_Power} = sprintf('Stop Sense Power %d',streamStopCounter_Power);
-                Power_SettingsTable.recNum(entryNumber_Power) = streamStopCounter_Power;
-                Power_SettingsTable.time{entryNumber_Power} = HostUnixTime;
+                toAdd.action = sprintf('Stop Sense Power %d',streamStopCounter_Power);
+                toAdd.recNum = streamStopCounter_Power;
+                toAdd.time = HostUnixTime;
                 
                 % Fill in most recent power domain settings
-                Power_SettingsTable.powerBands{entryNumber_Power} = powerChannels;
+                toAdd.powerBands = powerChannels;
                 for iChan = 1:4
                     TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
                 end
                 TDsampleRates = unique(TDsampleRates);
                 currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
-                Power_SettingsTable.TDsampleRates{entryNumber_Power} = currentTDsampleRate;
-                Power_SettingsTable.fftConfig(entryNumber_Power) = fftConfig;
+                toAdd.TDsampleRates = currentTDsampleRate;
+                toAdd.fftConfig = fftConfig;
+                
+                if isempty(Power_SettingsTable)
+                    Power_SettingsTable = struct2table(toAdd,'AsArray',true);
+                else
+                    Power_SettingsTable = [Power_SettingsTable; struct2table(toAdd,'AsArray',true)];
+                end
+                clear toAdd
                 
                 inStream_Power = 0;
                 streamStopCounter_Power = streamStopCounter_Power + 1;
-                entryNumber_Power = entryNumber_Power + 1;
             end
             
         end
@@ -360,12 +428,12 @@ while recordCounter <= length(DeviceSettings)
             if strcmp(senseState(4),'0') % Time domain streaming is off
                 % Create new row in deviceSettingsTable and populate with metadata
                 HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-                FFT_SettingsTable.action{entryNumber_FFT} = sprintf('Stop Sense FFT %d',streamStopCounter_FFT);
-                FFT_SettingsTable.recNum(entryNumber_FFT) = streamStopCounter_FFT;
-                FFT_SettingsTable.time{entryNumber_FFT} = HostUnixTime;
+                toAdd.action = sprintf('Stop Sense FFT %d',streamStopCounter_FFT);
+                toAdd.recNum = streamStopCounter_FFT;
+                toAdd.time = HostUnixTime;
                 
                 % Fill in most recent FFT settings
-                FFT_SettingsTable.fftConfig(entryNumber_FFT) = fftConfig;
+                toAdd.fftConfig = fftConfig;
                 
                 % Get sample rate for each TD channel; all TD channels have
                 % same Fs (or is listed as NaN)
@@ -374,11 +442,17 @@ while recordCounter <= length(DeviceSettings)
                 end
                 TDsampleRates = unique(TDsampleRates);
                 currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
-                FFT_SettingsTable.TDsampleRates{entryNumber_FFT} = currentTDsampleRate;
+                toAdd.TDsampleRates = currentTDsampleRate;
+                
+                if isempty(FFT_SettingsTable)
+                    FFT_SettingsTable = struct2table(toAdd,'AsArray',true);
+                else
+                    FFT_SettingsTable = [FFT_SettingsTable; struct2table(toAdd,'AsArray',true)];
+                end
+                clear toAdd
                 
                 inStream_FFT = 0;
                 streamStopCounter_FFT = streamStopCounter_FFT + 1;
-                entryNumber_FFT = entryNumber_FFT + 1;
             end
         end
     end
@@ -386,17 +460,66 @@ while recordCounter <= length(DeviceSettings)
     % Option 3: If last record, get HostUnixTime (can use in cases where no stop time
     % was recorded)
     if recordCounter == length(DeviceSettings)
-        TD_SettingsTable.action{entryNumber_TD} = sprintf('Last record');
-        TD_SettingsTable.recNum(entryNumber_TD) = NaN;
-        TD_SettingsTable.time{entryNumber_TD} = HostUnixTime;
+        % TIME DOMAIN
+        toAdd.action = sprintf('Last record');
+        toAdd.recNum = NaN;
+        toAdd.time = HostUnixTime;
+        % Fill in most recent time domain data settings
+        for iChan = 1:4
+            fieldName = sprintf('chan%d',iChan);
+            toAdd.(fieldName) = TDsettings(iChan).chanFullStr;
+        end
+        toAdd.tdDataStruc = TDsettings;
+        if isempty(TD_SettingsTable)
+            TD_SettingsTable = struct2table(toAdd,'AsArray',true);
+        else
+            TD_SettingsTable = [TD_SettingsTable; struct2table(toAdd,'AsArray',true)];
+        end
+        clear toAdd
         
-        Power_SettingsTable.action{entryNumber_Power} = sprintf('Last record');
-        Power_SettingsTable.recNum(entryNumber_Power) = NaN;
-        Power_SettingsTable.time{entryNumber_Power} = HostUnixTime;
+        % POWER DOMAIN
+        toAdd.action = sprintf('Last record');
+        toAdd.recNum = NaN;
+        toAdd.time = HostUnixTime;
+        % Fill in most recent power domain settings
+        toAdd.powerBands = powerChannels;
+        for iChan = 1:4
+            TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
+        end
+        TDsampleRates = unique(TDsampleRates);
+        currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
+        toAdd.TDsampleRates = currentTDsampleRate;
+        toAdd.fftConfig = fftConfig;
         
-        FFT_SettingsTable.action{entryNumber_FFT} = sprintf('Last record');
-        FFT_SettingsTable.recNum(entryNumber_FFT) = NaN;
-        FFT_SettingsTable.time{entryNumber_FFT} = HostUnixTime;
+        if isempty(Power_SettingsTable)
+            Power_SettingsTable = struct2table(toAdd,'AsArray',true);
+        else
+            Power_SettingsTable = [Power_SettingsTable; struct2table(toAdd,'AsArray',true)];
+        end
+        clear toAdd
+        
+        % FFT
+        toAdd.action = sprintf('Last record');
+        toAdd.recNum = NaN;
+        toAdd.time = HostUnixTime;
+        % Fill in most recent FFT settings
+        toAdd.fftConfig = fftConfig;
+        
+        % Get sample rate for each TD channel; all TD channels have
+        % same Fs (or is listed as NaN)
+        for iChan = 1:4
+            TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
+        end
+        TDsampleRates = unique(TDsampleRates);
+        currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
+        toAdd.TDsampleRates = currentTDsampleRate;
+        
+        if isempty(FFT_SettingsTable)
+            FFT_SettingsTable = struct2table(toAdd,'AsArray',true);
+        else
+            FFT_SettingsTable = [FFT_SettingsTable; struct2table(toAdd,'AsArray',true)];
+        end
+        clear toAdd
     end
     recordCounter = recordCounter + 1;
 end
@@ -435,7 +558,7 @@ for iChunk = 1:length(recordingChunks)
     else
         % Check that first time is a start time
         if contains(selectData.action{1},'Start')
-            timeStart = selectData.time{1};
+            timeStart = selectData.time(1);
         else
             warning('Streaming of time domain data does not have start time')
             missingTime = 1;
@@ -444,10 +567,10 @@ for iChunk = 1:length(recordingChunks)
         % Check that second time is a stop time, or if last chunk can
         % have stop time missing and use 'last record' time
         if iChunk == length(recordingChunks) && size(selectData,1) ~= 2
-            timeStop = TD_SettingsTable.time{end};
+            timeStop = TD_SettingsTable.time(end);
         else
             if contains(selectData.action{2},'Stop')
-                timeStop = selectData.time{2};
+                timeStop = selectData.time(2);
             else
                 warning('Streaming of time domain data does not have stop time')
                 missingTime = 1;
@@ -456,21 +579,28 @@ for iChunk = 1:length(recordingChunks)
         
         % If no missing start or stop time, populate deviceSettingsOut
         if missingTime == 0
-            TD_SettingsOut.recNum(iChunk) = recordingChunks(iChunk);
-            TD_SettingsOut.duration(iChunk) = timeStop - timeStart;
-            TD_SettingsOut.timeStart(iChunk) = timeStart;
-            TD_SettingsOut.timeStop(iChunk) = timeStop;
+            toAdd.recNum = recordingChunks(iChunk);
+            toAdd.duration = timeStop - timeStart;
+            toAdd.timeStart = timeStart;
+            toAdd.timeStop = timeStop;
             
             % Loop through all TD channels to get sampling rate and acquistion parameters
             for iChan = 1:4
                 if ~strcmp(selectData.tdDataStruc{1}(iChan).sampleRate,'disabled') &&...
                         ~strcmp(selectData.tdDataStruc{1}(iChan).sampleRate,'unexpected')
-                    TD_SettingsOut.samplingRate(iChunk) = str2num(selectData.tdDataStruc{1}(iChan).sampleRate(1:end-2));
+                    toAdd.samplingRate = str2num(selectData.tdDataStruc{1}(iChan).sampleRate(1:end-2));
                     fieldName = sprintf('chan%d',iChan);
-                    TD_SettingsOut.(fieldName){iChunk} = selectData.(fieldName){1};
+                    toAdd.(fieldName) = selectData.(fieldName){1};
                 end
             end
-            TD_SettingsOut.TimeDomainDataStruc{iChunk} = selectData.tdDataStruc{1};
+            toAdd.TimeDomainDataStruc = selectData.tdDataStruc{1};
+            
+            if isempty(TD_SettingsOut)
+                TD_SettingsOut = struct2table(toAdd,'AsArray',true);
+            else
+                TD_SettingsOut = [TD_SettingsOut; struct2table(toAdd,'AsArray',true)];
+            end
+            clear toAdd
         end
     end
 end
@@ -496,7 +626,7 @@ for iChunk = 1:length(recordingChunks)
     else
         % Check that first time is a start time
         if contains(selectData.action{1},'Start')
-            timeStart = selectData.time{1};
+            timeStart = selectData.time(1);
         else
             warning('Streaming of power data does not have start time')
             missingTime = 1;
@@ -505,10 +635,10 @@ for iChunk = 1:length(recordingChunks)
         % Check that second time is a stop time, or if last chunk can
         % have stop time missing and use 'last record' time
         if iChunk == length(recordingChunks) && size(selectData,1) ~= 2
-            timeStop = Power_SettingsTable.time{end};
+            timeStop = Power_SettingsTable.time(end);
         else
             if contains(selectData.action{2},'Stop')
-                timeStop = selectData.time{2};
+                timeStop = selectData.time(2);
             else
                 warning('Streaming of power data does not have stop time')
                 missingTime = 1;
@@ -517,14 +647,21 @@ for iChunk = 1:length(recordingChunks)
         
         % If no missing start or stop time, populate deviceSettingsOut
         if missingTime == 0
-            Power_SettingsOut.recNum(iChunk) = recordingChunks(iChunk);
-            Power_SettingsOut.duration(iChunk) = timeStop - timeStart;
-            Power_SettingsOut.timeStart(iChunk) = timeStart;
-            Power_SettingsOut.timeStop(iChunk) = timeStop;
+            toAdd.recNum = recordingChunks(iChunk);
+            toAdd.duration = timeStop - timeStart;
+            toAdd.timeStart = timeStart;
+            toAdd.timeStop = timeStop;
             
-            Power_SettingsOut.powerBands{iChunk} = selectData.powerBands{1};
-            Power_SettingsOut.TDsampleRates{iChunk} = selectData.TDsampleRates{1};
-            Power_SettingsOut.fftConfig{iChunk} = selectData.fftConfig(1);
+            toAdd.powerBands = selectData.powerBands{1};
+            toAdd.TDsampleRates = selectData.TDsampleRates(1);
+            toAdd.fftConfig = selectData.fftConfig(1);
+            
+            if isempty(Power_SettingsOut)
+                Power_SettingsOut = struct2table(toAdd,'AsArray',true);
+            else
+                Power_SettingsOut = [Power_SettingsOut; struct2table(toAdd,'AsArray',true)];
+            end
+            clear toAdd
         end
     end
 end
@@ -551,7 +688,7 @@ for iChunk = 1:length(recordingChunks)
     else
         % Check that first time is a start time
         if contains(selectData.action{1},'Start')
-            timeStart = selectData.time{1};
+            timeStart = selectData.time(1);
         else
             warning('Streaming of FFT data does not have start time')
             missingTime = 1;
@@ -560,10 +697,10 @@ for iChunk = 1:length(recordingChunks)
         % Check that second time is a stop time, or if last chunk can
         % have stop time missing and use 'last record' time
         if iChunk == length(recordingChunks) && size(selectData,1) ~= 2
-            timeStop = FFT_SettingsTable.time{end};
+            timeStop = FFT_SettingsTable.time(end);
         else
             if contains(selectData.action{2},'Stop')
-                timeStop = selectData.time{2};
+                timeStop = selectData.time(2);
             else
                 warning('Streaming of FFT data does not have stop time')
                 missingTime = 1;
@@ -572,186 +709,19 @@ for iChunk = 1:length(recordingChunks)
         
         % If no missing start or stop time, populate deviceSettingsOut
         if missingTime == 0
-            FFT_SettingsOut.recNum(iChunk) = recordingChunks(iChunk);
-            FFT_SettingsOut.duration(iChunk) = timeStop - timeStart;
-            FFT_SettingsOut.timeStart(iChunk) = timeStart;
-            FFT_SettingsOut.timeStop(iChunk) = timeStop;
-            FFT_SettingsOut.fftConfig{iChunk} = selectData.fftConfig(1);
-            FFT_SettingsOut.TDsampleRates{iChunk} = selectData.TDsampleRates{1};
+            toAdd.recNum = recordingChunks(iChunk);
+            toAdd.duration = timeStop - timeStart;
+            toAdd.timeStart = timeStart;
+            toAdd.timeStop = timeStop;
+            toAdd.fftConfig = selectData.fftConfig(1);
+            toAdd.TDsampleRates = selectData.TDsampleRates(1);
+            
+            if isempty(FFT_SettingsOut)
+                FFT_SettingsOut = struct2table(toAdd,'AsArray',true);
+            else
+                FFT_SettingsOut = [FFT_SettingsOut; struct2table(toAdd,'AsArray',true)];
+            end
+            clear toAdd
         end
     end
 end
-
-
-%%
-% KS NOTE: BELOW SECTION FROM DEVICESETTINGSFORMONTAGE.M
-
-% %% Adaptive / detection config
-% % detection settings first are reported in full (e.g. all fields)
-% % after this point, only changes are reported.
-% % to make analysis easier, each row in output table will contain the full
-% % settings such that I copy over initial settings.
-% % this also assumes that you get a full report of the detection settings on
-% % first connection.
-%
-% % the settings being changed in each adaptive state update will be noted
-% % in a cell array as well
-%
-%
-%
-% %%%
-% %%%
-% %%%
-% % NEW CODE - first load initial settings that then get updates
-% %%%
-% %%%
-% %%%
-%
-% recordCounter = 1;
-% previosSettIdx = 0;
-% currentSettIdx  = 1;
-% adaptiveSettings = table();
-%
-% fnms = fieldnames(DeviceSettings{recordCounter});
-% currentSettings = DeviceSettings{recordCounter};
-% det_fiels = {'blankingDurationUponStateChange',...
-%     'detectionEnable','detectionInputs','fractionalFixedPointValue',...
-%     'holdoffTime','onsetDuration','terminationDuration','updateRate'};
-% if isfield(currentSettings,'DetectionConfig')
-%     lds_fn = {'Ld0','Ld1'};
-%     for ll = 1:length(lds_fn)
-%         ldTable = table();
-%         if isfield(currentSettings.DetectionConfig,lds_fn{ll})
-%             LD = currentSettings.DetectionConfig.(lds_fn{ll});
-%             adaptiveSettings.([lds_fn{ll} '_' 'biasTerm']) = LD.biasTerm';
-%             adaptiveSettings.([lds_fn{ll} '_' 'normalizationMultiplyVector']) = [LD.features.normalizationMultiplyVector];
-%             adaptiveSettings.([lds_fn{ll} '_' 'normalizationSubtractVector']) = [LD.features.normalizationSubtractVector];
-%             adaptiveSettings.([lds_fn{ll} '_' 'weightVector']) = [LD.features.weightVector];
-%             for d = 1:length(det_fiels)
-%                 adaptiveSettings.([lds_fn{ll} '_' det_fiels{d}])  =  LD.(det_fiels{d});
-%             end
-%         else % fill in previous settings.
-%             warning('missing field on first itiration');
-%         end
-%     end
-%     adaptiveSettings.HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-% end
-% if isfield(currentSettings,'AdaptiveConfig')
-%     adaptive_fields = {'adaptiveMode','adaptiveStatus','currentState',...
-%         'deltaLimitsValid','deltasValid'};
-%     adaptiveConfig = currentSettings.AdaptiveConfig;
-%     for a = 1:length(adaptive_fields)
-%         if isfield(adaptiveConfig,adaptive_fields{a})
-%             adaptiveSettings.(adaptive_fields{a}) = adaptiveConfig.(adaptive_fields{a});
-%         else
-%             warning('missing field on first itiration');
-%         end
-%     end
-%     if isfield(adaptiveConfig,'deltas')
-%         adaptiveSettings.fall_rate = [adaptiveConfig.deltas.fall];
-%         adaptiveSettings.rise_rate = [adaptiveConfig.deltas.rise];
-%     else
-%         warning('missing field on first itiration');
-%     end
-%     adaptiveSettings.HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-% end
-% if isfield(currentSettings,'AdaptiveConfig')
-%     % loop on states
-%     if isfield(adaptiveConfig,'state0')
-%         for s = 0:8
-%             statefn = sprintf('state%d',s);
-%             stateStruct = adaptiveConfig.(statefn);
-%             adaptiveSettings.(['state' num2str(s)] ) = s;
-%             adaptiveSettings.(['rate_hz_state' num2str(s)] ) = stateStruct.rateTargetInHz;
-%             adaptiveSettings.(['isValid_state' num2str(s)] ) = stateStruct.isValid;
-%             for iProgram = 0:3
-%                 progfn = sprintf('prog%dAmpInMilliamps',iProgram);
-%                 curr(iProgram+1) = stateStruct.(progfn);
-%             end
-%             adaptiveSettings.(['currentMa_state' num2str(s)] )(1,:) = curr;
-%         end
-%     else
-%         % fill in previous settings.
-%     end
-% end
-%
-%
-% % loop on rest of code and just report changes and when they happened
-% % don't copy things over for now
-%
-% return;
-%
-%
-% f = 2;
-% previosSettIdx = 0;
-% currentSettIdx  = 1;
-% changesMade = struct();
-% cntchange = 1;
-% while f <= length(DeviceSettings)
-%     adaptiveChanges = table();
-%     fnms = fieldnames(DeviceSettings{f});
-%     curStr = DeviceSettings{f};
-%     det_fiels = {'blankingDurationUponStateChange',...
-%         'detectionEnable','detectionInputs','fractionalFixedPointValue',...
-%         'holdoffTime','onsetDuration','terminationDuration','updateRate'};
-%     if isfield(curStr,'DetectionConfig')
-%         lds_fn = {'Ld0','Ld1'};
-%         for ll = 1:length(lds_fn)
-%             ldTable = table();
-%             if isfield(curStr.DetectionConfig,lds_fn{ll})
-%                 LD = curStr.DetectionConfig.(lds_fn{ll});
-%                 adaptiveChanges.([lds_fn{ll} '_' 'biasTerm']) = LD.biasTerm';
-%                 adaptiveChanges.([lds_fn{ll} '_' 'normalizationMultiplyVector']) = [LD.features.normalizationMultiplyVector];
-%                 adaptiveChanges.([lds_fn{ll} '_' 'normalizationSubtractVector']) = [LD.features.normalizationSubtractVector];
-%                 adaptiveChanges.([lds_fn{ll} '_' 'weightVector']) = [LD.features.weightVector];
-%                 for d = 1:length(det_fiels)
-%                     adaptiveChanges.([lds_fn{ll} '_' det_fiels{d}])  =  LD.(det_fiels{d});
-%                 end
-%             else % fill in previous settings.
-%                 warning('missing field on first itiration');
-%             end
-%         end
-%         adaptiveChanges.HostUnixTime = curStr.RecordInfo.HostUnixTime;
-%     end
-%     if isfield(curStr,'AdaptiveConfig')
-%         adaptive_fields = {'adaptiveMode','adaptiveStatus','currentState',...
-%             'deltaLimitsValid','deltasValid'};
-%         adaptiveConfig = curStr.AdaptiveConfig;
-%         for a = 1:length(adaptive_fields)
-%             if isfield(adaptiveConfig,adaptive_fields{a})
-%                 adaptiveChanges.(adaptive_fields{a}) = adaptiveConfig.(adaptive_fields{a});
-%             else
-%                 warning('missing field on first itiration');
-%             end
-%         end
-%         if isfield(adaptiveConfig,'deltas')
-%             adaptiveChanges.fall_rate = [adaptiveConfig.deltas.fall];
-%             adaptiveChanges.rise_rate = [adaptiveConfig.deltas.rise];
-%         else
-%             warning('missing field on first itiration');
-%         end
-%         adaptiveChanges.HostUnixTime = curStr.RecordInfo.HostUnixTime;
-%     end
-%     if isfield(curStr,'AdaptiveConfig')
-%         % loop on states
-%         if isfield(adaptiveConfig,'state0')
-%             for s = 0:8
-%                 statefn = sprintf('state%d',s);
-%                 stateStruct = adaptiveConfig.(statefn);
-%                 adaptiveChanges.(['state' num2str(s)] ) = s;
-%                 adaptiveChanges.(['rate_hz_state' num2str(s)] ) = stateStruct.rateTargetInHz;
-%                 adaptiveChanges.(['isValid_state' num2str(s)] ) = stateStruct.isValid;
-%                 for p = 0:3
-%                     progfn = sprintf('prog%dAmpInMilliamps',p);
-%                     curr(p+1) = stateStruct.(progfn);
-%                 end
-%                 adaptiveChanges.(['currentMa_state' num2str(s)] )(1,:) = curr;
-%             end
-%         end
-%     end
-%     if ~isempty(adaptiveChanges)
-%         changesMade(cntchange).adaptiveChanges = adaptiveChanges;
-%         cntchange = cntchange + 1;
-%     end
-%     f = f +1;
-%%
