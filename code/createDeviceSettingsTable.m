@@ -357,8 +357,7 @@ while recordCounter <= length(DeviceSettings)
             % Check starting/stopping of time domain streaming. See
             % documentation enum Medtronic.NeuroStim.Olympus.DataTypes.Sensing.SenseStates : byte
             % for more details about binary number coding
-            
-            if strcmp(senseState(4),'0') % Time domain streaming is off
+            if str2double(senseState) == 0 % streaming off
                 % Create new row in deviceSettingsTable and populate with metadata
                 HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
                 toAdd.action = sprintf('Stop Sense TD %d',streamStopCounter_TD);
@@ -390,7 +389,7 @@ while recordCounter <= length(DeviceSettings)
             % documentation enum Medtronic.NeuroStim.Olympus.DataTypes.Sensing.SenseStates : byte
             % for more details about binary number coding
             % Same code for all streams to indicate sense off
-            if strcmp(senseState(4),'0') % Time domain streaming is off
+            if str2double(senseState) == 0 % streaming off
                 % Create new row in deviceSettingsTable and populate with metadata
                 HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
                 toAdd.action = sprintf('Stop Sense Power %d',streamStopCounter_Power);
@@ -427,7 +426,7 @@ while recordCounter <= length(DeviceSettings)
             % for more details about binary number coding
             
             % Same code for all streams to indicate sense off
-            if strcmp(senseState(4),'0') % Time domain streaming is off
+            if str2double(senseState) == 0 % streaming off
                 % Create new row in deviceSettingsTable and populate with metadata
                 HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
                 toAdd.action = sprintf('Stop Sense FFT %d',streamStopCounter_FFT);
