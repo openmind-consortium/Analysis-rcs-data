@@ -147,7 +147,7 @@ Note that in each recording session, all .json files will be created and saved. 
 - **outputFigs**: will contain the output of function testing to the specified test dataset
 
 ## Functions: 
-This list contains the functions that have been tested in brach and pushed to master (brief description of function input output next to each function name)
+This list contains the functions that have been tested in branch and pushed to master (brief description of function input output next to each function name)
 
 ### Wrappers
 - **DEMO_ProcessRCS**: Demo wrapper script for importing raw .JSON files from RC+S, parsing into Matlab table format, and handling missing packets / harmonizing timestamps across data streams
@@ -174,7 +174,7 @@ This list contains the functions that have been tested in brach and pushed to ma
 ## How to get a time value for each sample of data
 Ideally, there would be a value reported with each packet from which we could easily re-create unix time for each sample. Nominally, this would be PacketGenTime. However, upon inspection we see that: 
 - **(1)** The difference between adjacent PacketGenTime values does not always equal the expect amount of elapsed time, where the expected amount of elapsed time is calculated by the number of samples in the packet and the sampling rate. This is a serious problem. In cases where there is missing time, we would lose the stereotyped 1/Fs duration between samples. In cases of overlap, how do we account for having more than one value sampled at the same time?
-- **(2)** PacketGenTime has suspect values across packets and relative to other timing variables. Together, these indicate that PacketGenTimeis  unreliable when high precision time reconstruction is required (as for some task-locked analyses, looking at ERPs, etc).
+- **(2)** PacketGenTime has suspect values across packets and relative to other timing variables. Together, these indicate that PacketGenTime is unreliable when high precision time reconstruction is required (as for some task-locked analyses, looking at ERPs, etc).
 
 Drift between timestamp and PacketGenTime across a long recording (9.3 hours):
 
@@ -235,7 +235,7 @@ Because of this accumulated error, we instead take a different approach for how 
 Because of the above described unreliability of PacketGenTime and the offset in the clocks creating timestamp and systemTick, we take a different approach for calculating DerivedTime. DerivedTime refers to a new timestamp, in unix time, assigned to each sample. DerivedTime is calculated after removing packets which have faulty information (e.g. PacketGenTime is negative). This is our best estimation of when these samples were recorded. The processing steps described below are implemented in `assignTime.m`. Note -- the implementation of this approach relies on the assumption that only full packets of data are missing, but there are no individual samples missing between packets (this has been shown to be the case through elegant work at Brown University). We do depend on PacketGenTime in order to convert to unix time, but we only use one PacketGenTime value per chunk of data (rather than using PacketGenTime to align each packet of data).
 
 - Identify and remove packets with faulty meta-data or which indicate samples will be hard to place in continuous stream (e.g. packets with timestamp that is more than 24 hours away from median timestamp; packets with negative PacketGenTime; packets with outlier packetGenTimes; packets where packetGenTime goes backwards in time)
-- Chunk data -- chunks are defined as segments of data which were continuously sampled. Breaks between chunks can occur because packets were removed in the previous step, because there were were dropped packets (never acquired), or because streaming was stopped but the recording was continued. Changes in time domain sampling rate will also result in a new chunk. Chunks are identified by looking at the adjacent values of dataTypeSequence, timestamp and systemTick as a function of sampling rate and number of samples per packet.
+- Chunk data -- chunks are defined as segments of data which were continuously sampled. Breaks between chunks can occur because packets were removed in the previous step, because there were dropped packets (never acquired), or because streaming was stopped but the recording was continued. Changes in time domain sampling rate will also result in a new chunk. Chunks are identified by looking at the adjacent values of dataTypeSequence, timestamp and systemTick as a function of sampling rate and number of samples per packet.
 - We need to align each chunk to a time; instead of just using the PacketGenTime of the first packet in the chunk, we look across all the packets in the chunk and calculate the average offset between each packetGenTime and the amount of time that is expected to have elapsed (calculated based on sampling rate and number of samples in the packet). We then apply this offset to the packetGenTime corresponding to the first packet of the chunk. We can now calculate a time for each sample in the chunk, as a function of the sampling rate. This process is repeated separately for each chunk.
 
 DerivedTimes are created separately for each data stream (e.g. TimeDomain, Accelerometer, PowerDomain), as each of these streams have systemTick and timestamp values reported per packet. Harmonization of derivedTimes across data streams happens next.
@@ -257,7 +257,7 @@ A number of factors impact the fidelity with which the RC+S streams data to the 
 
 ### CTM Ratio:
 - This is a ratio between [the number of packets sent by the INS to the host computer] vs [the number of packets sent by the host computer to the INS]
-- In general, hight CTM ratios should be used for high-throughput sensing applications; low CTM ratios should be used when the INS parameters must be updated rapidly (as would be the case during distributed DBS)
+- In general, high CTM ratios should be used for high-throughput sensing applications; low CTM ratios should be used when the INS parameters must be updated rapidly (as would be the case during distributed DBS)
 
 ### Other Factors which impact streaming performance:
 - Distances between the host computer, CTM, and INS
