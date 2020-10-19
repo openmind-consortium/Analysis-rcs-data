@@ -347,9 +347,13 @@ while recordCounter <= length(DeviceSettings)
     
     % Option 2: Check if sense has been turned off
     if isfield(currentSettings,'SenseState')
+        
+        if isfield(currentSettings.SenseState,'state')
+            senseState = dec2bin(currentSettings.SenseState.state,4);
+        end
+        
         % TIME DOMAIN
         if inStream_TD && isfield(currentSettings.SenseState,'state')
-            senseState = dec2bin(currentSettings.SenseState.state,4);
             % Check starting/stopping of time domain streaming. See
             % documentation enum Medtronic.NeuroStim.Olympus.DataTypes.Sensing.SenseStates : byte
             % for more details about binary number coding
@@ -382,7 +386,6 @@ while recordCounter <= length(DeviceSettings)
         
         % POWER DOMAIN
         if inStream_Power && isfield(currentSettings.SenseState,'state')
-            senseState = dec2bin(currentSettings.SenseState.state,4);
             % Check starting/stopping of time domain streaming. See
             % documentation enum Medtronic.NeuroStim.Olympus.DataTypes.Sensing.SenseStates : byte
             % for more details about binary number coding
@@ -419,7 +422,6 @@ while recordCounter <= length(DeviceSettings)
         
         % FFT
         if inStream_FFT && isfield(currentSettings.SenseState,'state')
-            senseState = dec2bin(currentSettings.SenseState.state,4);
             % Check starting/stopping of time domain streaming. See
             % documentation enum Medtronic.NeuroStim.Olympus.DataTypes.Sensing.SenseStates : byte
             % for more details about binary number coding
