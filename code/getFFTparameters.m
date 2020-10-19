@@ -17,21 +17,9 @@ end
 numBins = fftSize/2;
 binWidth = (currentTDsampleRate/2)/numBins;
 
-iCounter = 0;
-for iCounter = 0:numBins-1
-    fftBins(iCounter+1) = iCounter*binWidth;
-end
-
-lower(1) = 0;
-for iCounter = 2:length(fftBins)
-    valInHz = fftBins(iCounter)-fftBins(2)/2;
-    lower(iCounter) = valInHz;
-end
-
-for iCounter = 1:length(fftBins)
-    valInHz = fftBins(iCounter)+fftBins(2)/2;
-    upper(iCounter) = valInHz;
-end
+fftBins = (0:numBins-1)*binWidth;  % Center
+lower = [fftBins(1),fftBins(2:end)-binWidth/2];
+upper = fftBins+binWidth/2;
 
 fftParameters.numBins = numBins;
 fftParameters.binWidth = binWidth;
