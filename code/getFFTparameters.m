@@ -17,9 +17,9 @@ end
 numBins = fftSize/2;
 binWidth = (currentTDsampleRate/2)/numBins;
 
-fftBins = (0:numBins-1)*binWidth;  % Center
-lower = [fftBins(1),fftBins(2:end)-binWidth/2];
-upper = fftBins+binWidth/2;
+lower = (0:numBins-1)*binWidth;
+fftBins = lower + binWidth/2;          % Bin center
+upper = lower + binWidth;
 
 fftParameters.numBins = numBins;
 fftParameters.binWidth = binWidth;
