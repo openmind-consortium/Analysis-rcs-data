@@ -251,7 +251,7 @@ TBD
 ![Harmonize DerivedTime](documentationFigures/RCS_HarmonizeDerivedTime.png)
 
 Possible sample rates (in Hz):
-- **Time domain**: 250, 500, 750
+- **Time domain**: 250, 500, 1000
 - **Accelerometer**: 4, 8, 16, 32, 64
 - **Power Domain**: 0.1 - 20
 - **FFT**: 0.1 - 20
