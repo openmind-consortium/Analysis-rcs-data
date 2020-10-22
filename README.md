@@ -25,7 +25,9 @@ To facilitate most standard analyses of time-series data, we would optimally lik
 ![DataFlow](documentationFigures/RCS_DataFlow_Overview.png)
 
 ## RC+S raw data structures
-Each of the .json files has packets which were streamed from the RC+S using a UDP protocol. This means that some packets may have been lost in transmission (e.g. if patient walks out of range) and/or they may be received out of order. Below is a non-comprehensive guide regarding the main datatypes that exists within each .json file as well as their organization when imported into Matlab table format. In the Matlab tables, samples are in rows and data features are in columns. Note: much of the metadata contained in the .json files is not human readable -- sample rates are stored in binary format or coded values that must be converted to Hz. 
+Each of the .json files has packets which were streamed from the RC+S using a UDP protocol. This means that some packets may have been lost in transmission (e.g. if patient walks out of range) and/or they may be received out of order. Each of the packets contains a variable number of samples. There are metadata assocaited with the last sample of the packet. Below is a non-comprehensive guide regarding the main datatypes that exists within each .json file as well as their organization when imported into Matlab table format. In the Matlab tables, samples are in rows and data features are in columns. Note: much of the metadata contained in the .json files is not human readable -- sample rates are stored in binary format or coded values that must be converted to Hz. 
+
+![Data Structure](documentationFigures/RCS_DataStructure.png)
 
 ### Data in .json files
 - **RawDataTD.json**: Contains continuous raw time domain data in packet form. Each packet has timing information (and packet sizes are not consistant). Data can be streamed from up to 4 time domain channels (2 on each bore) at 250Hz and 500Hz or up to 2 time domain channels at 1000Hz. A timestamp and systemTick is only available for the last element of each data packet and timing information for each sample must be deduced. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
@@ -234,6 +236,8 @@ Because of this accumulated error, we instead take a different approach for how 
 
 Because of the above described unreliability of PacketGenTime and the offset in the clocks creating timestamp and systemTick, we take a different approach for calculating DerivedTime. DerivedTime refers to a new timestamp, in unix time, assigned to each sample. DerivedTime is calculated after removing packets which have faulty information (e.g. PacketGenTime is negative). This is our best estimation of when these samples were recorded. The processing steps described below are implemented in `assignTime.m`. Note -- the implementation of this approach relies on the assumption that only full packets of data are missing, but there are no individual samples missing between packets (this has been shown to be the case through elegant work at Brown University). We do depend on PacketGenTime in order to convert to unix time, but we only use one PacketGenTime value per chunk of data (rather than using PacketGenTime to align each packet of data).
 
+![Create DerivedTime](documentationFigures/RCS_CreateDerivedTime.png)
+
 - Identify and remove packets with faulty meta-data or which indicate samples will be hard to place in continuous stream (e.g. packets with timestamp that is more than 24 hours away from median timestamp; packets with negative PacketGenTime; packets with outlier packetGenTimes; packets where packetGenTime goes backwards in time)
 - Chunk data -- chunks are defined as segments of data which were continuously sampled. Breaks between chunks can occur because packets were removed in the previous step, because there were dropped packets (never acquired), or because streaming was stopped but the recording was continued. Changes in time domain sampling rate will also result in a new chunk. Chunks are identified by looking at the adjacent values of dataTypeSequence, timestamp and systemTick as a function of sampling rate and number of samples per packet.
 - We need to align each chunk to a time; instead of just using the PacketGenTime of the first packet in the chunk, we look across all the packets in the chunk and calculate the average offset between each packetGenTime and the amount of time that is expected to have elapsed (calculated based on sampling rate and number of samples in the packet). We then apply this offset to the packetGenTime corresponding to the first packet of the chunk. We can now calculate a time for each sample in the chunk, as a function of the sampling rate. This process is repeated separately for each chunk.
@@ -244,7 +248,13 @@ DerivedTimes are created separately for each data stream (e.g. TimeDomain, Accel
 
 TBD
 
+![Harmonize DerivedTime](documentationFigures/RCS_HarmonizeDerivedTime.png)
 
+Possible sample rates (in Hz):
+- **Time domain**: 250, 500, 750
+- **Accelerometer**: 4, 8, 16, 32, 64
+- **Power Domain**: 0.1 - 20
+- **FFT**: 0.1 - 20
 
 ## Factors Impacting Packet Loss
 
