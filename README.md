@@ -14,7 +14,7 @@ Selection of Matlab functions to extract .json raw data from Summit RC+S device,
 - Clone this repository and add to Matlab path. 
 
 ## What is the RC+S native data format?
-The Medtronic API saves data into a session directory. There are 11 .json files which are created for each session, which contain both meta-data and numerical data. These files can contain data from streaming up to 30 hours if streaming time domain data or even longer if streaming power domain data; the limit to this duration is dictated by the max INS battery life. 
+The Medtronic API saves data into a session directory. There are 11 .json files which are created for each session, which contain both meta-data and numerical data. Out of the box, the size/duration of these files is limited by the battery powering the CTM. Unmodified, this battery lasts for 4-5 hours. The CTM can be modified to be powered with an external battery, leading to recording duration being limited by the INS battery. The INS battery can stream for up to ~30 hours. 
 
 There are multiple challenges associated with these .json file and analyzing them: Interpreting metadata within and across the files, handling invalid / missing / misordered packets, creating a timestamp value for each sample, aligning timestamps (and samples) across data streams, and parsing the data streams when there was a change in recording or stimulation parameters. See below for the current approach for how to tackle these challenges.
 
