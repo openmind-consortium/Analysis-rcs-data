@@ -106,8 +106,8 @@ if isfile(Power_fileToLoad)
         numSettings = size(powerSettings,1);
         for iSetting = 1:numSettings
             powerBands_toConvert = powerSettings.powerBands{iSetting};
-            currentTDsampleRate = powerSettings.TDsampleRates{iSetting};
-            currentFFTconfig = powerSettings.fftConfig{iSetting};
+            currentTDsampleRate = powerSettings.TDsampleRates(iSetting);
+            currentFFTconfig = powerSettings.fftConfig(iSetting);
             [currentPowerBands] = getPowerBands(powerBands_toConvert,currentFFTconfig,currentTDsampleRate);
             powerSettings.powerBandsInHz(iSetting) = currentPowerBands;
         end
@@ -118,7 +118,7 @@ if isfile(Power_fileToLoad)
         
         % Determine if more than one sampling rate across recording
         for iSetting = 1:numSettings
-            all_powerFs(iSetting) =  1/((powerSettings.fftConfig{iSetting}.interval)/1000);
+            all_powerFs(iSetting) =  1/((powerSettings.fftConfig(iSetting).interval)/1000);
         end
         
         if length(unique(all_powerFs)) > 1
