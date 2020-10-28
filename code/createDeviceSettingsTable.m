@@ -49,6 +49,9 @@ streamStartCounter_Power = 1; % Initalize counter for streaming starts
 streamStopCounter_Power = 1; % Initalize counter for streaming stops
 streamStartCounter_FFT = 1; % Initalize counter for streaming starts
 streamStopCounter_FFT = 1; % Initalize counter for streaming stops
+TDsettings = [];
+powerChannels = [];
+fftConfig = [];
 
 while recordCounter <= length(DeviceSettings)
     currentSettings = DeviceSettings{recordCounter};
@@ -59,106 +62,43 @@ while recordCounter <= length(DeviceSettings)
         % If timeDomain updated in this record, create
         % new row in TD_SettingsTable and populate with metadata
         if isfield(currentSettings.SensingConfig,'timeDomainChannels')
-            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            % Create 'toAdd' with the new entry -- ensures that all table
-            % fields are filled for each entry (otherwise warning will
-            % print)
-            toAdd.action = 'Sense Config';
-            toAdd.recNum = NaN;
-            toAdd.time = HostUnixTime;
+            % Gather data for creating new row in table
+            actionType = 'Sense Config';
+            recNum = NaN;
             % Settings will remain in TDsettings until updated
-            TDsettings = convertTDcodes(currentSettings.SensingConfig.timeDomainChannels);
-            for iChan = 1:4
-                fieldName = sprintf('chan%d',iChan);
-                toAdd.(fieldName) = TDsettings(iChan).chanFullStr;
-            end
-            toAdd.tdDataStruc = TDsettings;
-            
-            % If TD_SettingsTable is empty, need to populate fields; for subsequent
-            % records just add as new row
-            if isempty(TD_SettingsTable)
-                TD_SettingsTable = struct2table(toAdd,'AsArray',true);
-            else
-                TD_SettingsTable = [TD_SettingsTable; struct2table(toAdd,'AsArray',true)];
-            end
-            clear toAdd
+            [newEntry, TDsettings] = addNewEntry_TimeDomainSettings(actionType,recNum,currentSettings,TDsettings);
+            TD_SettingsTable = addRowToTable(newEntry,TD_SettingsTable);
         end
         
         % If power domain updated in this record, create
         % new row in Power_SettingsTable and populate with metadata
         if isfield(currentSettings.SensingConfig,'powerChannels')
-            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            toAdd.action = 'Sense Config';
-            toAdd.recNum = NaN;
-            toAdd.time = HostUnixTime;
-            
+            % Gather data for creating new row in table
+            actionType = 'Sense Config';
+            recNum = NaN;
+            [newEntry, powerChannels, fftConfig] = addNewEntry_PowerDomainSettings(actionType,...
+                recNum,currentSettings,TDsettings,powerChannels,fftConfig);
             % This populates information about the powerBands (coded
             % values, not in Hz). The bipolar channels associated with the
             % bands are defined above (from timeDomainChannels). Sense chan1: Bands
             % 1-2, sense chan2: Bands 3-4, Sense chan3: Bands 5-6, Sense
             % chan4: Bands 7-8
             
-            % Settings will remain in powerChannels, TDsampleRate, and fftConfig until
-            % updated; TDsampleRate and fftConfig needed in later processing for
+            % Settings will remain in powerChannels and fftConfig until
+            % updated; fftConfig needed in later processing for
             % determinig powerBands
-            powerChannels = currentSettings.SensingConfig.powerChannels;
-            toAdd.powerBands = powerChannels;
             
-            % Get sample rate for each TD channel; all TD channels have
-            % same Fs (or is listed as NaN)
-            for iChan = 1:4
-                TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
-            end
-            TDsampleRates = unique(TDsampleRates);
-            currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
-            toAdd.TDsampleRates = currentTDsampleRate;
-            
-            % Get fftConfig info if updated
-            if isfield(currentSettings.SensingConfig,'fftConfig')
-                fftConfig = currentSettings.SensingConfig.fftConfig;
-            end
-            toAdd.fftConfig = fftConfig;
-            
-            % If Power_SettingsTable is empty, need to populate fields; for subsequent
-            % records just add as new row
-            if isempty(Power_SettingsTable)
-                Power_SettingsTable = struct2table(toAdd,'AsArray',true);
-            else
-                Power_SettingsTable = [Power_SettingsTable; struct2table(toAdd,'AsArray',true)];
-            end
-            clear toAdd
+            Power_SettingsTable = addRowToTable(newEntry,Power_SettingsTable);
         end
         
         % If FFT updated in this record, create
         % new row in FFT_SettingsTable and populate with metadata
         if isfield(currentSettings.SensingConfig,'fftConfig')
-            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            toAdd.action = 'Sense Config';
-            toAdd.recNum = NaN;
-            toAdd.time = HostUnixTime;
-            
-            % Settings will remain in fftConfig until updated
-            fftConfig = currentSettings.SensingConfig.fftConfig;
-            toAdd.fftConfig = fftConfig;
-            
-            
-            % Get sample rate for each TD channel; all TD channels have
-            % same Fs (or is listed as NaN)
-            for iChan = 1:4
-                TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
-            end
-            TDsampleRates = unique(TDsampleRates);
-            currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
-            toAdd.TDsampleRates = currentTDsampleRate;
-            
-            % If FFT_SettingsTable is empty, need to populate fields; for subsequent
-            % records just add as new row
-            if isempty(FFT_SettingsTable)
-                FFT_SettingsTable = struct2table(toAdd,'AsArray',true);
-            else
-                FFT_SettingsTable = [FFT_SettingsTable; struct2table(toAdd,'AsArray',true)];
-            end
-            clear toAdd
+            % Gather data for creating new row in table
+            actionType = 'Sense Config';
+            recNum = NaN;
+            [newEntry, fftConfig] = addNewEntry_FFTSettings(actionType,recNum,currentSettings,TDsettings,fftConfig);
+            FFT_SettingsTable = addRowToTable(newEntry,FFT_SettingsTable);
         end
     end
     %%
@@ -169,25 +109,10 @@ while recordCounter <= length(DeviceSettings)
         % TIME DOMAIN
         if currentSettings.StreamState.TimeDomainStreamEnabled && ~inStream_TD % If not already inStream, then streaming is starting
             % Create new entry for TD_SettingsTable and populate with metadata
-            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            toAdd.action = sprintf('Start Stream TD %d',streamStartCounter_TD);
-            toAdd.recNum = streamStartCounter_TD;
-            toAdd.time = HostUnixTime;
-            
-            % Time domain info
-            % Fill in most recent time domain data settings
-            for iChan = 1:4
-                fieldName = sprintf('chan%d',iChan);
-                toAdd.(fieldName) = TDsettings(iChan).chanFullStr;
-            end
-            toAdd.tdDataStruc = TDsettings;
-            
-            if isempty(TD_SettingsTable)
-                TD_SettingsTable = struct2table(toAdd,'AsArray',true);
-            else
-                TD_SettingsTable = [TD_SettingsTable; struct2table(toAdd,'AsArray',true)];
-            end
-            clear toAdd
+            actionType = sprintf('Start Stream TD %d',streamStartCounter_TD);
+            recNum = streamStartCounter_TD;
+            [newEntry, TDsettings] = addNewEntry_TimeDomainSettings(actionType,recNum,currentSettings,TDsettings);
+            TD_SettingsTable = addRowToTable(newEntry,TD_SettingsTable);
             
             streamStartCounter_TD = streamStartCounter_TD + 1;
             inStream_TD = 1;
@@ -196,27 +121,11 @@ while recordCounter <= length(DeviceSettings)
         % POWER DOMAIN
         if currentSettings.StreamState.PowerDomainStreamEnabled && ~inStream_Power % If not already inStream, then streaming is starting
             % Create new entry for Power_SettingsTable and populate with metadata
-            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            toAdd.action = sprintf('Start Stream Power %d',streamStartCounter_Power);
-            toAdd.recNum = streamStartCounter_Power;
-            toAdd.time = HostUnixTime;
-            
-            % Power domain info
-            toAdd.powerBands = powerChannels;
-            for iChan = 1:4
-                TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
-            end
-            TDsampleRates = unique(TDsampleRates);
-            currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
-            toAdd.TDsampleRates = currentTDsampleRate;
-            toAdd.fftConfig = fftConfig;
-            
-            if isempty(Power_SettingsTable)
-                Power_SettingsTable = struct2table(toAdd,'AsArray',true);
-            else
-                Power_SettingsTable = [Power_SettingsTable; struct2table(toAdd,'AsArray',true)];
-            end
-            clear toAdd
+            actionType = sprintf('Start Stream Power %d',streamStartCounter_Power);
+            recNum = streamStartCounter_Power;
+            [newEntry,powerChannels,fftConfig] = addNewEntry_PowerDomainSettings(actionType,...
+                recNum,currentSettings,TDsettings,powerChannels,fftConfig);
+            Power_SettingsTable = addRowToTable(newEntry,Power_SettingsTable);
             
             streamStartCounter_Power = streamStartCounter_Power + 1;
             inStream_Power = 1;
@@ -225,29 +134,10 @@ while recordCounter <= length(DeviceSettings)
         % FFT
         if currentSettings.StreamState.FftStreamEnabled && ~inStream_FFT % If not already inStream, then streaming is starting
             % Create new entry for FFT_SettingsTable and populate with metadata
-            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            toAdd.action = sprintf('Start Stream FFT %d',streamStartCounter_FFT);
-            toAdd.recNum = streamStartCounter_FFT;
-            toAdd.time = HostUnixTime;
-            
-            % FFT info
-            toAdd.fftConfig = fftConfig;
-            
-            % Get sample rate for each TD channel; all TD channels have
-            % same Fs (or is listed as NaN)
-            for iChan = 1:4
-                TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
-            end
-            TDsampleRates = unique(TDsampleRates);
-            currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
-            toAdd.TDsampleRates = currentTDsampleRate;
-            
-            if isempty(FFT_SettingsTable)
-                FFT_SettingsTable = struct2table(toAdd,'AsArray',true);
-            else
-                FFT_SettingsTable = [FFT_SettingsTable; struct2table(toAdd,'AsArray',true)];
-            end
-            clear toAdd
+            actionType = sprintf('Start Stream FFT %d',streamStartCounter_FFT);
+            recNum = streamStartCounter_FFT;
+            [newEntry,fftConfig] = addNewEntry_FFTSettings(actionType,recNum,currentSettings,TDsettings,fftConfig);
+            FFT_SettingsTable = addRowToTable(newEntry,FFT_SettingsTable);
             
             streamStartCounter_FFT = streamStartCounter_FFT + 1;
             inStream_FFT = 1;
@@ -263,24 +153,10 @@ while recordCounter <= length(DeviceSettings)
         
         % TIME DOMAIN
         if inStream_TD && ~currentSettings.StreamState.TimeDomainStreamEnabled
-            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            toAdd.action = sprintf('Stop Stream TD %d',streamStopCounter_TD);
-            toAdd.recNum = streamStopCounter_TD;
-            toAdd.time = HostUnixTime;
-            
-            % Fill in most recent time domain data settings
-            for iChan = 1:4
-                fieldName = sprintf('chan%d',iChan);
-                toAdd.(fieldName) = TDsettings(iChan).chanFullStr;
-            end
-            toAdd.tdDataStruc = TDsettings;
-            
-            if isempty(TD_SettingsTable)
-                TD_SettingsTable = struct2table(toAdd,'AsArray',true);
-            else
-                TD_SettingsTable = [TD_SettingsTable; struct2table(toAdd,'AsArray',true)];
-            end
-            clear toAdd
+            actionType = sprintf('Stop Stream TD %d',streamStopCounter_TD);
+            recNum = streamStopCounter_TD;
+            [newEntry, TDsettings] = addNewEntry_TimeDomainSettings(actionType,recNum,currentSettings,TDsettings);
+            TD_SettingsTable = addRowToTable(newEntry,TD_SettingsTable);
             
             inStream_TD = 0;
             streamStopCounter_TD = streamStopCounter_TD + 1;
@@ -288,27 +164,11 @@ while recordCounter <= length(DeviceSettings)
         
         % POWER DOMAIN
         if inStream_Power && ~currentSettings.StreamState.PowerDomainStreamEnabled
-            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            toAdd.action = sprintf('Stop Stream Power %d',streamStopCounter_Power);
-            toAdd.recNum = streamStopCounter_Power;
-            toAdd.time = HostUnixTime;
-            
-            % Fill in most recent power domain settings
-            toAdd.powerBands = powerChannels;
-            for iChan = 1:4
-                TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
-            end
-            TDsampleRates = unique(TDsampleRates);
-            currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
-            toAdd.TDsampleRates = currentTDsampleRate;
-            toAdd.fftConfig = fftConfig;
-            
-            if isempty(Power_SettingsTable)
-                Power_SettingsTable = struct2table(toAdd,'AsArray',true);
-            else
-                Power_SettingsTable = [Power_SettingsTable; struct2table(toAdd,'AsArray',true)];
-            end
-            clear toAdd
+            actionType = sprintf('Stop Stream Power %d',streamStopCounter_Power);
+            recNum = streamStopCounter_Power;
+            [newEntry,powerChannels,fftConfig] = addNewEntry_PowerDomainSettings(actionType,...
+                recNum,currentSettings,TDsettings,powerChannels,fftConfig);
+            Power_SettingsTable = addRowToTable(newEntry,Power_SettingsTable);
             
             inStream_Power = 0;
             streamStopCounter_Power = streamStopCounter_Power + 1;
@@ -316,29 +176,10 @@ while recordCounter <= length(DeviceSettings)
         
         % FFT
         if inStream_FFT && ~currentSettings.StreamState.FftStreamEnabled
-            HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-            toAdd.action = sprintf('Stop Stream FFT %d',streamStopCounter_FFT);
-            toAdd.recNum = streamStopCounter_FFT;
-            toAdd.time = HostUnixTime;
-            
-            % Fill in most recent FFT settings
-            toAdd.fftConfig = fftConfig;
-            
-            % Get sample rate for each TD channel; all TD channels have
-            % same Fs (or is listed as NaN)
-            for iChan = 1:4
-                TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
-            end
-            TDsampleRates = unique(TDsampleRates);
-            currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
-            toAdd.TDsampleRates = currentTDsampleRate;
-            
-            if isempty(FFT_SettingsTable)
-                FFT_SettingsTable = struct2table(toAdd,'AsArray',true);
-            else
-                FFT_SettingsTable = [FFT_SettingsTable; struct2table(toAdd,'AsArray',true)];
-            end
-            clear toAdd
+            actionType = sprintf('Stop Stream FFT %d',streamStopCounter_FFT);
+            recNum = streamStopCounter_FFT;
+            [newEntry,fftConfig] = addNewEntry_FFTSettings(actionType,recNum,currentSettings,TDsettings,fftConfig);
+            FFT_SettingsTable = addRowToTable(newEntry,FFT_SettingsTable);
             
             inStream_FFT = 0;
             streamStopCounter_FFT = streamStopCounter_FFT + 1;
@@ -347,33 +188,22 @@ while recordCounter <= length(DeviceSettings)
     
     % Option 2: Check if sense has been turned off
     if isfield(currentSettings,'SenseState')
+        
+        if isfield(currentSettings.SenseState,'state')
+            senseState = dec2bin(currentSettings.SenseState.state,8);
+        end
+        
         % TIME DOMAIN
         if inStream_TD && isfield(currentSettings.SenseState,'state')
-            senseState = dec2bin(currentSettings.SenseState.state,4);
             % Check starting/stopping of time domain streaming. See
             % documentation enum Medtronic.NeuroStim.Olympus.DataTypes.Sensing.SenseStates : byte
             % for more details about binary number coding
-            
-            if strcmp(senseState(4),'0') % Time domain streaming is off
+            if str2double(senseState) == 0 % streaming off
                 % Create new row in deviceSettingsTable and populate with metadata
-                HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-                toAdd.action = sprintf('Stop Sense TD %d',streamStopCounter_TD);
-                toAdd.recNum = streamStopCounter_TD;
-                toAdd.time = HostUnixTime;
-                
-                % Fill in most recent time domain data settings
-                for iChan = 1:4
-                    fieldName = sprintf('chan%d',iChan);
-                    toAdd.(fieldName) = TDsettings(iChan).chanFullStr;
-                end
-                toAdd.tdDataStruc = TDsettings;
-                
-                if isempty(TD_SettingsTable)
-                    TD_SettingsTable = struct2table(toAdd,'AsArray',true);
-                else
-                    TD_SettingsTable = [TD_SettingsTable; struct2table(toAdd,'AsArray',true)];
-                end
-                clear toAdd
+                actionType = sprintf('Stop Sense TD %d',streamStopCounter_TD);
+                recNum = streamStopCounter_TD;
+                [newEntry, TDsettings] = addNewEntry_TimeDomainSettings(actionType,recNum,currentSettings,TDsettings);
+                TD_SettingsTable = addRowToTable(newEntry,TD_SettingsTable);
                 
                 inStream_TD = 0;
                 streamStopCounter_TD = streamStopCounter_TD + 1;
@@ -382,34 +212,17 @@ while recordCounter <= length(DeviceSettings)
         
         % POWER DOMAIN
         if inStream_Power && isfield(currentSettings.SenseState,'state')
-            senseState = dec2bin(currentSettings.SenseState.state,4);
             % Check starting/stopping of time domain streaming. See
             % documentation enum Medtronic.NeuroStim.Olympus.DataTypes.Sensing.SenseStates : byte
             % for more details about binary number coding
             % Same code for all streams to indicate sense off
-            if strcmp(senseState(4),'0') % Time domain streaming is off
+            if str2double(senseState) == 0 % streaming off
                 % Create new row in deviceSettingsTable and populate with metadata
-                HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-                toAdd.action = sprintf('Stop Sense Power %d',streamStopCounter_Power);
-                toAdd.recNum = streamStopCounter_Power;
-                toAdd.time = HostUnixTime;
-                
-                % Fill in most recent power domain settings
-                toAdd.powerBands = powerChannels;
-                for iChan = 1:4
-                    TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
-                end
-                TDsampleRates = unique(TDsampleRates);
-                currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
-                toAdd.TDsampleRates = currentTDsampleRate;
-                toAdd.fftConfig = fftConfig;
-                
-                if isempty(Power_SettingsTable)
-                    Power_SettingsTable = struct2table(toAdd,'AsArray',true);
-                else
-                    Power_SettingsTable = [Power_SettingsTable; struct2table(toAdd,'AsArray',true)];
-                end
-                clear toAdd
+                actionType = sprintf('Stop Sense Power %d',streamStopCounter_Power);
+                recNum = streamStopCounter_Power;
+                [newEntry,powerChannels,fftConfig] = addNewEntry_PowerDomainSettings(actionType,...
+                    recNum,currentSettings,TDsettings,powerChannels,fftConfig);
+                Power_SettingsTable = addRowToTable(newEntry,Power_SettingsTable);
                 
                 inStream_Power = 0;
                 streamStopCounter_Power = streamStopCounter_Power + 1;
@@ -419,37 +232,17 @@ while recordCounter <= length(DeviceSettings)
         
         % FFT
         if inStream_FFT && isfield(currentSettings.SenseState,'state')
-            senseState = dec2bin(currentSettings.SenseState.state,4);
             % Check starting/stopping of time domain streaming. See
             % documentation enum Medtronic.NeuroStim.Olympus.DataTypes.Sensing.SenseStates : byte
             % for more details about binary number coding
             
             % Same code for all streams to indicate sense off
-            if strcmp(senseState(4),'0') % Time domain streaming is off
+            if str2double(senseState) == 0 % streaming off
                 % Create new row in deviceSettingsTable and populate with metadata
-                HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
-                toAdd.action = sprintf('Stop Sense FFT %d',streamStopCounter_FFT);
-                toAdd.recNum = streamStopCounter_FFT;
-                toAdd.time = HostUnixTime;
-                
-                % Fill in most recent FFT settings
-                toAdd.fftConfig = fftConfig;
-                
-                % Get sample rate for each TD channel; all TD channels have
-                % same Fs (or is listed as NaN)
-                for iChan = 1:4
-                    TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
-                end
-                TDsampleRates = unique(TDsampleRates);
-                currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
-                toAdd.TDsampleRates = currentTDsampleRate;
-                
-                if isempty(FFT_SettingsTable)
-                    FFT_SettingsTable = struct2table(toAdd,'AsArray',true);
-                else
-                    FFT_SettingsTable = [FFT_SettingsTable; struct2table(toAdd,'AsArray',true)];
-                end
-                clear toAdd
+                actionType = sprintf('Stop Sense FFT %d',streamStopCounter_FFT);
+                recNum = streamStopCounter_FFT;
+                [newEntry,fftConfig] = addNewEntry_FFTSettings(actionType,recNum,currentSettings,TDsettings,fftConfig);
+                FFT_SettingsTable = addRowToTable(newEntry,FFT_SettingsTable);
                 
                 inStream_FFT = 0;
                 streamStopCounter_FFT = streamStopCounter_FFT + 1;
@@ -461,65 +254,24 @@ while recordCounter <= length(DeviceSettings)
     % was recorded)
     if recordCounter == length(DeviceSettings)
         % TIME DOMAIN
-        toAdd.action = sprintf('Last record');
-        toAdd.recNum = NaN;
-        toAdd.time = HostUnixTime;
-        % Fill in most recent time domain data settings
-        for iChan = 1:4
-            fieldName = sprintf('chan%d',iChan);
-            toAdd.(fieldName) = TDsettings(iChan).chanFullStr;
-        end
-        toAdd.tdDataStruc = TDsettings;
-        if isempty(TD_SettingsTable)
-            TD_SettingsTable = struct2table(toAdd,'AsArray',true);
-        else
-            TD_SettingsTable = [TD_SettingsTable; struct2table(toAdd,'AsArray',true)];
-        end
-        clear toAdd
+        actionType = sprintf('Last record');
+        recNum = NaN;
+        [newEntry, TDsettings] = addNewEntry_TimeDomainSettings(actionType,recNum,currentSettings,TDsettings);
+        TD_SettingsTable = addRowToTable(newEntry,TD_SettingsTable);
         
         % POWER DOMAIN
-        toAdd.action = sprintf('Last record');
-        toAdd.recNum = NaN;
-        toAdd.time = HostUnixTime;
-        % Fill in most recent power domain settings
-        toAdd.powerBands = powerChannels;
-        for iChan = 1:4
-            TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
-        end
-        TDsampleRates = unique(TDsampleRates);
-        currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
-        toAdd.TDsampleRates = currentTDsampleRate;
-        toAdd.fftConfig = fftConfig;
-        
-        if isempty(Power_SettingsTable)
-            Power_SettingsTable = struct2table(toAdd,'AsArray',true);
-        else
-            Power_SettingsTable = [Power_SettingsTable; struct2table(toAdd,'AsArray',true)];
-        end
-        clear toAdd
+        actionType = sprintf('Last record');
+        recNum = NaN;
+        [newEntry,powerChannels,fftConfig] = addNewEntry_PowerDomainSettings(actionType,...
+            recNum,currentSettings,TDsettings,powerChannels,fftConfig);
+        Power_SettingsTable = addRowToTable(newEntry,Power_SettingsTable);
         
         % FFT
-        toAdd.action = sprintf('Last record');
-        toAdd.recNum = NaN;
-        toAdd.time = HostUnixTime;
-        % Fill in most recent FFT settings
-        toAdd.fftConfig = fftConfig;
+        actionType = sprintf('Last record');
+        recNum = NaN;
+        [newEntry,fftConfig] = addNewEntry_FFTSettings(actionType,recNum,currentSettings,TDsettings,fftConfig);
+        FFT_SettingsTable = addRowToTable(newEntry,FFT_SettingsTable);
         
-        % Get sample rate for each TD channel; all TD channels have
-        % same Fs (or is listed as NaN)
-        for iChan = 1:4
-            TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
-        end
-        TDsampleRates = unique(TDsampleRates);
-        currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
-        toAdd.TDsampleRates = currentTDsampleRate;
-        
-        if isempty(FFT_SettingsTable)
-            FFT_SettingsTable = struct2table(toAdd,'AsArray',true);
-        else
-            FFT_SettingsTable = [FFT_SettingsTable; struct2table(toAdd,'AsArray',true)];
-        end
-        clear toAdd
     end
     recordCounter = recordCounter + 1;
 end
