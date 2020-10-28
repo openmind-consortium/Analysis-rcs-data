@@ -84,6 +84,7 @@ packetsToRemove = unique([badDatePackets; packetIndices_NegGenTime;...
 % Remove packets identified above for rejection
 packetsToKeep = setdiff(1:size(dataTable_original,1),packetsToRemove);
 dataTable = dataTable_original(packetsToKeep,:);
+
 clear dataTable_original
 %%
 % Identify gaps -- start with most obvious gaps, and then become more
@@ -112,6 +113,7 @@ indices_dataTypeSequenceFlagged = intersect(find(diff(dataTable.dataTypeSequence
 % 'previous' to 'current' packets; diff_systemTick written to index of
 % second packet associated with that calculation
 numPackets = size(dataTable,1);
+
 diff_systemTick = nan(numPackets,1);
 for iPacket = 2:numPackets
     diff_systemTick(iPacket,1) = mod((dataTable.systemTick(iPacket) + (2^16)...
@@ -141,6 +143,11 @@ if ~isempty(allFlaggedIndices)
             chunkIndices{counter} = (1:allFlaggedIndices(1));
             currentStartIndex = 1;
             counter = counter + 1;
+            % Edge case: Only one flagged index; automatically create
+            % second chunk to end of data
+            if length(allFlaggedIndices) == 1
+                chunkIndices{counter} = allFlaggedIndices(currentStartIndex) + 1:numPackets;
+            end
         elseif iChunk == length(allFlaggedIndices)
             chunkIndices{counter} = allFlaggedIndices(currentStartIndex) + 1:allFlaggedIndices(currentStartIndex + 1);
             chunkIndices{counter + 1} = allFlaggedIndices(currentStartIndex + 1) + 1:numPackets;
@@ -149,7 +156,7 @@ if ~isempty(allFlaggedIndices)
             currentStartIndex = currentStartIndex + 1;
             counter = counter + 1;
         end
-     end
+    end
 else
     % No identified missing packets, all packets in one chunk
     chunkIndices{1} = 1:numPackets;
@@ -285,7 +292,11 @@ end
 % data table
 disp('Cleaning up output table')
 outputDataTable.DerivedTime = DerivedTime;
-rowsToRemove = find(DerivedTime == 0);
+rowsToRemove = find(isnan(DerivedTime));
 outputDataTable(rowsToRemove,:) = [];
+
+% Make timing/metadata variables consistent across data streams
+outputDataTable = movevars(outputDataTable,{'DerivedTime','timestamp','systemTick','PacketGenTime','PacketRxUnixTime','dataTypeSequence','samplerate','packetsizes'},'Before',1);
+
 
 end

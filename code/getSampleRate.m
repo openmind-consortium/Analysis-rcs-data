@@ -1,4 +1,5 @@
 function sratesout = getSampleRate(srates)
+
 %%
 % Input: Vector of sample rates of each packet from RawDataTD.json
 % (Vector of the 'SampleRate' column, after having imported json
@@ -34,3 +35,4 @@ sratesout(srates==2) = 1000;
 
 
 end
+
