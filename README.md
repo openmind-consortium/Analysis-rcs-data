@@ -5,7 +5,7 @@ Selection of Matlab functions to extract .json raw data from Summit RC+S device,
 
 **Aim**: To consolidate a set of matlab functions for accessing RCS data from .json files and transforming it into data formats that enables further data analyses.
 
-**Collaborators**: Simon.Little@ucsf.edu, Prasad.Shirvalkar@ucsf.edu, Roee.Gilron@ucsf.edu, Kristin.Sellers@ucsf.edu, Juan.AnsoRomeo@ucsf.edu, Kenneth.Louie@ucsf.edu (stays open for more colleagues to join...)
+**Collaborators**: Simon.Little@ucsf.edu, Prasad.Shirvalkar@ucsf.edu, Roee.Gilron@ucsf.edu, Kristin.Sellers@ucsf.edu, Juan.AnsoRomeo@ucsf.edu, Kenneth.Louie@ucsf.edu (open for more colleagues to join...)
 
 **Policy**: Master will contain functions that have been tested in branch and pushed after pull request reviewers have approved. The collaborator doing the initial development and testing of a function in a testing branch (e.g. in 'importRawData') will make a pull request and assign 1-2 reviewers of the group who will review the code structure and the output of each function.
 
@@ -30,7 +30,7 @@ Each of the .json files has packets which were streamed from the RC+S using a UD
 ![Data Structure](documentationFigures/RCS_DataStructure.png)
 
 ### Data in .json files
-- **RawDataTD.json**: Contains continuous raw time domain data in packet form. Each packet has timing information (and packet sizes are not consistant). Data can be streamed from up to 4 time domain channels (2 on each bore) at 250Hz and 500Hz or up to 2 time domain channels at 1000Hz. A timestamp and systemTick is only available for the last element of each data packet and timing information for each sample must be deduced. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
+- **RawDataTD.json**: Contains continuous raw time domain data in packet form. Each packet has timing information (and packet sizes are not consistent). Data can be streamed from up to 4 time domain channels (2 on each bore; bore = connector in INS for one physical depth/strip, which has multiple contacts) at 250Hz and 500Hz or up to 2 time domain channels at 1000Hz. Bridging can be used to record all 4 time domain channels from one bore (this version of acquisition is untested in this code repo). A timestamp and systemTick is only available for the last element of each data packet and timing information for each sample must be deduced. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
 - **RawDataAccel.json**: Contains continuous raw onboard 3-axis accelerometry data as well as timing information. The structure and timing information is similar to the time domain files.
 - **DeviceSettings.json**: Contains information about which datastreams were enabled, start and stop times of streaming, stimulation settings, and device parameters (e.g. sampling rate, montage configuration [which electrodes are being recorded from], power bands limits, etc). Many of these settings can be changed within a given recording; each time such a change is made, another packet is written to DeviceSettings.json file. 
 - **RawDataFFT.json** - Contains continuous information streamed from the onboard (on-chip) FFT engine. The structure and timing information is similar to the time domain files.
@@ -47,10 +47,10 @@ Note that in each recording session, all .json files will be created and saved. 
 ### Data imported into Matlab 
 
 - **RawDataTD.json** --> timeDomainData:
-  - key0: Channel 0 on the first INS bore (assuming no bridging); contains numerical data in millivolts
-  - key1: Channel 1 on the first INS bore (assuming no bridging); contains numerical data in millivolts
-  - key2: Channel 2 on the first INS bore (assuming no bridging); contains numerical data in millivolts
-  - key3: Channel 3 on the first INS bore (assuming no bridging); contains numerical data in millivolts
+  - key0: Channel 0; contains numerical data in millivolts
+  - key1: Channel 1; contains numerical data in millivolts
+  - key2: Channel 2; contains numerical data in millivolts
+  - key3: Channel 3; contains numerical data in millivolts
   - systemTick: 16-bit INS clock timer that rolls over every 2^16 values. Highest resolution is 100 microseconds. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
   - timestamp: INS clock driven timer that does not roll over. Highest resolution is 1 second. Total elaped time since March 1, 2000 at midnight. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
   - samplerate: Fs in Hz; only written in rows corresponding to last sample of each packet.
@@ -252,7 +252,7 @@ TBD
 
 Possible sample rates (in Hz):
 - **Time domain**: 250, 500, 1000
-- **Accelerometer**: 4, 8, 16, 32, 64
+- **Accelerometer**: 4.069, 8.138, 16.276, 32.552, 65.104
 - **Power Domain**: 0.1 - 20
 - **FFT**: 0.1 - 20
 
