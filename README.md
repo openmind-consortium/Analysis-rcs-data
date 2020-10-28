@@ -76,14 +76,14 @@ Note that in each recording session, all .json files will be created and saved. 
 [examples from different files]
   - `timeDomainSettings`
   
-    ![timeDomainSettings](https://github.com/openmind-consortium/Analysis-rcs-data/blob/DocumentationUpdate/documentationFigures/timeDomain.PNG)
+    ![timeDomainSettings](documentationFigures/timeDomain.PNG)
   
   - `powerSettings`
   
-    ![powerSettings](https://github.com/openmind-consortium/Analysis-rcs-data/blob/DocumentationUpdate/documentationFigures/powerSettings_2.PNG)
+    ![powerSettings](documentationFigures/powerSettings_2.PNG)
   
   - `fftSettings`
-    ![fftSettings](https://github.com/openmind-consortium/Analysis-rcs-data/blob/DocumentationUpdate/documentationFigures/fftSettings.PNG)
+    ![fftSettings](documentationFigures/fftSettings.PNG)
   
   - `metaData`
 
@@ -180,7 +180,7 @@ Ideally, there would be a value reported with each packet from which we could ea
 
 Drift between `timestamp` and `PacketGenTime` across a long recording (9.3 hours):
 
-![Timestamp_vs_PacketGenTime](https://github.com/openmind-consortium/Analysis-rcs-data/blob/DocumentationUpdate/documentationFigures/TimestampVsPacketGenTime.png)
+![Timestamp_vs_PacketGenTime](documentationFigures/TimestampVsPacketGenTime.png)
 
 Given that `PacketGenTime` does not provide a complete solution, we next looked at `systemTick` and `timestamp`.
 
