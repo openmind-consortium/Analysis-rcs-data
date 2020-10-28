@@ -190,7 +190,7 @@ while recordCounter <= length(DeviceSettings)
     if isfield(currentSettings,'SenseState')
         
         if isfield(currentSettings.SenseState,'state')
-            senseState = dec2bin(currentSettings.SenseState.state,4);
+            senseState = dec2bin(currentSettings.SenseState.state,8);
         end
         
         % TIME DOMAIN
