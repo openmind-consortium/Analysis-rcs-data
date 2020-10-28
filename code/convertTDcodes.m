@@ -60,9 +60,9 @@ for iChan = 1:length(TDsettings)
         otherwise
             TDsettings(iChan).minusInput = 'unexpected';
     end
-    % For TD chans 3 and 4, shift electrode ocntact numbers to be 8-15 (corresponding to second lead)
-    if ~strcmp(TDsettings(iChan).minusInput,'floating') && ~strcmp(TDsettings(iChan).minusInput,'unexpected')
-        if iChan > 2
+    % For TD chans 3 and 4, shift electrode contact numbers to be 8-15 (corresponding to second lead)
+    if iChan > 2
+        if ~strcmp(TDsettings(iChan).minusInput,'floating') && ~strcmp(TDsettings(iChan).minusInput,'unexpected')
             TDsettings(iChan).minusInput = num2str(str2num(TDsettings(iChan).minusInput)+8);
         end
     end
@@ -90,8 +90,8 @@ for iChan = 1:length(TDsettings)
             TDsettings(iChan).plusInput = 'unexpected';
     end
     % For TD chans 3 and 4, shift electrode contact numbers to be 8-15 (corresponding to second lead)
-    if ~strcmp(TDsettings(iChan).plusInput,'floating') && ~strcmp(TDsettings(iChan).plusInput,'unexpected')
-        if iChan > 2 % asssumes there is no bridging
+    if iChan > 2 % asssumes there is no bridging
+        if ~strcmp(TDsettings(iChan).plusInput,'floating') && ~strcmp(TDsettings(iChan).plusInput,'unexpected')
             TDsettings(iChan).plusInput = num2str( str2num(TDsettings(iChan).plusInput)+8);
         end
     end

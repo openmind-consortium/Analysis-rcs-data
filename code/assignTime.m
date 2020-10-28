@@ -295,4 +295,8 @@ outputDataTable.DerivedTime = DerivedTime;
 rowsToRemove = find(isnan(DerivedTime));
 outputDataTable(rowsToRemove,:) = [];
 
+% Make timing/metadata variables consistent across data streams
+outputDataTable = movevars(outputDataTable,{'DerivedTime','timestamp','systemTick','PacketGenTime','PacketRxUnixTime','dataTypeSequence','samplerate','packetsizes'},'Before',1);
+
+
 end
