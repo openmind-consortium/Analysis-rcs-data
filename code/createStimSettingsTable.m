@@ -1,205 +1,110 @@
-function [Stim_SettingsOut] = createStimSettingsTable(folderPath)
+function [stimLogSettings] = createStimSettingsTable(folderPath)
 %%
 % Extract information from StimLog.json related to stimulation programs and
 % settings
 %
 % Input: Folder path to Device* folder containing json files
-% Output: Stim_SettingsOut
+% Output: stimLogSettings
 %%
 % Load in StimLog.json file
 stimLog = jsondecode(fixMalformedJson(fileread([folderPath filesep 'StimLog.json']),'StimLog'));
 
 %%
-stimTable = table();
+stimLogSettings = table;
 
 numRecords = size(stimLog,1);
 recordCounter = 1;
 addEntry = 0;
-entryNumber = 1;
+Group0 = struct;
+Group1 = struct;
+Group2 = struct;
+Group3 = struct;
 
 % Loop through all records and update table with changes
 while recordCounter <= numRecords
-    currentRecord = stimLog{recordCounter};
+    updatedParameters = {};
+    currentSettings = stimLog{recordCounter};
     
     % All fields are present in first record, so fields get initialized
-    HostUnixTime = currentRecord.RecordInfo.HostUnixTime;
-    
-    if isfield(currentRecord, 'therapyStatusData.therapyStatus')
-        therapyStatus = currentRecord.therapyStatusData.therapyStatus;
-    end
-    if isfield(currentRecord, 'therapyStatusData.activeGroup')
-        activeGroup = currentRecord.therapyStatusData.activeGroup;
-    end
-    
-    %KS: Option 1 -- not flat structure --> CAN NOT USE isfield in this way
-    if isfield(currentRecord, 'TherapyConfigGroup0')
-        if isfield(currentRecord, 'TherapyConfigGroup0.ratePeriod')
-            Group0.rateInHz = currentRecord.TherapyConfigGroup0.ratePeriod;
-        end
-        if isfield(currentRecord,'TherapyConfigGroup0.program0.AmplitudeInMilliamps')
-            Group0.Program0.amplitudeInMilliamps = currentRecord.TherapyConfigGroup0.program0.AmplitudeInMilliamps;
-        end
-        if isfield(currentRecord,'TherapyConfigGroup0.program0.PulseWidthInMicroseconds')
-            Group0.Program0.pulseWidthInMicroseconds = currentRecord.TherapyConfigGroup0.program0.PulseWidthInMicroseconds;
-        end
-        if isfield(currentRecord,'TherapyConfigGroup0.program1.AmplitudeInMilliamps')
-            Group0.Program1.amplitudeInMilliamps = currentRecord.TherapyConfigGroup0.program1.AmplitudeInMilliamps;
-        end
-        if isfield(currentRecord,'TherapyConfigGroup0.program1.PulseWidthInMicroseconds')
-            Group0.Program1.pulseWidthInMicroseconds = currentRecord.TherapyConfigGroup0.program1.PulseWidthInMicroseconds;
-        end
-        if isfield(currentRecord,'TherapyConfigGroup0.program2.AmplitudeInMilliamps')
-            Group0.Program2.amplitudeInMilliamps = currentRecord.TherapyConfigGroup0.program2.AmplitudeInMilliamps;
-        end
-        if isfield(currentRecord,'TherapyConfigGroup0.program2.PulseWidthInMicroseconds')
-            Group0.Program2.pulseWidthInMicroseconds = currentRecord.TherapyConfigGroup0.program2.PulseWidthInMicroseconds;
-        end
-        if isfield(currentRecord,'TherapyConfigGroup0.program3.AmplitudeInMilliamps')
-            Group0.Program3.amplitudeInMilliamps = currentRecord.TherapyConfigGroup0.program3.AmplitudeInMilliamps;
-        end
-        if isfield(currentRecord,'TherapyConfigGroup0.program3.PulseWidthInMicroseconds')
-            Group0.Program3.pulseWidthInMicroseconds = currentRecord.TherapyConfigGroup0.program3.PulseWidthInMicroseconds;
+    if isfield(currentSettings, 'therapyStatusData') && isfield(currentSettings.therapyStatusData, 'therapyStatus')
+        therapyStatus = currentSettings.therapyStatusData.therapyStatus;
+        % If first record, create previousTherapyStatus but still add this
+        % entry; otherwise compare to see if therapyStatus has changed
+        if recordCounter == 1 || ~isequal(therapyStatus, previousTherapyStatus)
+            previousTherapyStatus = therapyStatus;
+            addEntry = 1;
+            updatedParameters = [updatedParameters;'therapyStatus'];
         end
         
-        addEntry = 1;
+    end
+    if isfield(currentSettings, 'therapyStatusData') && isfield(currentSettings.therapyStatusData, 'activeGroup')
+        activeGroup = currentSettings.therapyStatusData.activeGroup;
+        % If first record, create previousActiveGroup but still add this
+        % entry; otherwise compare to see if activeGroup has changed
+        if recordCounter == 1 || ~isequal(activeGroup, previousActiveGroup)
+            previousActiveGroup = activeGroup;
+            addEntry = 1;
+            updatedParameters = [updatedParameters;'activeGroup'];
+        end
     end
     
-    % KS: Option 2 -- flatter structure
-    if isfield(currentRecord, 'TherapyConfigGroup1')
-        if isfield(currentRecord, 'TherapyConfigGroup1.ratePeriod')
-            Group1.rateInHz = currentRecord.TherapyConfigGroup1.ratePeriod;
+    % If TherapyConfigGroup0 present in current record, collect values
+    if isfield(currentSettings, 'TherapyConfigGroup0')
+        currentGroupData = currentSettings.TherapyConfigGroup0;
+        Group0 = getStimParameters(currentGroupData, Group0);
+        % Only mark to trigger adding new entry if first record or Group0 parameters have changed
+        if recordCounter == 1 || ~isequal(Group0, previousGroup0)
+            previousGroup0 = Group0;
+            addEntry = 1;
+            updatedParameters = [updatedParameters;'Group0'];
         end
-        
-        temp = table;
-        temp.Group1_Program0_amplInMilliamps = currentRecord.TherapyConfigGroup1.program0.AmplitudeInMilliamps;
-        temp.Group1_Program0_pulseWidthInMicroseconds = currentRecord.TherapyConfigGroup1.program0.PulseWidthInMicroseconds;
-        temp.Group1_Program1_amplitudeInMilliamps = currentRecord.TherapyConfigGroup1.program1.AmplitudeInMilliamps;
-        temp.Group1_Program1_pulseWidthInMicroseconds = currentRecord.TherapyConfigGroup1.program1.PulseWidthInMicroseconds;
-        temp.Group1_Program2_amplitudeInMilliamps = currentRecord.TherapyConfigGroup1.program2.AmplitudeInMilliamps;
-        temp.Group1_Program2_pulseWidthInMicroseconds = currentRecord.TherapyConfigGroup1.program2.PulseWidthInMicroseconds;
-        temp.Group1_Program3_amplitudeInMilliamps = currentRecord.TherapyConfigGroup1.program3.AmplitudeInMilliamps;
-        temp.Group1_Program3_pulseWidthInMicroseconds = currentRecord.TherapyConfigGroup1.program3.PulseWidthInMicroseconds;
-        
-        addEntry = 1;
     end
-%     
-%     if isfield(currentRecord, 'TherapyConfigGroup2')
-%         if isfield(currentRecord, 'TherapyConfigGroup2.ratePeriod')
-%             Group2.rateInHz = currentRecord.TherapyConfigGroup2.ratePeriod;
-%         end
-%         Group2.Program0.amplitudeInMilliamps = currentRecord.TherapyConfigGroup2.program0.AmplitudeInMilliamps;
-%         Group2.Program0.pulseWidthInMicroseconds = currentRecord.TherapyConfigGroup2.program0.PulseWidthInMicroseconds;
-%         Group2.Program1.amplitudeInMilliamps = currentRecord.TherapyConfigGroup2.program1.AmplitudeInMilliamps;
-%         Group2.Program1.pulseWidthInMicroseconds = currentRecord.TherapyConfigGroup2.program1.PulseWidthInMicroseconds;
-%         Group2.Program2.amplitudeInMilliamps = currentRecord.TherapyConfigGroup2.program2.AmplitudeInMilliamps;
-%         Group2.Program2.pulseWidthInMicroseconds = currentRecord.TherapyConfigGroup2.program2.PulseWidthInMicroseconds;
-%         Group2.Program3.amplitudeInMilliamps = currentRecord.TherapyConfigGroup2.program3.AmplitudeInMilliamps;
-%         Group2.Program3.pulseWidthInMicroseconds = currentRecord.TherapyConfigGroup2.program3.PulseWidthInMicroseconds;
-%         
-%         addEntry = 1;
-%     end
-%     
-%     if isfield(currentRecord, 'TherapyConfigGroup3')
-%         if isfield(currentRecord, 'TherapyConfigGroup3.ratePeriod')
-%             Group3.rateInHz = currentRecord.TherapyConfigGroup3.ratePeriod;
-%         end
-%         Group3.Program0.amplitudeInMilliamps = currentRecord.TherapyConfigGroup3.program0.AmplitudeInMilliamps;
-%         Group3.Program0.pulseWidthInMicroseconds = currentRecord.TherapyConfigGroup3.program0.PulseWidthInMicroseconds;
-%         Group3.Program1.amplitudeInMilliamps = currentRecord.TherapyConfigGroup3.program1.AmplitudeInMilliamps;
-%         Group3.Program1.pulseWidthInMicroseconds = currentRecord.TherapyConfigGroup3.program1.PulseWidthInMicroseconds;
-%         Group3.Program2.amplitudeInMilliamps = currentRecord.TherapyConfigGroup3.program2.AmplitudeInMilliamps;
-%         Group3.Program2.pulseWidthInMicroseconds = currentRecord.TherapyConfigGroup3.program2.PulseWidthInMicroseconds;
-%         Group3.Program3.amplitudeInMilliamps = currentRecord.TherapyConfigGroup3.program3.AmplitudeInMilliamps;
-%         Group3.Program3.pulseWidthInMicroseconds = currentRecord.TherapyConfigGroup3.program3.PulseWidthInMicroseconds;
-%         
-%         addEntry = 1;
-%     end
-%     
-    % Indicates that at least one of the TherapyConfigGroups was present in
-    % currentRecord, implying record change. Thus add all current parameters to table
+    
+    % If TherapyConfigGroup1 present in current record, collect values
+    if isfield(currentSettings, 'TherapyConfigGroup1')
+        currentGroupData = currentSettings.TherapyConfigGroup1;
+        Group1 = getStimParameters(currentGroupData, Group1);
+        % Only mark to trigger adding new entry if first record or Group1 parameters have changed
+        if recordCounter == 1 || ~isequal(Group1, previousGroup1)
+            previousGroup1 = Group1;
+            addEntry = 1;
+            updatedParameters = [updatedParameters;'Group1'];
+        end
+    end
+    
+    % If TherapyConfigGroup2 present in current record, collect values
+    if isfield(currentSettings, 'TherapyConfigGroup2')
+        currentGroupData = currentSettings.TherapyConfigGroup2;
+        Group2 = getStimParameters(currentGroupData, Group2);
+        % Only mark to trigger adding new entry if first record or Group2 parameters have changed
+        if recordCounter == 1 || ~isequal(Group2, previousGroup2)
+            previousGroup2 = Group2;
+            addEntry = 1;
+            updatedParameters = [updatedParameters;'Group2'];
+        end
+    end
+    
+    % If TherapyConfigGroup3 present in current packet, collect values
+    if isfield(currentSettings, 'TherapyConfigGroup3')
+        currentGroupData = currentSettings.TherapyConfigGroup3;
+        Group3 = getStimParameters(currentGroupData, Group3);
+        % Only mark to trigger adding new entry if first record or Group3 parameters have changed
+        if recordCounter == 1 || ~isequal(Group3, previousGroup3)
+            previousGroup3 = Group3;
+            addEntry = 1;
+            updatedParameters = [updatedParameters;'Group3'];
+        end
+    end
+    
+    % If any parameter was updated, add all current parameters to table as
+    % a new entry
     if addEntry == 1
-        
-        stimTable.HostUnixTime(entryNumber) = HostUnixTime;
-        stimTable.therapyStatus(entryNumber) = therapyStatus;
-        stimTable.activeGroup(entryNumber) = activeGroup;
-        stimTable.Group0{entryNumber} = Group0;
-%         stimTable.Group1(entryNumber) = Group1;
-%         stimTable.Group2(entryNumber) = Group2;
-%         stimTable.Group3(entryNumber) = Group3;
-        
-        entryNumber = entryNumber + 1;
+        [newEntry] = addNewEntry_StimSettings(currentSettings,activeGroup,...
+            therapyStatus, Group0, Group1, Group2, Group3, updatedParameters);
+        stimLogSettings = addRowToTable(newEntry,stimLogSettings);
     end
-    
-    recordCounter = recordCounter + 1;
     addEntry = 0;
+    recordCounter = recordCounter + 1;
 end
 
-
-%% load stimulation config
-% this code (re stim sweep part) assumes no change in stimulation from initial states
-% this code will fail for stim sweeps or if any changes were made to
-% stimilation
-% need to fix this to include stim changes and when the occured to color
-% data properly according to stim changes and when the took place for in
-% clinic testing
-
-therapyStatus = DeviceSettings{1}.GeneralData.therapyStatusData;
-groups = [0 1 2 3]; % max of 4 groups
-groupNames = {'A','B','C','D'};
-stimState = table();
-counter = 1;
-
-for iGroup = 1:length(groups)
-    fn = sprintf('TherapyConfigGroup%d',groups(iGroup));
-    for iProgram = 1:4 % max of 4 programs per group
-        if DeviceSettings{1}.TherapyConfigGroup0.programs(iProgram).isEnabled == 0
-            stimState.group(counter) = groupNames{iGroup};
-            if (iGroup-1) == therapyStatus.activeGroup
-                stimState.activeGroup(counter) = 1;
-                if therapyStatus.therapyStatus
-                    stimState.stimulation_on(counter) = 1;
-                else
-                    stimState.stimulation_on(counter) = 0;
-                end
-            else
-                stimState.activeGroup(counter) = 0;
-                stimState.stimulation_on(counter) = 0;
-            end
-            
-            stimState.program(counter) = iProgram;
-            stimState.pulseWidth_mcrSec(counter) = DeviceSettings{1}.(fn).programs(iProgram).pulseWidthInMicroseconds;
-            stimState.amplitude_mA(counter) = DeviceSettings{1}.(fn).programs(iProgram).amplitudeInMilliamps;
-            stimState.rate_Hz(counter) = DeviceSettings{1}.(fn).rateInHz;
-            electrodes = DeviceSettings{1}.(fn).programs(iProgram).electrodes.electrodes;
-            elecString = '';
-            for iElectrode = 1:length(electrodes)
-                if electrodes(iElectrode).isOff == 0 % Electrode is active
-                    % Determine if electrode is used
-                    if iElectrode == 17 % This refers to the can
-                        elecUsed = 'c';
-                    else
-                        elecUsed = num2str(iElectrode-1); % Electrodes are zero indexed
-                    end
-                    
-                    % Determine if electrode is anode or cathode
-                    if electrodes(iElectrode).electrodeType == 1
-                        elecSign = '-'; % Anode
-                    else
-                        elecSign = '+'; % Cathode
-                    end
-                    elecSnippet = [elecSign elecUsed ' '];
-                    elecString = [elecString elecSnippet];
-                end
-            end
-            
-            stimState.electrodes{counter} = elecString;
-            counter = counter + 1;
-        end
-    end
-end
-if ~isempty(stimState)
-    stimStatus = stimState(logical(stimState.activeGroup),:);
-else
-    stimStatus = [];
-end
 end
