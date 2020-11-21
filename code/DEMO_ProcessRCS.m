@@ -50,8 +50,13 @@ else
     error('No DeviceSettings.json file')
 end
 
-
-
+disp('Collecting Stimulation Settings from Stim Log file')
+StimLog_fileToLoad = [folderPath filesep 'StimLog.json'];
+if isfile(StimLog_fileToLoad)
+    [stimLogSettings] = createStimSettingsTable(folderPath);
+else
+    error('No StimLog.json file')
+end
 
 
 %%
@@ -188,5 +193,6 @@ if isfile(FFT_fileToLoad)
 else
     FFTData = [];
 end
+
 end
 
