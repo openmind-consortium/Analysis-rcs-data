@@ -64,12 +64,16 @@ packetGenTime_diffs = diff(dataTable_original.PacketGenTime);
 diffIndices = find(packetGenTime_diffs < 0 );
 
 % Need to remove [diffIndices + 1], but may also need to remove subsequent
-% packets. Remove at most 5 adjacent packets (to prevent large un-needed
+% packets. Automatically remove the next packet [diffIndices + 1], as this is easier than
+% trying to confirm there is enough time to assign to samples without
+% causing overlap.
+% Remove at most 6 adjacent packets (to prevent large un-needed
 % packet rejection driven by positive outliers)
 indices_backInTime = [];
 for iIndex = 1:length(diffIndices)
-    counter = 1;
-    while (counter < 6) && dataTable_original.PacketGenTime(diffIndices(iIndex) + counter)...
+    counter = 3;
+    indices_backInTime = [indices_backInTime (diffIndices(iIndex) + 1) (diffIndices(iIndex) + 2)]; 
+    while (counter <= 6) && dataTable_original.PacketGenTime(diffIndices(iIndex) + counter)...
             < dataTable_original.PacketGenTime(diffIndices(iIndex))
         
         indices_backInTime = [indices_backInTime (diffIndices(iIndex) + counter)];
