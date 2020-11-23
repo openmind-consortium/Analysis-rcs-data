@@ -292,11 +292,22 @@ for iChunk = 1:length(chunkIndices)
         correctedAlignTime_shifted(iChunk) - elapsedTime_before : 1000/currentFs : correctedAlignTime_shifted(iChunk) + elapsedTime_after;
 end
 
+% Check to ensure that the same DerivedTime was not assigned to multiple
+% samples; if yes, flag the second instance for removal; note: in matlab, nans
+% are not equal
+if ~isequal(length(DerivedTime), length(unique(DerivedTime)))
+    [~,uniqueIndices] = unique(DerivedTime);
+    duplicateIndices = setdiff([1:length(DerivedTime)],uniqueIndices);
+else
+    duplicateIndices = [];
+end
+
+   
 % All samples which do not have a derivedTime should be removed from final
-% data table
+% data table, along with those with duplicate derivedTime values
 disp('Cleaning up output table')
 outputDataTable.DerivedTime = DerivedTime;
-rowsToRemove = find(isnan(DerivedTime));
+rowsToRemove = [find(isnan(DerivedTime)); duplicateIndices'];
 outputDataTable(rowsToRemove,:) = [];
 
 % Make timing/metadata variables consistent across data streams
