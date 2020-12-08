@@ -16,7 +16,7 @@ nrows = sum(packetSizes);
 allVarNames = {'XSamples','YSamples','ZSamples','systemTick','timestamp','samplerate','PacketGenTime',...
     'PacketRxUnixTime','packetsizes','dataTypeSequence'};
 % Pre allocate memory
-outdat = zeros(nrows, length(allVarNames));
+outdat = NaN(nrows, length(allVarNames));
 
 %%
 % Loop through packets to populate fields
