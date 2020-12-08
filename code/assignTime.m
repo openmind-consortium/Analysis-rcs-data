@@ -23,11 +23,10 @@ function outputDataTable = assignTime(inputDataTable)
 %%
 
 % Pull out info for each packet
-indicesOfTimestamps = find(inputDataTable.timestamp ~= 0);
+indicesOfTimestamps = find(~isnan(inputDataTable.timestamp));
 dataTable_original = inputDataTable(indicesOfTimestamps,:);
 
-%%
-% Identify packets for rejection
+%%% Identify packets for rejection
 
 disp('Identifying and removing bad packets')
 % Remove any packets with timestamp that are more than 24 hours from median timestamp
@@ -348,7 +347,7 @@ outputDataTable(samplesToRemove,:) = [];
 
 % Indices referenced in chunkIndices can now be mapped back to timeDomainData
 % using indicesOfTimestamps_cleaned
-indicesOfTimestamps_cleaned = find(outputDataTable.timestamp ~= 0);
+indicesOfTimestamps_cleaned = find(~isnan(outputDataTable.timestamp));
 
 % Map the chunk start/stop times back to samples
 for iChunk = 1:length(chunkIndices)
@@ -393,7 +392,6 @@ else
     duplicateIndices = [];
 end
 
-   
 % All samples which do not have a derivedTime should be removed from final
 % data table, along with those with duplicate derivedTime values
 disp('Cleaning up output table')
