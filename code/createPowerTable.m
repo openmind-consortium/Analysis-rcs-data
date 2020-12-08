@@ -50,6 +50,32 @@ else
         powerData.(bandName) = bands(:,iBand);
     end
     
+    % If no power data streamed for a band, change zeros to Nans
+    if sum(powerData.Band1) == 0
+        powerData.Band1 = NaN(size(powerData.Band1));
+    end
+    if sum(powerData.Band2) == 0
+        powerData.Band2 = NaN(size(powerData.Band2));
+    end
+    if sum(powerData.Band3) == 0
+        powerData.Band3 = NaN(size(powerData.Band3));
+    end
+    if sum(powerData.Band4) == 0
+        powerData.Band4 = NaN(size(powerData.Band4));
+    end
+    if sum(powerData.Band5) == 0
+        powerData.Band5 = NaN(size(powerData.Band5));
+    end
+    if sum(powerData.Band6) == 0
+        powerData.Band6 = NaN(size(powerData.Band6));
+    end
+    if sum(powerData.Band7) == 0
+        powerData.Band7 = NaN(size(powerData.Band7));
+    end
+    if sum(powerData.Band8) == 0
+        powerData.Band8 = NaN(size(powerData.Band8));
+    end
+    
     powerTable = struct2table(powerData);
 end
 
