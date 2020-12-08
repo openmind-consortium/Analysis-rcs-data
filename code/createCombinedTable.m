@@ -1,9 +1,7 @@
 function [combinedDataTable, debugTable] = createCombinedTable(dataStreams,unifiedDerivedTimes)
 %%
 % Using the shifted derivedTimes (newDerivedTimes), determine where rows of
-% data fit in combinedDataTable. Fill table with NaNs when there are no
-% values (either because of missing time or no value is present)
-%
+% data fit in combinedDataTable.
 %
 %%
 combinedDataTable = table();
@@ -128,11 +126,5 @@ for iStream = 1:length(dataStreams)
         end
     end
 end
-
-%  Change zeros to NaNs (e.g. missing values; values not present)
-disp('Cleaning up combined data table')
-combinedDataTable = standardizeMissing(combinedDataTable,0);
-% Temp for debugging
-debugTable = standardizeMissing(debugTable,0);
 
 end
