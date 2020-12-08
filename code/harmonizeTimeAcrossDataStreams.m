@@ -46,7 +46,8 @@ end
 
 % Check that there are no duplicate selectIndices
 if ~isequal(length(unique(selectIndices)), length(selectIndices))
-   warning('Same time assigned to more than one sample during time harmonization') 
+    numDuplicates = length(selectIndices) - length(unique(selectIndices)) + 1;
+    warning(['Same time assigned to ' num2str(numDuplicates) ' set(s) of samples during time harmonization'])
 end
 
 % Confirm that no sample in derivedTime_toShift is being moved more than
