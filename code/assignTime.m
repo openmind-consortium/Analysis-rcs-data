@@ -176,6 +176,7 @@ end
 
 % Only need to do this calculation if more than 1 chunk
 numChunks = length(chunkIndices);
+chunksWithTimingFromPrevious = [];
 if numChunks > 1
     % Get timestamps of first and last packet in chunks to calculate time gaps
     for iChunk = 1:numChunks
@@ -192,7 +193,7 @@ if numChunks > 1
     % iTimegap + 1 is the index of the chunk which does not need a new
     % correctedAlignTime calculated (aka chunksWithTimingFromPrevious)
     elapsed_systemTick = NaN(1,length(timestamp_gaps));
-    chunksWithTimingFromPrevious = [];
+    
     for iTimegap = 1:length(timestamp_gaps)
         % Check if timegap is < 6 seconds and if this chunk was not created
         % because of change in sampling rate
