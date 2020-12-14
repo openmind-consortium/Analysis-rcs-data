@@ -343,6 +343,9 @@ for iChunk = 1:length(recordingChunks)
                     toAdd.samplingRate = str2num(selectData.tdDataStruc{1}(iChan).sampleRate(1:end-2));
                     fieldName = sprintf('chan%d',iChan);
                     toAdd.(fieldName) = selectData.(fieldName){1};
+                else
+                    fieldName = sprintf('chan%d',iChan);
+                    toAdd.(fieldName) = NaN;
                 end
             end
             toAdd.TimeDomainDataStruc = selectData.tdDataStruc{1};
