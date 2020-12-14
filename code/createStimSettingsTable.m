@@ -30,8 +30,8 @@ while recordCounter <= numRecords
         therapyStatus = currentSettings.therapyStatusData.therapyStatus;
         % If first record, create previousTherapyStatus but still add this
         % entry; otherwise compare to see if therapyStatus has changed
-        if recordCounter == 1 || ~isequal(therapyStatus, previousTherapyStatus)
-            previousTherapyStatus = therapyStatus;
+        if recordCounter == 1 || ~isequal(therapyStatus, updatedTherapyStatus)
+            updatedTherapyStatus = therapyStatus;
             addEntry = 1;
             updatedParameters = [updatedParameters;'therapyStatus'];
         end
@@ -41,8 +41,8 @@ while recordCounter <= numRecords
         activeGroup = currentSettings.therapyStatusData.activeGroup;
         % If first record, create previousActiveGroup but still add this
         % entry; otherwise compare to see if activeGroup has changed
-        if recordCounter == 1 || ~isequal(activeGroup, previousActiveGroup)
-            previousActiveGroup = activeGroup;
+        if recordCounter == 1 || ~isequal(activeGroup, updatedActiveGroup)
+            updatedActiveGroup = activeGroup;
             addEntry = 1;
             updatedParameters = [updatedParameters;'activeGroup'];
         end
@@ -53,8 +53,8 @@ while recordCounter <= numRecords
         currentGroupData = currentSettings.TherapyConfigGroup0;
         Group0 = getStimParameters(currentGroupData, Group0);
         % Only mark to trigger adding new entry if first record or Group0 parameters have changed
-        if recordCounter == 1 || ~isequal(Group0, previousGroup0)
-            previousGroup0 = Group0;
+        if recordCounter == 1 || ~isequal(Group0, updatedGroup0)
+            updatedGroup0 = Group0;
             addEntry = 1;
             updatedParameters = [updatedParameters;'Group0'];
         end
@@ -65,8 +65,8 @@ while recordCounter <= numRecords
         currentGroupData = currentSettings.TherapyConfigGroup1;
         Group1 = getStimParameters(currentGroupData, Group1);
         % Only mark to trigger adding new entry if first record or Group1 parameters have changed
-        if recordCounter == 1 || ~isequal(Group1, previousGroup1)
-            previousGroup1 = Group1;
+        if recordCounter == 1 || ~isequal(Group1, updatedGroup1)
+            updatedGroup1 = Group1;
             addEntry = 1;
             updatedParameters = [updatedParameters;'Group1'];
         end
@@ -77,8 +77,8 @@ while recordCounter <= numRecords
         currentGroupData = currentSettings.TherapyConfigGroup2;
         Group2 = getStimParameters(currentGroupData, Group2);
         % Only mark to trigger adding new entry if first record or Group2 parameters have changed
-        if recordCounter == 1 || ~isequal(Group2, previousGroup2)
-            previousGroup2 = Group2;
+        if recordCounter == 1 || ~isequal(Group2, updatedGroup2)
+            updatedGroup2 = Group2;
             addEntry = 1;
             updatedParameters = [updatedParameters;'Group2'];
         end
@@ -89,8 +89,8 @@ while recordCounter <= numRecords
         currentGroupData = currentSettings.TherapyConfigGroup3;
         Group3 = getStimParameters(currentGroupData, Group3);
         % Only mark to trigger adding new entry if first record or Group3 parameters have changed
-        if recordCounter == 1 || ~isequal(Group3, previousGroup3)
-            previousGroup3 = Group3;
+        if recordCounter == 1 || ~isequal(Group3, updatedGroup3)
+            updatedGroup3 = Group3;
             addEntry = 1;
             updatedParameters = [updatedParameters;'Group3'];
         end
@@ -99,8 +99,8 @@ while recordCounter <= numRecords
     % If any parameter was updated, add all current parameters to table as
     % a new entry
     if addEntry == 1
-        [newEntry] = addNewEntry_StimSettings(currentSettings,activeGroup,...
-            therapyStatus, Group0, Group1, Group2, Group3, updatedParameters);
+        [newEntry] = addNewEntry_StimSettings(currentSettings,updatedActiveGroup,...
+            updatedTherapyStatus, updatedGroup0, updatedGroup1, updatedGroup2, updatedGroup3, updatedParameters);
         stimLogSettings = addRowToTable(newEntry,stimLogSettings);
     end
     addEntry = 0;
