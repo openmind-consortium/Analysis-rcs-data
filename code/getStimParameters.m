@@ -16,37 +16,37 @@ end
 
 if isfield(currentGroupData, 'program0')
     if isfield(currentGroupData.program0,'AmplitudeInMilliamps')
-        updatedGroupData.Program0_amplInMilliamps = currentGroupData.program0.AmplitudeInMilliamps;
+        updatedGroupData.ampInMilliamps(1) = currentGroupData.program0.AmplitudeInMilliamps;
     end
     if isfield(currentGroupData.program0,'PulseWidthInMicroseconds')
-        updatedGroupData.Program0_pulseWidthInMicroseconds = currentGroupData.program0.PulseWidthInMicroseconds;
+        updatedGroupData.pulseWidthInMicroseconds(1) = currentGroupData.program0.PulseWidthInMicroseconds;
     end
 end
 
 if isfield(currentGroupData, 'program1')
     if isfield(currentGroupData.program1,'AmplitudeInMilliamps')
-        updatedGroupData.Program1_amplInMilliamps = currentGroupData.program1.AmplitudeInMilliamps;
+        updatedGroupData.ampInMilliamps(2) = currentGroupData.program1.AmplitudeInMilliamps;
     end
     if isfield(currentGroupData.program1,'PulseWidthInMicroseconds')
-        updatedGroupData.Program1_pulseWidthInMicroseconds = currentGroupData.program1.PulseWidthInMicroseconds;
+        updatedGroupData.pulseWidthInMicroseconds(2) = currentGroupData.program1.PulseWidthInMicroseconds;
     end
 end
 
 if isfield(currentGroupData, 'program2')
     if isfield(currentGroupData.program2,'AmplitudeInMilliamps')
-        updatedGroupData.Program2_amplInMilliamps = currentGroupData.program2.AmplitudeInMilliamps;
+        updatedGroupData.ampInMilliamps(3) = currentGroupData.program2.AmplitudeInMilliamps;
     end
     if isfield(currentGroupData.program2,'PulseWidthInMicroseconds')
-        updatedGroupData.Program2_pulseWidthInMicroseconds = currentGroupData.program2.PulseWidthInMicroseconds;
+        updatedGroupData.pulseWidthInMicroseconds(3) = currentGroupData.program2.PulseWidthInMicroseconds;
     end
 end
 
 if isfield(currentGroupData, 'program3')
     if isfield(currentGroupData.program3,'AmplitudeInMilliamps')
-        updatedGroupData.Program3_amplInMilliamps = currentGroupData.program3.AmplitudeInMilliamps;
+        updatedGroupData.ampInMilliamps(4) = currentGroupData.program3.AmplitudeInMilliamps;
     end
     if isfield(currentGroupData.program3,'PulseWidthInMicroseconds')
-        updatedGroupData.Program3_pulseWidthInMicroseconds = currentGroupData.program3.PulseWidthInMicroseconds;
+        updatedGroupData.pulseWidthInMicroseconds(4) = currentGroupData.program3.PulseWidthInMicroseconds;
     end
 end
 
