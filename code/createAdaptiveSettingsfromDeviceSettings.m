@@ -188,13 +188,15 @@ end
 
 indices_AdaptiveOn = find(AdaptiveStimSettings.adaptiveStatus == 2);
 allIndices = sort([indices_AdaptiveOn; indices_AdaptiveOn + 1]);
-% Check that we haven't exceeded the number of entries in the table
-if allIndices(end) > size(AdaptiveStimSettings,1)
-    allIndices(end) = [];
-end
 
 AdaptiveRuns_StimSettings = table;
-AdaptiveRuns_StimSettings = AdaptiveStimSettings(allIndices,:);
-AdaptiveRuns_StimSettings = removevars(AdaptiveRuns_StimSettings,'updatedParameters');
+if ~isempty(indices_AdaptiveOn)
+    % Check that we haven't exceeded the number of entries in the table
+    if allIndices(end) > size(AdaptiveStimSettings,1)
+        allIndices(end) = [];
+    end
+    AdaptiveRuns_StimSettings = AdaptiveStimSettings(allIndices,:);
+    AdaptiveRuns_StimSettings = removevars(AdaptiveRuns_StimSettings,'updatedParameters');
+end
 
 end
