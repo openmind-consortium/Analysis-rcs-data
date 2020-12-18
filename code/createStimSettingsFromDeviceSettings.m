@@ -34,7 +34,18 @@ for iGroup = 0:3
         temp = currentSettings.(printGroupName).programs(iProgram).isEnabled;
         if temp == 0
             stimMetaData.validPrograms(iGroup + 1,iProgram) = 1;
-            stimMetaData.validProgramsNames{counter} = ['Group' num2str(iGroup) '_program' num2str(iProgram)];
+            
+            switch iGroup
+                case 0
+                    currentGroupName = 'GroupA';
+                case 1
+                    currentGroupName = 'GroupB';
+                case 2
+                    currentGroupName = 'GroupC';
+                case 3
+                    currentGroupName = 'GroupD';
+            end
+            stimMetaData.validProgramNames{counter,1} = [currentGroupName '_program' num2str(iProgram)];
             
             rawElectrodeTable = currentSettings.(printGroupName).programs(iProgram).electrodes.electrodes;
             % Find electrode(s) which are enabled; record if they are anode
@@ -70,11 +81,20 @@ end
 % Set up output table (stimSettingsOut) with initial settings
 entryNumber = 1;
 
-activeGroup = currentSettings.GeneralData.therapyStatusData.activeGroup;
+switch currentSettings.GeneralData.therapyStatusData.activeGroup
+    case 0
+        activeGroup = 'A';
+    case 1
+        activeGroup = 'B';
+    case 2
+        activeGroup = 'C';
+    case 3
+        activeGroup = 'D';
+end
 therapyStatus = currentSettings.GeneralData.therapyStatusData.therapyStatus;
 
 stimSettingsOut.HostUnixTime(entryNumber) = HostUnixTime;
-stimSettingsOut.activeGroup(entryNumber) = activeGroup;
+stimSettingsOut.activeGroup{entryNumber} = activeGroup;
 stimSettingsOut.therapyStatus(entryNumber) = therapyStatus;
 
 previousActiveGroup = activeGroup;
@@ -91,7 +111,16 @@ for iRecord = 1:length(DeviceSettings)
     % Check if activeGroup has changed
     if isfield(currentSettings,'GeneralData') && isfield(currentSettings.GeneralData, 'therapyStatusData') &&...
             isfield(currentSettings.GeneralData.therapyStatusData, 'activeGroup')
-        activeGroup = currentSettings.GeneralData.therapyStatusData.activeGroup;
+        switch currentSettings.GeneralData.therapyStatusData.activeGroup
+            case 0
+                activeGroup = 'A';
+            case 1
+                activeGroup = 'B';
+            case 2
+                activeGroup = 'C';
+            case 3
+                activeGroup = 'D';
+        end
         if ~isequal(activeGroup,previousActiveGroup)
             updateActiveGroup = 1;
         end
@@ -115,7 +144,7 @@ for iRecord = 1:length(DeviceSettings)
         toAdd.activeGroup = activeGroup;
         toAdd.therapyStatus = therapyStatus;
         stimSettingsOut = [stimSettingsOut; struct2table(toAdd)];
-
+        
         clear toAdd
         % Update for next loop
         previousActiveGroup = activeGroup;
@@ -125,5 +154,5 @@ for iRecord = 1:length(DeviceSettings)
         updateActiveGroup = 0;
         updateTherapyStatus = 0;
     end
- end
+end
 end

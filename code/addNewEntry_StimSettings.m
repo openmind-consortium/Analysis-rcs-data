@@ -1,5 +1,5 @@
 function [newEntry] = addNewEntry_StimSettings(currentSettings, activeGroup,...
-    therapyStatus, Group0, Group1, Group2, Group3, updatedParameters)
+    therapyStatus, GroupA, GroupB, GroupC, GroupD, updatedParameters)
 %%
 % Collect data to add a new row to the
 % Stim_SettingsTable; ensures that all table fields are filled for each
@@ -11,10 +11,10 @@ HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
 newEntry.HostUnixTime = HostUnixTime;
 newEntry.activeGroup = activeGroup;
 newEntry.therapyStatus = therapyStatus;
-newEntry.Group0 = struct2table(Group0);
-newEntry.Group1 = struct2table(Group1);
-newEntry.Group2 = struct2table(Group2);
-newEntry.Group3 = struct2table(Group3);
+newEntry.GroupA = struct2table(GroupA);
+newEntry.GroupB = struct2table(GroupB);
+newEntry.GroupC = struct2table(GroupC);
+newEntry.GroupD = struct2table(GroupD);
 newEntry.updatedParameters = updatedParameters;
 
 end
