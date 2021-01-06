@@ -134,9 +134,9 @@ end
 % samples per packet; in units of systemTick (1e-4 seconds)
 expectedElapsed = dataTable.packetsizes .* (1./dataTable.samplerate) * 1e4;
 
-% If diff_systemTick and expectedElapsed differ by more than 10% of expectedElapsed,
+% If diff_systemTick and expectedElapsed differ by more than 20% of expectedElapsed,
 % flag as gap
-indices_systemTickFlagged = find (abs(expectedElapsed(2:end) - diff_systemTick(2:end)) > 0.1*expectedElapsed(2:end));
+indices_systemTickFlagged = find (abs(expectedElapsed(2:end) - diff_systemTick(2:end)) > 0.2*expectedElapsed(2:end));
 
 % All packets flagged as end of continuous chunks
 allFlaggedIndices = unique([indices_changeFs; indices_timestampFlagged;...
@@ -227,7 +227,6 @@ disp('Determining start time of each chunk')
 % systemTick and expectedElapsed
 diff_PacketGenTime = [1; diff(dataTable.PacketGenTime) * 1e1];
 
-numChunks = length(chunkIndices);
 singlePacketChunks = [];
 medianError = NaN(1,numChunks);
 for iChunk = 1:numChunks
@@ -316,6 +315,9 @@ for iChunk = 1:numChunks
     end
 end
 
+% Print metrics to command window
+disp(['Number of chunks: ' num2str(numChunks)]);
+disp(['Numer of chunks removed: ' num2str(length(chunksToRemove))])
 
 %%
 % Indices in chunkIndices correspond to packets in dataTable.
