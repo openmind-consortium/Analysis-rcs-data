@@ -42,7 +42,7 @@ end
 
 % Determine closest index of baseTime that can be used for
 % derivedTime_toShift
-[selectIndices, distance] = dsearchn(newDerivedTime,derivedTime_toShift);
+[selectIndices, distance] = knnsearch(newDerivedTime,derivedTime_toShift);
 
 % Check that there are no duplicate selectIndices
 if ~isequal(length(unique(selectIndices)), length(selectIndices))
