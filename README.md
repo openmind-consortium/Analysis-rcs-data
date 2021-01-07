@@ -274,3 +274,12 @@ A number of factors impact the fidelity with which the RC+S streams data to the 
 - 60/50 Hz environmental noise
 - Number of channels being streamed
 - Sampling frequency
+
+## Overview Adaptive Therapy
+The RCS system is designed to deliver an Adaptive Stimulation therapy based on neural biomarker/s band/s fluctuations. The device has 2 detectors (LD0 and LD1) and the adaptive therapy can be set based on one or the combination of both detectors. Each detector can be configured with 1 up to 4 power bands (input features). A detector state is defined as a function of the detector output signal relative to a predefined threshold (single or dual treshold). In the case of dual theshold, the detector output may transition among 3 states, 'below' lower threshold, 'in between' lower and upper threshol and 'above' upper threshold, whereas in the case of a single threshold the detector output may flutuate betwee 2 states ('below' and 'above' threshold). Each Therapy Status State is thus mapped to 1 of 9 possible states, depending on wether 1 or 2 detectors are used and wether single or dual threshold is used for each detector.
+
+To Do
+1) add figure (overview)
+2) description ouput table of createAdaptiveSeetingsfromDeviceSettings(pathfolder)
+3) other...
+
