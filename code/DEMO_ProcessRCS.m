@@ -136,18 +136,19 @@ if isfile(Power_fileToLoad)
         end
         
         if length(unique(all_powerFs)) > 1
-            error('More than one sampling rate for power channels -- code development needed')
+            warning('More than one sampling rate for power channels -- code development needed')
             % Need to loop through each setting in powerSettings; find
             % closest times between powerSettings and outtable_Power to
             % assign corresponding samplerate
+            PowerData = [];
         else
             % Same sample rate for power data for the full file
             powerDomain_sampleRate = unique(all_powerFs);
             outtable_Power.samplerate(:) = powerDomain_sampleRate;
             outtable_Power.packetsizes(:) = 1;
+            PowerData = assignTime(outtable_Power);
         end
         
-        PowerData = assignTime(outtable_Power);
     else
         PowerData = [];
     end
@@ -183,19 +184,20 @@ if isfile(FFT_fileToLoad)
         end
         
         if length(unique(all_powerFs)) > 1
-            error('More than one sampling rate for FFT channels -- code development needed')
+            warning('More than one sampling rate for FFT channels -- code development needed')
             % Need to loop through each setting in fftSettings; find
             % closest times between fftSettings and outtable_FFT to
             % assign corresponding samplerate
+            FFTData = [];
         else
             % Same sample rate for FFT data for the full file
             FFT_sampleRate = unique(all_powerFs);
             outtable_FFT.samplerate(:) = FFT_sampleRate;
             outtable_FFT.packetsizes(:) = 1;
+            disp('Creating derivedTimes for FFT:')
+            FFTData = assignTime(outtable_FFT);
         end
         
-        disp('Creating derivedTimes for FFT:')
-        FFTData = assignTime(outtable_FFT);
     else
         FFTData = [];
     end
