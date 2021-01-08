@@ -256,6 +256,16 @@ end
 dataStreams = {timeDomainData, AccelData, PowerData, FFTData};
 [combinedDataTable, debugTable] = createCombinedTable(dataStreams,unifiedDerivedTimes);
 
+% Add column with human readable time to combinedDataTable
+timeFormat = sprintf('%+03.0f:00',metaData.UTCoffset);
+localTime = datetime(combinedDataTable.DerivedTime/1000,...
+    'ConvertFrom','posixTime','TimeZone',timeFormat,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+combinedDataTable = addvars(combinedDataTable,localTime,'Before',1);
+
+% Add column with human readable time to debugTable
+localTime = datetime(debugTable.DerivedTime/1000,...
+    'ConvertFrom','posixTime','TimeZone',timeFormat,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+debugTable = addvars(debugTable,localTime,'Before',1);
 
 end
 
