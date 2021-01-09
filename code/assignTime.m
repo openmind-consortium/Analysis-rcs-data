@@ -72,17 +72,22 @@ numPackets = size(dataTable_original,1);
 indices_backInTime = [];
 for iIndex = 1:length(diffIndices)
     counter = 3;
-    % Check if next packet index exists in the recording
-    if (diffIndices(iIndex) + 2) <= numPackets
-        indices_backInTime = [indices_backInTime (diffIndices(iIndex) + 1) (diffIndices(iIndex) + 2)];
+    
+    % Check if next packet indices exists in the recording
+    if (diffIndices(iIndex) + 1) <= numPackets
+        indices_backInTime = [indices_backInTime (diffIndices(iIndex) + 1)];
     end
+    if (diffIndices(iIndex) + 2) <= numPackets
+        indices_backInTime = [indices_backInTime (diffIndices(iIndex) + 2)];
+    end
+    
     % If there are more packets after this, check if they need to also be
     % removed
-    while (counter <= 6) && dataTable_original.PacketGenTime(diffIndices(iIndex) + counter)...
-            < dataTable_original.PacketGenTime(diffIndices(iIndex)) &&... 
-            (diffIndices(iIndex) + counter) <= numPackets
+    while (counter <= 6) &&  (diffIndices(iIndex) + counter) <= numPackets &&...
+            dataTable_original.PacketGenTime(diffIndices(iIndex) + counter)...
+            < dataTable_original.PacketGenTime(diffIndices(iIndex))
         
-            indices_backInTime = [indices_backInTime (diffIndices(iIndex) + counter)];
+        indices_backInTime = [indices_backInTime (diffIndices(iIndex) + counter)];
         counter = counter + 1;
     end
 end
