@@ -26,7 +26,11 @@ catch
     
     if strcmp(jsonFileName,'AdaptiveLog')
         adaptiveFile = filename;
-        data = jsondecode(fixMalformedJson(fileread(adaptiveFile),'AdaptiveLog'));
+        try
+            data = jsondecode(fixMalformedJson(fileread(adaptiveFile),'AdaptiveLog'));
+        catch
+            data = [];
+        end
     else
         if strcmp(dat(end),'}')  % it's missing the end closing brackets
             fileID = fopen(filename,'a');
@@ -39,6 +43,8 @@ catch
                 fprintf('File failed to load problem with json\n');
                 data = [];
             end
+        else
+            data = [];
         end
     end
 end
