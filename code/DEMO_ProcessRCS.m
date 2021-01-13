@@ -116,7 +116,7 @@ if processFlag == 1 || processFlag == 2
     TD_fileToLoad = [folderPath filesep 'RawDataTD.json'];
     if isfile(TD_fileToLoad)
         jsonobj_TD = deserializeJSON(TD_fileToLoad);
-        if ~isempty(jsonobj_TD.TimeDomainData)
+        if isfield(jsonobj_TD,'TimeDomainData') && ~isempty(jsonobj_TD.TimeDomainData)
             disp('Loading Time Domain Data')
             [outtable_TD, srates_TD] = createTimeDomainTable(jsonobj_TD);
             disp('Creating derivedTimes for time domain:')
@@ -134,7 +134,7 @@ if processFlag == 1 || processFlag == 2
     Accel_fileToLoad = [folderPath filesep 'RawDataAccel.json'];
     if isfile(Accel_fileToLoad)
         jsonobj_Accel = deserializeJSON(Accel_fileToLoad);
-        if ~isempty(jsonobj_Accel.AccelData)
+        if isfield(jsonobj_Accel,'AccelData') && ~isempty(jsonobj_Accel.AccelData)
             disp('Loading Accelerometer Data')
             [outtable_Accel, srates_Accel] = createAccelTable(jsonobj_Accel);
             disp('Creating derivedTimes for accelerometer:')
@@ -204,7 +204,7 @@ if processFlag == 1 || processFlag == 2
     FFT_fileToLoad = [folderPath filesep 'RawDataFFT.json'];
     if isfile(FFT_fileToLoad)
         jsonobj_FFT = deserializeJSON(FFT_fileToLoad);
-        if ~isempty(jsonobj_FFT.FftData)
+        if isfield(jsonobj_FFT,'FftData') && ~isempty(jsonobj_FFT.FftData)
             disp('Loading FFT Data')
             outtable_FFT = createFFTtable(jsonobj_FFT);
             
