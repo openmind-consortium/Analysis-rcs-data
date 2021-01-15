@@ -123,6 +123,60 @@ for iStream = 1:length(dataStreams)
                 debugTable.FFT_systemTick(select_Indices) = currentData.systemTick;
                 debugTable.FFT_timestamp(select_Indices) = currentData.timestamp;
                 debugTable.FFT_PacketGenTime(select_Indices) = currentData.PacketGenTime;
+                
+            case 5 % Adaptive
+                combinedDataTable.Adaptive_CurrentAdaptiveState = NaN(numRows,1);
+                combinedDataTable.Adaptive_CurrentProgramAmplitudesInMilliamps(:) = {NaN};
+                combinedDataTable.Adaptive_IsInHoldOffOnStartup = NaN(numRows,1);
+                combinedDataTable.Adaptive_Ld0DetectionStatus = NaN(numRows,1);
+                combinedDataTable.Adaptive_Ld1DetectionStatus = NaN(numRows,1);
+                combinedDataTable.Adaptive_PreviousAdaptiveState = NaN(numRows,1);
+                combinedDataTable.Adaptive_SensingStatus = NaN(numRows,1);
+                combinedDataTable.Adaptive_StateEntryCount = NaN(numRows,1);
+                combinedDataTable.Adaptive_StateTime = NaN(numRows,1);
+                combinedDataTable.Adaptive_StimFlags = NaN(numRows,1);
+                combinedDataTable.Adaptive_StimRateInHz = NaN(numRows,1);
+                combinedDataTable.Adaptive_Ld0_featureInputs(:) = {NaN};
+                combinedDataTable.Adaptive_Ld0_fixedDecimalPoint = NaN(numRows,1);
+                combinedDataTable.Adaptive_Ld0_highThreshold = NaN(numRows,1);
+                combinedDataTable.Adaptive_Ld0_lowThreshold = NaN(numRows,1);
+                combinedDataTable.Adaptive_Ld0_output = NaN(numRows,1);
+                combinedDataTable.Adaptive_Ld1_featureInputs(:) = {NaN};
+                combinedDataTable.Adaptive_Ld1_fixedDecimalPoint = NaN(numRows,1);
+                combinedDataTable.Adaptive_Ld1_highThreshold = NaN(numRows,1);
+                combinedDataTable.Adaptive_Ld1_lowThreshold = NaN(numRows,1);
+                combinedDataTable.Adaptive_Ld1_output = NaN(numRows,1);
+                
+                combinedDataTable.Adaptive_CurrentAdaptiveState(select_Indices) = currentData.CurrentAdaptiveState;
+                combinedDataTable.Adaptive_CurrentProgramAmplitudesInMilliamps(select_Indices) = currentData.CurrentProgramAmplitudesInMilliamps;
+                combinedDataTable.Adaptive_IsInHoldOffOnStartup(select_Indices) = currentData.IsInHoldOffOnStartup;
+                combinedDataTable.Adaptive_Ld0DetectionStatus(select_Indices) = currentData.Ld0DetectionStatus;
+                combinedDataTable.Adaptive_Ld1DetectionStatus(select_Indices) = currentData.Ld1DetectionStatus;
+                combinedDataTable.Adaptive_PreviousAdaptiveState(select_Indices) = currentData.PreviousAdaptiveState;
+                combinedDataTable.Adaptive_SensingStatus(select_Indices) = currentData.SensingStatus;
+                combinedDataTable.Adaptive_StateEntryCount(select_Indices) = currentData.StateEntryCount;
+                combinedDataTable.Adaptive_StateTime(select_Indices) = currentData.StateTime;
+                combinedDataTable.Adaptive_StimFlags(select_Indices) = currentData.StimFlags;
+                combinedDataTable.Adaptive_StimRateInHz(select_Indices) = currentData.StimRateInHz;
+                combinedDataTable.Adaptive_Ld0_featureInputs(select_Indices) = currentData.Ld0_featureInputs;
+                combinedDataTable.Adaptive_Ld0_fixedDecimalPoint(select_Indices) = currentData.Ld0_fixedDecimalPoint;
+                combinedDataTable.Adaptive_Ld0_highThreshold(select_Indices) = currentData.Ld0_highThreshold;
+                combinedDataTable.Adaptive_Ld0_lowThreshold(select_Indices) = currentData.Ld0_lowThreshold;
+                combinedDataTable.Adaptive_Ld0_output(select_Indices) = currentData.Ld0_output;
+                combinedDataTable.Adaptive_Ld1_featureInputs(select_Indices)  = currentData.Ld1_featureInputs;
+                combinedDataTable.Adaptive_Ld1_fixedDecimalPoint(select_Indices) = currentData.Ld1_fixedDecimalPoint;
+                combinedDataTable.Adaptive_Ld1_highThreshold(select_Indices) = currentData.Ld1_highThreshold;
+                combinedDataTable.Adaptive_Ld1_lowThreshold(select_Indices) = currentData.Ld1_lowThreshold;
+                combinedDataTable.Adaptive_Ld1_output(select_Indices) = currentData.Ld1_output;
+                
+                % temp for debugging
+                debugTable.Adaptive_systemTick = NaN(numRows,1);
+                debugTable.Adaptive_timestamp = NaN(numRows,1);
+                debugTable.Adaptive_PacketGenTime = NaN(numRows,1);
+                
+                debugTable.Adaptive_systemTick(select_Indices) = currentData.systemTick;
+                debugTable.Adaptive_timestamp(select_Indices) = currentData.timestamp;
+                debugTable.Adaptive_PacketGenTime(select_Indices) = currentData.PacketGenTime;    
         end
     end
 end
