@@ -246,6 +246,45 @@ if processFlag == 1 || processFlag == 2
     else
         FFTData = [];
     end
+    %%
+    % Adaptive data 
+    disp('Checking for Adaptive Data')
+    Adaptive_fileToLoad = [folderPath filesep 'AdaptiveLog.json'];
+    if isfile(Adaptive_fileToLoad)
+        jsonobj_Adaptive = deserializeJSON(Adaptive_fileToLoad);
+        if isfield(jsonobj_Adaptive,'AdaptiveUpdate') && ~isempty(jsonobj_Adaptive(1).AdaptiveUpdate)
+            disp('Loading Adaptive Data')
+            
+            [outtable_Adaptive] = createAdaptiveTable(jsonobj_Adaptive);
+            
+            % Calculate powerFs - determine if more than one
+            if size(fftSettings,1) == 1
+                adaptive_sampleRate =  1/((fftSettings.fftConfig(1).interval)/1000);
+            else
+                for iSetting = 1:size(fftSettings,1)
+                    all_adaptiveFs(iSetting) =  1/((fftSettings.fftConfig(iSetting).interval)/1000);
+                end
+                
+                if length(unique(all_adaptiveFs)) > 1
+                    warning('More than one sampling rate for adaptive channels -- code development needed')
+                    % This is current workaroud -- NEEDS DEVELOPMENT
+                    adaptive_sampleRate = all_adaptiveFs(1);
+                else
+                    adaptive_sampleRate = all_adaptiveFs(1);
+                end
+            end
+            
+            outtable_Adaptive.samplerate(:) = adaptive_sampleRate;
+            outtable_Adaptive.packetsizes(:) = 1;
+            
+            disp('Creating derivedTimes for Adaptive:')
+            AdaptiveData = assignTime(outtable_Adaptive);
+        else
+            AdaptiveData = [];
+        end
+    else
+        AdaptiveData = [];
+    end  
     
     %%
     % First, need to create unifiedDerivedTimes - which has DerivedTimes
@@ -292,10 +331,23 @@ if processFlag == 1 || processFlag == 2
         FFTData.newDerivedTime = newDerivedTimes_FFT;
     end
     
+    % Harmonize Adaptive with unifiedDerivedTimes
+    if ~isempty(AdaptiveData)
+        disp('Harmonizing time of Adaptive data with unifiedDerivedTimes')
+        derivedTime_Adaptive = AdaptiveData.DerivedTime;
+        [newDerivedTime,newDerivedTimes_Adaptive] = harmonizeTimeAcrossDataStreams(unifiedDerivedTimes, derivedTime_Adaptive, srates_TD(1));
+        
+        % Update unifiedDerivedTimes with newDerivedTime, as additional times
+        % may have been added at the beginning and/or end
+        unifiedDerivedTimes = newDerivedTime;
+        
+        AdaptiveData.newDerivedTime = newDerivedTimes_Adaptive;
+    end
+    
     %%
     % Create unified table with all above data streams -- use timeDomain data as
     % time base
-    dataStreams = {timeDomainData, AccelData, PowerData, FFTData};
+    dataStreams = {timeDomainData, AccelData, PowerData, FFTData, AdaptiveData};
     [combinedDataTable, debugTable] = createCombinedTable(dataStreams,unifiedDerivedTimes);
     
     % Add column with human readable time to combinedDataTable
