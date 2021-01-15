@@ -26,7 +26,8 @@ function outputDataTable = assignTime(inputDataTable)
 indicesOfTimestamps = find(~isnan(inputDataTable.timestamp));
 dataTable_original = inputDataTable(indicesOfTimestamps,:);
 
-%%% Identify packets for rejection
+%%
+% Identify packets for rejection
 
 disp('Identifying and removing bad packets')
 % Remove any packets with timestamp that are more than 24 hours from median timestamp
