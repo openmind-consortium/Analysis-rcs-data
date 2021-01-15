@@ -16,7 +16,7 @@ Selection of Matlab functions to extract .json raw data from Summit RC+S device,
 ## What is the RC+S native data format?
 The Medtronic API saves data into a session directory. There are 11 .json files which are created for each session, which contain both meta-data and numerical data. Out of the box, the size/duration of these files is limited by the battery powering the CTM. Unmodified, this battery lasts for 4-5 hours. The CTM can be modified to be powered with an external battery, leading to recording duration being limited by the INS battery. The INS battery can stream for up to ~30 hours. 
 
-There are multiple challenges associated with these .json file and analyzing them: Interpreting metadata within and across the files, handling invalid / missing / misordered packets, creating a timestamp value for each sample, aligning timestamps (and samples) across data streams, and parsing the data streams when there was a change in recording or stimulation parameters. See below for the current approach for how to tackle these challenges.
+There are multiple challenges associated with these .json files and analyzing them: Interpreting metadata within and across the files, handling invalid / missing / misordered packets, creating a timestamp value for each sample, aligning timestamps (and samples) across data streams, and parsing the data streams when there was a change in recording or stimulation parameters. See below for the current approach for how to tackle these challenges.
 
 ## Data parsing overview
 
@@ -38,7 +38,7 @@ Each of the .json files has packets which were streamed from the RC+S using a UD
 - **AdaptiveLog.json** - Contains any information from the embedded adaptive detector. The structure and timing information is similar to the time domain files.
 - **StimLog.json** - Contains information about the stimulation setup (e.g. which group, program, rate and amplitude the device is currently using for stimulation). The structure and timing information is similar to the time domain files. Much of this information is duplicated in DeviceSettings.json.
 - **ErrorLog.json**- Contains information about errors. Not currently used.
-- **EventLog.json** - Contains discrete information we write into the device. These can be experimental timings or patient report of his state if streaming at home. Note that this information only contains timing information in computer time, whereas all other .json files have timing relative to (on-board) INS time. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
+- **EventLog.json** - Contains discrete annotations of user Events that can be segregated as 'EventType' and 'EventSubtype'. These can be experimental timings or patient report of his state if streaming at home. Note that this information only contains timing information in computer time, whereas all other .json files have timing relative to (on-board) INS time. When used in its entirety, the processing pipeline transforms the times to a common time so they are comparable [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
 - **DiagnosticsLog.json** - Contains discrete information that can be used for error checking.
 - **TimeSync.json**: Not currently used
 
@@ -60,7 +60,7 @@ Note that in each recording session, all .json files will be created and saved. 
   - `dataTypeSequence`: 8-bit packet number counter that rolls over, ranging from 0 to 255; can be used to help identify if packets are in order or are missing. Should run continuously, but instances of resetting have been observed.
   - `DerivedTime`: Computed time for each sample. [See How to Calculate DerivedTime for more information](https://github.com/openmind-consortium/Analysis-rcs-data/blob/DocumentationUpdate/README.md#how-to-calculate-derivedtime)
   
-- **RawDataAccel.json** --> AccelData
+- **RawDataAccel.json** --> AccelData:
   - `XSamples`: X-axis
   - `YSamples`: Y-axis
   - `ZSamples`: Z-axis
@@ -155,11 +155,15 @@ This list contains the functions that have been tested in branch and pushed to m
 - **DEMO_ProcessRCS**: Demo wrapper script for importing raw .JSON files from RC+S, parsing into Matlab table format, and handling missing packets / harmonizing timestamps across data streams
 
 ### CreateTables
-- **createDeviceSettingsTable**: Extract information from DeviceSettings related to configuration for time domain, power, and FFT channels
+- **createDeviceSettingsTable**: Extract information from DeviceSettings.json related to configuration for time domain, power, and FFT channels
 - **createTimeDomainTable**: Create Matlab table of raw data from RawDataTD.json
 - **createAccelTable**: Create Matlab table of raw data from RawDataAccel.json
 - **createPowerTable**: Create Matlab table of raw data from RawDataPower.json
 - **createFFTtable**: Create Matlab table of raw data from RawDataFFT.json
+- **createStimSettingsTable**: Create Matlab table of stim data from StimLog.json
+- **createStimSettingsFromDeviceSettings**: Create Matlab table of stim settings data from DeviceSettings.json
+- **createAdaptiveSettingsfromDeviceSettings**: Create Matlab table of adaptive settings from DeviceSettgins.json
+- **createCombinedTable**: Create Matlab table of combined data.json
 
 ### Utility
 - **deserializeJSON**: Reads .json files and loads into Matlab
