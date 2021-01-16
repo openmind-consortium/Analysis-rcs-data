@@ -163,7 +163,8 @@ This list contains the functions that have been tested in branch and pushed to m
 - **createStimSettingsTable**: Create Matlab table of stim data from StimLog.json
 - **createStimSettingsFromDeviceSettings**: Create Matlab table of stim settings data from DeviceSettings.json
 - **createAdaptiveSettingsfromDeviceSettings**: Create Matlab table of adaptive settings from DeviceSettgins.json
-- **createCombinedTable**: Create Matlab table of combined data.json
+- **createAdaptiveTable**: Create Matlab table of adaptive time domain signals from AdaptiveLog.json
+- **createCombinedTable**: Create Matlab table of combined data
 
 ### Utility
 - **deserializeJSON**: Reads .json files and loads into Matlab
@@ -280,10 +281,17 @@ A number of factors impact the fidelity with which the RC+S streams data to the 
 - Sampling frequency
 
 ## Overview Adaptive Therapy
-The RCS system is designed to deliver an Adaptive Stimulation therapy based on neural biomarker/s band/s fluctuations. The device has 2 detectors (LD0 and LD1) and the adaptive therapy can be set based on one or the combination of both detectors. Each detector can be configured with 1 up to 4 power bands (input features). A detector state is defined as a function of the detector output signal relative to a predefined threshold (single or dual treshold). In the case of dual theshold, the detector output may transition among 3 states, 'below' lower threshold, 'in between' lower and upper threshol and 'above' upper threshold, whereas in the case of a single threshold the detector output may flutuate betwee 2 states ('below' and 'above' threshold). Each Therapy Status State is thus mapped to 1 of 9 possible states, depending on wether 1 or 2 detectors are used and wether single or dual threshold is used for each detector.
+The RCS system is designed to deliver an Adaptive Stimulation therapy based on neural biomarker/s band/s fluctuations. The device has 2 detectors (LD0 and LD1) and the adaptive therapy can be set based on one or the combination of both detectors. Each detector can be configured with 1 up to 4 power bands (input features). A detector state is defined as a function of the detector output signal relative to a predefined threshold (single or dual treshold). In the case of dual theshold, the detector output may transition among 3 states, 'below' lower threshold, 'in between' lower and upper threshol and 'above' upper threshold, whereas in the case of a single threshold the detector output fluctuates between 2 states ('below' and 'above' threshold). Each Therapy Status State is mapped to 1 of 9 possible states, depending on wether 1 or 2 detectors are used and wether single or dual threshold is used for each detector.
 
-To Do
-1) add figure (overview)
-2) description ouput table of createAdaptiveSeetingsfromDeviceSettings(pathfolder)
-3) other...
+The two main functions of the code base specific to the adaptive therapy engine are (see CreateTables section above):
+1) createAdaptiveSettingsfromDeviceSettings
+2) createAdpativeData
 
+From the first table we get the adaptive metadata and adaptive settings which can be changed by the user, eg. one recording session containing a series of detector and adaptive settings changes. From the second table we get the adaptive detector time series data.
+
+createAdaptiveSettingsfromDeviceSettings gives the following outputs
+- DetectorSettings: contains any changes in the detectors settings
+- AdaptiveStimSettings: contains any changes in adpative settings (metadata, deltas, states).
+- AdaptiveRuns_StimSettings: contains Adaptive Settings for each new Adaptive run  
+
+ As with the other data streams, the output adaptive time series can be harmonized with the rest of data streams using harmonizeTimeAcrossDataStreams (using unifiedDerivedTimes and srates_TD).
