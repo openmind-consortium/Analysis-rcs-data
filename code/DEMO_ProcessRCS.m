@@ -1,5 +1,5 @@
 function [combinedDataTable, debugTable, timeDomainSettings,powerSettings,...
-    fftSettings,metaData,stimSettingsOut,stimMetaData,stimLogSettings,...
+    fftSettings,eventLogTable, metaData,stimSettingsOut,stimMetaData,stimLogSettings,...
     DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = DEMO_ProcessRCS(varargin)
 %%
 % Demo wrapper script for importing raw .JSON files from RC+S, parsing
@@ -108,6 +108,15 @@ if processFlag == 1 || processFlag == 2
         [DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = createAdaptiveSettingsfromDeviceSettings(folderPath);
     else
         error('No DeviceSettings.json file - could not extract detector and adaptive stimulation settings')
+    end
+    %%
+    % Event Log
+    disp('Collecting event information from Event Log file')
+    EventLog_fileToLoad = [folderPath filesep 'EventLog.json'];
+    if isfile(EventLog_fileToLoad)
+        [eventLogTable] = createEventLogTable(folderPath);
+    else
+        warning('No EventLog.json file')
     end
     
     %%
@@ -365,7 +374,7 @@ if processFlag == 1 || processFlag == 2
     if processFlag == 1
         disp('Saving output')
         save(outputFileName,'combinedDataTable', 'debugTable', 'timeDomainSettings',...
-            'powerSettings','fftSettings','metaData','stimSettingsOut',...
+            'powerSettings','fftSettings','eventLogTable','metaData','stimSettingsOut',...
             'stimMetaData','stimLogSettings','DetectorSettings','AdaptiveStimSettings',...
             'AdaptiveRuns_StimSettings','-v7.3');
     end
