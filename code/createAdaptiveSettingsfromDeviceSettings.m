@@ -91,6 +91,13 @@ for iRecord = 1:length(DeviceSettings)
         if iRecord == 1
             updatedAdaptive = adaptiveMetaData;
             updatedDeltas = deltas;
+            
+            for iDelta = 1:4
+                % Convert to mA/sec
+                updatedDeltas{1}(iDelta).fall = (updatedDeltas{1}(iDelta).fall / 655360)*10;
+                updatedDeltas{1}(iDelta).rise = (updatedDeltas{1}(iDelta).rise / 655360)*10;
+            end
+            
             addEntry = 1;
             updatedParameters = [updatedParameters; 'adaptiveMetadata'; 'deltas'];
         end
@@ -103,6 +110,11 @@ for iRecord = 1:length(DeviceSettings)
         % If deltas have changed, update and flag to add entry to table
         if ~isequal(updatedDeltas, deltas)
             updatedDeltas = deltas;
+            for iDelta = 1:4
+                % Convert to mA/sec
+                updatedDeltas{1}(iDelta).fall = (updatedDeltas{1}(iDelta).fall / 655360)*10;
+                updatedDeltas{1}(iDelta).rise = (updatedDeltas{1}(iDelta).rise / 655360)*10;
+            end
             addEntry = 1;
             updatedParameters = [updatedParameters; 'deltas'];
         end
