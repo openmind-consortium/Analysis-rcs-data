@@ -22,6 +22,7 @@ if ~isempty(eventLog)
         newEntry.SessionId = eventLog(iRecord).RecordInfo.SessionId;
         newEntry.HostUnixTime = eventLog(iRecord).RecordInfo.HostUnixTime;
         newEntry.EventName = eventLog(iRecord).Event.EventName;
+        newEntry.EventType = eventLog(iRecord).Event.EventType;
         newEntry.EventSubType = eventLog(iRecord).Event.EventSubType;
         newEntry.UnixOnsetTime = eventLog(iRecord).Event.UnixOnsetTime;
         newEntry.UnixOffsetTime = eventLog(iRecord).Event.UnixOffsetTime;
