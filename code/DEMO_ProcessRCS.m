@@ -187,11 +187,30 @@ if processFlag == 1 || processFlag == 2
             end
             
             if length(unique(all_powerFs)) > 1
-                warning('More than one sampling rate for power channels -- code development needed')
                 % Need to loop through each setting in powerSettings; find
-                % closest times between powerSettings and outtable_Power to
+                % closest times between powerSettings (using timeStart) and
+                % outtable_Power (using PacketGenTime) to
                 % assign corresponding samplerate
+                numSegments = length(all_powerFs);
+                for iSegment = 1:numSegments
+                    timeStart = powerSettings.timeStart(iSegment);
+                    [startIndices_power(iSegment), ~] = knnsearch(outtable_Power.PacketGenTime,timeStart);
+                end
+                
+                % Determine stopIndices (one sample before the next start
+                % index, or the last sample)
+                stopIndices_power = [startIndices_power(2:end) - 1 size(outtable_Power,1)];
+                
+                % Create separate matrics for each sampling
+                % rate, creating a new matrix each time sampling rate changes,
+                % and run assignTime on these segments; will then need to stitch back together
                 PowerData = [];
+                for iSegment = 1:numSegments
+                    temp_outtable_Power = outtable_Power(startIndices_power(iSegment):stopIndices_power(iSegment),:);
+                    temp_outtable_Power.samplerate(:) = all_powerFs(iSegment);
+                    temp_outtable_Power.packetsizes(:) = 1;
+                    PowerData = [PowerData; assignTime(temp_outtable_Power)];
+                end
             else
                 % Same sample rate for power data for the full file
                 powerDomain_sampleRate = unique(all_powerFs);
@@ -235,11 +254,29 @@ if processFlag == 1 || processFlag == 2
             end
             
             if length(unique(all_powerFs)) > 1
-                warning('More than one sampling rate for FFT channels -- code development needed')
                 % Need to loop through each setting in fftSettings; find
-                % closest times between fftSettings and outtable_FFT to
-                % assign corresponding samplerate
+                % closest times between fftSettings (using timeStart) and
+                % outtable_FFT (using PacketGenTime) to assign corresponding samplerate
+                numSegments = length(all_powerFs);
+                for iSegment = 1:numSegments
+                    timeStart = fftSettings.timeStart(iSegment);
+                    [startIndices_FFT(iSegment), ~] = knnsearch(outtable_FFT.PacketGenTime,timeStart);
+                end
+                
+                % Determine stopIndices (one sample before the next start
+                % index, or the last sample)
+                stopIndices_FFT = [startIndices_FFT(2:end) - 1 size(outtable_FFT,1)];
+                
+                % Create separate matrics for each sampling
+                % rate, creating a new matrix each time sampling rate changes,
+                % and run assignTime on these segments; will then need to stitch back together
                 FFTData = [];
+                for iSegment = 1:numSegments
+                    temp_outtable_FFT = outtable_Power(startIndices_FFT(iSegment):stopIndices_FFT(iSegment),:);
+                    temp_outtable_FFT.samplerate(:) = all_powerFs(iSegment);
+                    temp_outtable_FFT.packetsizes(:) = 1;
+                    FFTData = [FFTData; assignTime(temp_outtable_FFT)];
+                end
             else
                 % Same sample rate for FFT data for the full file
                 FFT_sampleRate = unique(all_powerFs);
@@ -256,7 +293,7 @@ if processFlag == 1 || processFlag == 2
         FFTData = [];
     end
     %%
-    % Adaptive data 
+    % Adaptive data
     disp('Checking for Adaptive Data')
     Adaptive_fileToLoad = [folderPath filesep 'AdaptiveLog.json'];
     if isfile(Adaptive_fileToLoad)
@@ -293,7 +330,7 @@ if processFlag == 1 || processFlag == 2
         end
     else
         AdaptiveData = [];
-    end  
+    end
     
     %%
     % First, need to create unifiedDerivedTimes - which has DerivedTimes
