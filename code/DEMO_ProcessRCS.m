@@ -262,21 +262,21 @@ if processFlag == 1 || processFlag == 2
                 for iSetting = 1:size(fftSettings,1)
                     all_adaptiveFs(iSetting) =  1/((fftSettings.fftConfig(iSetting).interval)/1000);
                 end
-                
                 if length(unique(all_adaptiveFs)) > 1
-                    warning('More than one sampling rate for adaptive channels -- code development needed')
-                    % This is current workaroud -- NEEDS DEVELOPMENT
-                    adaptive_sampleRate = all_adaptiveFs(1);
+                    AdaptiveData = createDataTableWithMultipleSamplingRates(all_adaptiveFs,fftSettings,outtable_Adaptive);
                 else
                     adaptive_sampleRate = all_adaptiveFs(1);
+                    outtable_Adaptive.samplerate(:) = adaptive_sampleRate;
+                    outtable_Adaptive.packetsizes(:) = 1;
+                    
+                    disp('Creating derivedTimes for Adaptive:')
+                    AdaptiveData = assignTime(outtable_Adaptive);
+                    
+                    
                 end
             end
             
-            outtable_Adaptive.samplerate(:) = adaptive_sampleRate;
-            outtable_Adaptive.packetsizes(:) = 1;
             
-            disp('Creating derivedTimes for Adaptive:')
-            AdaptiveData = assignTime(outtable_Adaptive);
         else
             AdaptiveData = [];
         end
