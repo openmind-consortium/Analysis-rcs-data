@@ -31,14 +31,14 @@ Ld0Status = [AdaptiveUpdate.Ld0Status];
 fieldNames = {'featureInputs','fixedDecimalPoint','highThreshold',...
     'lowThreshold','output'};
 for iName = 1:length(fieldNames)
-    data.(['LD0_' fieldNames{iName}]) = [Ld0Status.(fieldNames{iName})]';
+    data.(['Ld0_' fieldNames{iName}]) = [Ld0Status.(fieldNames{iName})]';
 end
 
 Ld1Status = [AdaptiveUpdate.Ld1Status];
 fieldNames = {'featureInputs','fixedDecimalPoint','highThreshold',...
     'lowThreshold','output'};
 for iName = 1:length(fieldNames)
-    data.(['LD1_' fieldNames{iName}]) = [Ld1Status.(fieldNames{iName})]';
+    data.(['Ld1_' fieldNames{iName}]) = [Ld1Status.(fieldNames{iName})]';
 end
 
 outtable = struct2table(data);
