@@ -25,7 +25,7 @@ for iName = 1:length(fieldNames)
 end
 
 Timestamp = [Header.timestamp];
-data.timestamps = struct2array(Timestamp)';
+data.timestamp = struct2array(Timestamp)';
 
 Ld0Status = [AdaptiveUpdate.Ld0Status];
 fieldNames = {'featureInputs','fixedDecimalPoint','highThreshold',...
