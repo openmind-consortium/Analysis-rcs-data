@@ -72,7 +72,7 @@ diffIndices = find(packetGenTime_diffs < 0 );
 numPackets = size(dataTable_original,1);
 indices_backInTime = [];
 for iIndex = 1:length(diffIndices)
-    counter = 3;
+    counter = 3; % Automatically removing two packets, start looking at the third
     
     % Check if next packet indices exists in the recording
     if (diffIndices(iIndex) + 1) <= numPackets
@@ -231,7 +231,7 @@ disp('Determining start time of each chunk')
 
 % PacketGenTime in ms; convert difference to 1e-4 seconds, units of
 % systemTick and expectedElapsed
-diff_PacketGenTime = [1; diff(dataTable.PacketGenTime) * 1e1];
+diff_PacketGenTime = [1; diff(dataTable.PacketGenTime) * 1e1]; % multiply by 1e1 to convert to 1e-4 seconds 
 
 singlePacketChunks = [];
 medianError = NaN(1,numChunks);
