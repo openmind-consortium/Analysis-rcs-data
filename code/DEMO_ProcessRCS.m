@@ -239,7 +239,6 @@ if processFlag == 1 || processFlag == 2
                 disp('Creating derivedTimes for FFT:')
                 FFTData = assignTime(outtable_FFT);
             end
-            
         else
             FFTData = [];
         end
@@ -254,10 +253,9 @@ if processFlag == 1 || processFlag == 2
         jsonobj_Adaptive = deserializeJSON(Adaptive_fileToLoad);
         if isfield(jsonobj_Adaptive,'AdaptiveUpdate') && ~isempty(jsonobj_Adaptive(1).AdaptiveUpdate)
             disp('Loading Adaptive Data')
+             outtable_Adaptive = createAdaptiveTable(jsonobj_Adaptive);
             
-            [outtable_Adaptive] = createAdaptiveTable(jsonobj_Adaptive);
-            
-            % Calculate powerFs - determine if more than one
+            % Calculate adaptive_sampleRate - determine if more than one
             if size(fftSettings,1) == 1
                 adaptive_sampleRate =  1/((fftSettings.fftConfig(1).interval)/1000);
             else
