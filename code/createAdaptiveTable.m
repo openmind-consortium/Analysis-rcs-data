@@ -7,46 +7,39 @@ function [outtable] = createAdaptiveTable(Adaptive)
 % (To transform *.json file into structure use deserializeJSON.m)
 %%
 
-numRecords = size(Adaptive,2);
-outtable = table();
+numRecords = length(Adaptive); % If fix was required when opening JSON file, dimensions may be flipped
 
-% Collect all data from the records
-for iRecord = 1:numRecords
-    clear newEntry
-    
-    newEntry.PacketGenTime = Adaptive(iRecord).AdaptiveUpdate.PacketGenTime;
-    newEntry.PacketRxUnixTime = Adaptive(iRecord).AdaptiveUpdate.PacketRxUnixTime;
-    newEntry.dataSize = Adaptive(iRecord).AdaptiveUpdate.Header.dataSize;
-    newEntry.dataType = Adaptive(iRecord).AdaptiveUpdate.Header.dataType;
-    newEntry.info = Adaptive(iRecord).AdaptiveUpdate.Header.info;
-    newEntry.dataTypeSequence = Adaptive(iRecord).AdaptiveUpdate.Header.dataTypeSequence;
-    newEntry.systemTick = Adaptive(iRecord).AdaptiveUpdate.Header.systemTick;
-    newEntry.timestamp = Adaptive(iRecord).AdaptiveUpdate.Header.timestamp.seconds;
-    
-    newEntry.CurrentAdaptiveState = Adaptive(iRecord).AdaptiveUpdate.CurrentAdaptiveState;
-    newEntry.CurrentProgramAmplitudesInMilliamps = Adaptive(iRecord).AdaptiveUpdate.CurrentProgramAmplitudesInMilliamps;
-    newEntry.IsInHoldOffOnStartup = Adaptive(iRecord).AdaptiveUpdate.IsInHoldOffOnStartup;
-    newEntry.Ld0DetectionStatus = Adaptive(iRecord).AdaptiveUpdate.Ld0DetectionStatus;
-    newEntry.Ld1DetectionStatus = Adaptive(iRecord).AdaptiveUpdate.Ld1DetectionStatus;
-    newEntry.PreviousAdaptiveState = Adaptive(iRecord).AdaptiveUpdate.PreviousAdaptiveState;
-    newEntry.SensingStatus = Adaptive(iRecord).AdaptiveUpdate.SensingStatus;
-    newEntry.StateEntryCount = Adaptive(iRecord).AdaptiveUpdate.StateEntryCount;
-    newEntry.StateTime = Adaptive(iRecord).AdaptiveUpdate.StateTime;
-    newEntry.StimFlags = Adaptive(iRecord).AdaptiveUpdate.StimFlags;
-    newEntry.StimRateInHz = Adaptive(iRecord).AdaptiveUpdate.StimRateInHz;
-    
-    newEntry.Ld0_featureInputs = Adaptive(iRecord).AdaptiveUpdate.Ld0Status.featureInputs;
-    newEntry.Ld0_fixedDecimalPoint = Adaptive(iRecord).AdaptiveUpdate.Ld0Status.fixedDecimalPoint;
-    newEntry.Ld0_highThreshold = Adaptive(iRecord).AdaptiveUpdate.Ld0Status.highThreshold;
-    newEntry.Ld0_lowThreshold = Adaptive(iRecord).AdaptiveUpdate.Ld0Status.lowThreshold;
-    newEntry.Ld0_output = Adaptive(iRecord).AdaptiveUpdate.Ld0Status.output;
-    
-    newEntry.Ld1_featureInputs = Adaptive(iRecord).AdaptiveUpdate.Ld1Status.featureInputs;
-    newEntry.Ld1_fixedDecimalPoint = Adaptive(iRecord).AdaptiveUpdate.Ld1Status.fixedDecimalPoint;
-    newEntry.Ld1_highThreshold = Adaptive(iRecord).AdaptiveUpdate.Ld1Status.highThreshold;
-    newEntry.Ld1_lowThreshold = Adaptive(iRecord).AdaptiveUpdate.Ld1Status.lowThreshold;
-    newEntry.Ld1_output = Adaptive(iRecord).AdaptiveUpdate.Ld1Status.output;
-    
-    outtable = addRowToTable(newEntry,outtable);
+AdaptiveUpdate = [Adaptive.AdaptiveUpdate];
+fieldNames = {'PacketGenTime','PacketRxUnixTime','CurrentAdaptiveState',...
+    'CurrentProgramAmplitudesInMilliamps','IsInHoldOffOnStartup','Ld0DetectionStatus',...
+    'Ld1DetectionStatus','PreviousAdaptiveState','SensingStatus','StateEntryCount',...
+    'StateTime','StimFlags','StimRateInHz'};
+for iName = 1:length(fieldNames)
+    data.(fieldNames{iName}) = [AdaptiveUpdate.(fieldNames{iName})]';
 end
+
+Header = [AdaptiveUpdate.Header];
+fieldNames = {'dataSize','dataType','info','dataTypeSequence','systemTick'}; % Under AdaptiveUpdate.Header
+for iName = 1:length(fieldNames)
+    data.(fieldNames{iName}) = [Header.(fieldNames{iName})]';
+end
+
+Timestamp = [Header.timestamp];
+data.timestamps = struct2array(Timestamp)';
+
+Ld0Status = [AdaptiveUpdate.Ld0Status];
+fieldNames = {'featureInputs','fixedDecimalPoint','highThreshold',...
+    'lowThreshold','output'};
+for iName = 1:length(fieldNames)
+    data.(['LD0_' fieldNames{iName}]) = [Ld0Status.(fieldNames{iName})]';
+end
+
+Ld1Status = [AdaptiveUpdate.Ld1Status];
+fieldNames = {'featureInputs','fixedDecimalPoint','highThreshold',...
+    'lowThreshold','output'};
+for iName = 1:length(fieldNames)
+    data.(['LD1_' fieldNames{iName}]) = [Ld1Status.(fieldNames{iName})]';
+end
+
+outtable = struct2table(data);
 end
