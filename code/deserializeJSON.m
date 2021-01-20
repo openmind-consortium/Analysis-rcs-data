@@ -16,7 +16,7 @@ try
     data = json.load(filename);
     fprintf('File loaded in %.2f seconds\n',toc(start));
 catch
-    warning('Not able to open file - attmepting fix');
+    warning('Not able to open file - attempting fix');
     fprintf('Defective file %s\n',filename);
     
     % Try to fix the file; separate fixes for Adaptive vs all other JSON
