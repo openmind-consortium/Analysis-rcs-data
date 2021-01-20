@@ -257,12 +257,8 @@ for iChunk = 1:numChunks
 end
 %%
 % Create corrected timing for each chunk
-
-% Pre-allocate array
-% correctedAlignTime = zeros(1, numChunks - length(chunksToExclude));
-% correctedAlignTime = NaN(1, numChunks);
-
 counter = 1;
+counter_recalculatedFromPacketGenTime = 0;
 chunksToRemove = [];
 realignTime = 0; % If a chunk is flagged for removal, the next chunk will require
 % calculation of correctedAlignTime from PacketGenTime; this would happen
@@ -315,6 +311,7 @@ for iChunk = 1:numChunks
         % accurate representation of time, then we would want to subtract the value in medianError.
         counter = counter + 1;
         realignTime = 0;
+        counter_recalculatedFromPacketGenTime = counter_recalculatedFromPacketGenTime + 1;
     else
         chunksToRemove = [chunksToRemove iChunk];
         realignTime = 1;
@@ -324,6 +321,7 @@ end
 % Print metrics to command window
 disp(['Number of chunks: ' num2str(numChunks)]);
 disp(['Numer of chunks removed: ' num2str(length(chunksToRemove))])
+disp(['Number of chunks with time calculated from PacketGenTime: ' num2str(counter_recalculatedFromPacketGenTime)])
 
 %%
 % Indices in chunkIndices correspond to packets in dataTable.
