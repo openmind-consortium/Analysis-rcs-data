@@ -1,4 +1,3 @@
-
 function [outputData] = createDataTableWithMultipleSamplingRates(all_Fs, dataStreamSettings, outtable_data)
 %%
 % Function to handle multiple sampling rates in a data stream
@@ -59,12 +58,21 @@ stopIndices(isnan(startIndices)) = NaN;
 % rate, creating a new matrix each time sampling rate changes,
 % and run assignTime on these segments; will then need to stitch back together
 outputData = [];
-for iSegment = 1:numSegments
-    if ~isnan(startIndices(iSegment))
-        temp_outtable = outtable_data(startIndices(iSegment):stopIndices(iSegment),:);
-        temp_outtable.samplerate(:) = all_Fs(iSegment);
-        temp_outtable.packetsizes(:) = 1;
-        outputData = [outputData; assignTime(temp_outtable)];
+if sum(isnan(startIndices)) == length(startIndices)
+    % None of the startTimes intersect with the data -- take the values from
+    % the last setting entry
+    temp_outtable = outtable_data;
+    temp_outtable.samplerate(:) = all_Fs(end);
+    temp_outtable.packetsizes(:) = 1;
+    outputData = assignTime(temp_outtable);
+else
+    for iSegment = 1:numSegments
+        if ~isnan(startIndices(iSegment))
+            temp_outtable = outtable_data(startIndices(iSegment):stopIndices(iSegment),:);
+            temp_outtable.samplerate(:) = all_Fs(iSegment);
+            temp_outtable.packetsizes(:) = 1;
+            outputData = [outputData; assignTime(temp_outtable)];
+        end
     end
 end
 end
