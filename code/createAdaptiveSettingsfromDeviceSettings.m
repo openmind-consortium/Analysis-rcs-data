@@ -127,15 +127,20 @@ for iRecord = 1:length(DeviceSettings)
                 temp.([allStates{iState} '_isValid']) = currentSettings.AdaptiveConfig.(allStates{iState}).isValid;
                 % If the state is valid, get program amplitudes; otherwise fill with NaNs
                 if currentSettings.AdaptiveConfig.(allStates{iState}).isValid
-                    temp.([allStates{iState} '_AmpInMilliamps']) = [currentSettings.AdaptiveConfig.(allStates{iState}).prog0AmpInMilliamps,...
-                        currentSettings.AdaptiveConfig.(allStates{iState}).prog1AmpInMilliamps,...
-                        currentSettings.AdaptiveConfig.(allStates{iState}).prog2AmpInMilliamps,...
-                        currentSettings.AdaptiveConfig.(allStates{iState}).prog3AmpInMilliamps];
+                    for iProgram = 0:3
+                        % 25.5 indicates hold -- record as -1
+                        if isequal(currentSettings.AdaptiveConfig.(allStates{iState}).(['prog' num2str(iProgram) 'AmpInMilliamps']),25.5)
+                            currentAmps(iProgram + 1) = -1;
+                        else
+                            currentAmps(iProgram + 1) = currentSettings.AdaptiveConfig.(allStates{iState}).(['prog' num2str(iProgram) 'AmpInMilliamps']);
+                        end
+                    end
+                    temp.([allStates{iState} '_AmpInMilliamps']) = currentAmps;
                     rate = currentSettings.AdaptiveConfig.(allStates{iState}).rateTargetInHz;
                 else
-                    % Use -1 to temporarily indicate that state is invalid,
+                    % Use -2 to temporarily indicate that state is invalid,
                     % and thus do not need to record amp
-                    temp.([allStates{iState} '_AmpInMilliamps']) = [-1, -1, -1, -1];
+                    temp.([allStates{iState} '_AmpInMilliamps']) = [-2, -2, -2, -2];
                 end
             end
         end
@@ -144,8 +149,8 @@ for iRecord = 1:length(DeviceSettings)
         if iRecord == 1
             for iField = 1:length(fieldnames(temp))
                 allFieldnames = fieldnames(temp);
-                % Convert ampInMilliamp values that are -1 to NaN
-                if isequal(temp.(allFieldnames{iField}),[-1 -1 -1 -1])
+                % Convert ampInMilliamp values that are -2 to NaN
+                if isequal(temp.(allFieldnames{iField}),[-2 -2 -2 -2])
                     temp.(allFieldnames{iField}) = [NaN, NaN, NaN, NaN];
                 end
             end
@@ -159,9 +164,9 @@ for iRecord = 1:length(DeviceSettings)
             for iField = 1:length(fieldnames(temp))
                 allFieldnames = fieldnames(temp);
                 if ~isequal(updatedStates.(allFieldnames{iField}), temp.(allFieldnames{iField}))
-                    % Convert ampInMilliamp values that are -1 to NaN; did
+                    % Convert ampInMilliamp values that are -2 to NaN; did
                     % not do this previously, because NaN ~= NaN
-                    if isequal(temp.(allFieldnames{iField}),[-1 -1 -1 -1])
+                    if isequal(temp.(allFieldnames{iField}),[-2 -2 -2 -2])
                         temp.(allFieldnames{iField}) = [NaN, NaN, NaN, NaN];
                     end
                     
