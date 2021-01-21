@@ -187,11 +187,14 @@ for iRecord = 1:length(DeviceSettings)
         % If flagged, add entry to table
         if addEntry == 1
             newEntry.HostUnixTime = HostUnixTime;
-            newEntry.adaptiveMetaData = updatedAdaptive;
             newEntry.deltas = updatedDeltas;
             newEntry.states = updatedStates;
             newEntry.stimRate = updatedRate;
-            newEntry.adaptiveStatus = updatedAdaptive.adaptiveMode;
+            newEntry.adaptiveMode = updatedAdaptive.adaptiveMode;
+            newEntry.adaptiveStatus = updatedAdaptive.adaptiveStatus;
+            newEntry.currentState = updatedAdaptive.currentState;
+            newEntry.deltaLimitsValid = updatedAdaptive.deltaLimitsValid;
+            newEntry.deltasValid = updatedAdaptive.deltasValid;
             newEntry.updatedParameters = updatedParameters;
             [AdaptiveStimSettings] = addRowToTable(newEntry,AdaptiveStimSettings);
             addEntry = 0;
