@@ -22,6 +22,9 @@ if isstruct(DeviceSettings)
     DeviceSettings = {DeviceSettings};
 end
 %%
+% Convert metaData variables into human readable
+metaData = convertMetadataCodes(DeviceSettings{1}.SubjectInfo);
+
 % UTC offset to determine timezone conversion
 metaData.UTCoffset = DeviceSettings{1,1}.UtcOffset;
 
@@ -343,6 +346,9 @@ for iChunk = 1:length(recordingChunks)
                     toAdd.samplingRate = str2num(selectData.tdDataStruc{1}(iChan).sampleRate(1:end-2));
                     fieldName = sprintf('chan%d',iChan);
                     toAdd.(fieldName) = selectData.(fieldName){1};
+                else
+                    fieldName = sprintf('chan%d',iChan);
+                    toAdd.(fieldName) = NaN;
                 end
             end
             toAdd.TimeDomainDataStruc = selectData.tdDataStruc{1};
@@ -426,54 +432,69 @@ FFT_SettingsOut = table();
 indices = ~isnan(FFT_SettingsTable.recNum);
 recordingChunks = unique(FFT_SettingsTable.recNum(indices));
 
-for iChunk = 1:length(recordingChunks)
-    currentIndices = FFT_SettingsTable.recNum == recordingChunks(iChunk);
-    selectData = FFT_SettingsTable(currentIndices,:);
-    missingTime = 0;
+if isempty(recordingChunks)
+    % Indicates that FFT was not enabled for streaming, but may still want
+    % FFT config info (i.e. if adaptive was enabled) -- take this info from
+    % first record
+    selectData = FFT_SettingsTable(1,:);
+    toAdd.recNum = NaN;
+    toAdd.duration = NaN;
+    toAdd.timeStart = NaN;
+    toAdd.timeStop = NaN;
+    toAdd.fftConfig = selectData.fftConfig(1);
+    toAdd.TDsampleRates = selectData.TDsampleRates(1);
     
-    % If not the last chunk in the file, check for two times (assuming
-    % start and stop times). Lack of two times indicates something wrong
-    % with streaming - do not keep these data
-    if size(selectData,1) ~= 2 && iChunk < length(recordingChunks)
-        warning('Streaming of FFT data does not have one start and one stop time')
-        missingTime = 1;
-    else
-        % Check that first time is a start time
-        if contains(selectData.action{1},'Start')
-            timeStart = selectData.time(1);
-        else
-            warning('Streaming of FFT data does not have start time')
-            missingTime = 1;
-        end
+    FFT_SettingsOut = struct2table(toAdd,'AsArray',true);
+else
+    for iChunk = 1:length(recordingChunks)
+        currentIndices = FFT_SettingsTable.recNum == recordingChunks(iChunk);
+        selectData = FFT_SettingsTable(currentIndices,:);
+        missingTime = 0;
         
-        % Check that second time is a stop time, or if last chunk can
-        % have stop time missing and use 'last record' time
-        if iChunk == length(recordingChunks) && size(selectData,1) ~= 2
-            timeStop = FFT_SettingsTable.time(end);
+        % If not the last chunk in the file, check for two times (assuming
+        % start and stop times). Lack of two times indicates something wrong
+        % with streaming - do not keep these data
+        if size(selectData,1) ~= 2 && iChunk < length(recordingChunks)
+            warning('Streaming of FFT data does not have one start and one stop time')
+            missingTime = 1;
         else
-            if contains(selectData.action{2},'Stop')
-                timeStop = selectData.time(2);
+            % Check that first time is a start time
+            if contains(selectData.action{1},'Start')
+                timeStart = selectData.time(1);
             else
-                warning('Streaming of FFT data does not have stop time')
+                warning('Streaming of FFT data does not have start time')
                 missingTime = 1;
             end
-        end
-        
-        % If no missing start or stop time, populate deviceSettingsOut
-        if missingTime == 0
-            toAdd.recNum = recordingChunks(iChunk);
-            toAdd.duration = timeStop - timeStart;
-            toAdd.timeStart = timeStart;
-            toAdd.timeStop = timeStop;
-            toAdd.fftConfig = selectData.fftConfig(1);
-            toAdd.TDsampleRates = selectData.TDsampleRates(1);
             
-            if isempty(FFT_SettingsOut)
-                FFT_SettingsOut = struct2table(toAdd,'AsArray',true);
+            % Check that second time is a stop time, or if last chunk can
+            % have stop time missing and use 'last record' time
+            if iChunk == length(recordingChunks) && size(selectData,1) ~= 2
+                timeStop = FFT_SettingsTable.time(end);
             else
-                FFT_SettingsOut = [FFT_SettingsOut; struct2table(toAdd,'AsArray',true)];
+                if contains(selectData.action{2},'Stop')
+                    timeStop = selectData.time(2);
+                else
+                    warning('Streaming of FFT data does not have stop time')
+                    missingTime = 1;
+                end
             end
-            clear toAdd
+            
+            % If no missing start or stop time, populate deviceSettingsOut
+            if missingTime == 0
+                toAdd.recNum = recordingChunks(iChunk);
+                toAdd.duration = timeStop - timeStart;
+                toAdd.timeStart = timeStart;
+                toAdd.timeStop = timeStop;
+                toAdd.fftConfig = selectData.fftConfig(1);
+                toAdd.TDsampleRates = selectData.TDsampleRates(1);
+                
+                if isempty(FFT_SettingsOut)
+                    FFT_SettingsOut = struct2table(toAdd,'AsArray',true);
+                else
+                    FFT_SettingsOut = [FFT_SettingsOut; struct2table(toAdd,'AsArray',true)];
+                end
+                clear toAdd
+            end
         end
     end
 end
