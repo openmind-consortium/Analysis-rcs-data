@@ -9,6 +9,33 @@ Selection of Matlab functions to extract .json raw data from Summit RC+S device,
 
 **Policy**: Master will contain functions that have been tested in branch and pushed after pull request reviewers have approved. The collaborator doing the initial development and testing of a function in a testing branch (e.g. in 'importRawData') will make a pull request and assign 1-2 reviewers of the group who will review the code structure and the output of each function.
 
+## Table of Contents
+- [Installation Instructions](#installation-instructions)
+- [Usage](#usage)
+- [What is the RC+S native data format?](#what-is-the-rcs-native-data-format)
+- [Data parsing overview](#data-parsing-overview)
+- [RC+S raw data structures](#rcs-raw-data-structures)
+    + [Data in .json files](#data-in-json-files)
+    + [Data imported into Matlab](#data-imported-into-matlab)
+- [Structure of Repository:](#structure-of-repository)
+- [Functions:](#functions)
+    + [Wrappers](#wrappers)
+    + [CreateTables](#createtables)
+    + [Utility](#utility)
+    + [(Pre)Processing](#preprocessing)
+- [How to get a time value for each sample of data](#how-to-get-a-time-value-for-each-sample-of-data)
+- [`SystemTick` and `Timestamp`](#systemtick-and-timestamp)
+- [How to calculate `DerivedTime`](#how-to-calculate-derivedtime)
+- [Harmonization of `DerivedTime` across data streams](#harmonization-of-derivedtime-across-data-streams)
+- [Factors Impacting Packet Loss](#factors-impacting-packet-loss)
+    + [CTM Mode:](#ctm-mode)
+    + [CTM Ratio:](#ctm-ratio)
+    + [Other Factors which impact streaming performance:](#other-factors-which-impact-streaming-performance)
+- [Overview of Adaptive Stimulation](#overview-of-adaptive-stimulation)
+
+
+
+
 ## Installation Instructions:
 - Compatibility - Mac or PC. We rely on a toolbox to open .json files which does not work on Linux. Requires **Matlab R2019a or prior**. The toolbox we rely on to open .json files is not compatible with Matlab R2019b
 - Clone this repository and add to Matlab path. 
