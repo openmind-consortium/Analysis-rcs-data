@@ -14,7 +14,6 @@ newEntry.time = HostUnixTime;
 if isfield(currentSettings,'SensingConfig') && isfield(currentSettings.SensingConfig,'powerChannels')
     powerChannels = currentSettings.SensingConfig.powerChannels;
 end
-newEntry.powerBands = powerChannels;
 
 % Get sample rate for each TD channel; all TD channels have
 % same Fs (or is listed as NaN)
@@ -30,5 +29,10 @@ if isfield(currentSettings,'SensingConfig') && isfield(currentSettings.SensingCo
     fftConfig = currentSettings.SensingConfig.fftConfig;
 end
 newEntry.fftConfig = fftConfig;
+
+% Convert powerBands to Hz
+[currentPowerBands] = getPowerBands(powerChannels,fftConfig,currentTDsampleRate);
+newEntry.powerBands = currentPowerBands;
+
 
 end

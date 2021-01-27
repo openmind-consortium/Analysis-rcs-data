@@ -81,16 +81,7 @@ if processFlag == 1 || processFlag == 2
     disp('Collecting Device Settings data')
     DeviceSettings_fileToLoad = [folderPath filesep 'DeviceSettings.json'];
     if isfile(DeviceSettings_fileToLoad)
-        [timeDomainSettings, powerSettings, fftSettings, metaData] = createDeviceSettingsTable(folderPath);
-        % Translate powerSettings.powerBands into Hz
-        numSettings = size(powerSettings,1);
-        for iSetting = 1:numSettings
-            powerBands_toConvert = powerSettings.powerBands{iSetting};
-            currentTDsampleRate = powerSettings.TDsampleRates(iSetting);
-            currentFFTconfig = powerSettings.fftConfig(iSetting);
-            [currentPowerBands] = getPowerBands(powerBands_toConvert,currentFFTconfig,currentTDsampleRate);
-            powerSettings.powerBandsInHz(iSetting) = currentPowerBands;
-        end
+        [timeDomainSettings, powerSettings, fftSettings, metaData] = createDeviceSettingsTable(folderPath);   
     else
         error('No DeviceSettings.json file')
     end
