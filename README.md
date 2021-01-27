@@ -34,8 +34,6 @@ Selection of Matlab functions to extract .json raw data from Summit RC+S device,
 - [Overview of Adaptive Stimulation](#overview-of-adaptive-stimulation)
 
 
-
-
 ## Installation Instructions:
 - Compatibility - Mac or PC. We rely on a toolbox to open .json files which does not work on Linux. Requires **Matlab R2019a or prior**. The toolbox we rely on to open .json files is not compatible with Matlab R2019b
 - Clone this repository and add to Matlab path. 
@@ -54,6 +52,8 @@ Optional input argument(s):<br/>
        exist, process but do not save<br/>
 
 If applicable, data are saved in the same 'Device' directory where raw JSON were selected
+
+Currently, time domain data are REQUIRED for processing to work. Other time series data streams are optional.
 
 ## Structure of Repository
 - **code**
