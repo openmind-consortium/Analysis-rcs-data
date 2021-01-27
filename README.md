@@ -12,13 +12,13 @@ Selection of Matlab functions to extract .json raw data from Summit RC+S device,
 ## Table of Contents
 - [Installation Instructions](#installation-instructions)
 - [Usage](#usage)
+- [Structure of Repository:](#structure-of-repository)
 - [What is the RC+S native data format?](#what-is-the-rcs-native-data-format)
 - [Data parsing overview](#data-parsing-overview)
 - [RC+S raw data structures](#rcs-raw-data-structures)
     + [Data in .json files](#data-in-json-files)
     + [Data imported into Matlab](#data-imported-into-matlab)
-- [Structure of Repository:](#structure-of-repository)
-- [Functions:](#functions)
+- [Functions](#functions)
     + [Wrappers](#wrappers)
     + [CreateTables](#createtables)
     + [Utility](#utility)
@@ -54,6 +54,13 @@ Optional input argument(s):<br/>
        exist, process but do not save<br/>
 
 If applicable, data are saved in the same 'Device' directory where raw JSON were selected
+
+## Structure of Repository
+- **code**
+  - functions: code for specific needs; [TBD if these are further organized in subfolders]
+  - toolboxes: turtle_son, etc...
+- **documentationFigures**
+- **testDataSets**: benchtop generated test data sets for validation of code; often generated signals are simultaneously recorded with DAQ to allow for verification of timing across data streams. 
 
 ## What is the RC+S native data format?
 The Medtronic API saves data into a session directory. There are 11 .json files which are created for each session, which contain both meta-data and numerical data. Out of the box, the size/duration of these files is limited by the battery powering the CTM. Unmodified, this battery lasts for 4-5 hours. The CTM can be modified to be powered with an external battery, leading to recording duration being limited by the INS (implanted neurostimulator) battery. The INS battery can stream for up to ~30 hours. 
@@ -288,14 +295,7 @@ Note that in each recording session, all .json files will be created and saved. 
 - **DiagnosticsLog.json**: Not currently used
 - **TimeSync.json**: Not currently used
 
-## Structure of Repository:
-- **code**
-  - functions: code for specific needs; [TBD if these are further organized in subfolders]
-  - toolboxes: turtle_son, etc...
-- **testDataSets**: benchtop generated test data sets for validation of code; often generated signals are simultaneously recorded with DAQ to allow for verification of timing across data streams. 
-- **outputFigs**: will contain the output of function testing to the specified test dataset
-
-## Functions: 
+## Functions
 This list contains the functions that have been tested in branch and pushed to master (brief description of function input output next to each function name)
 
 ### Wrappers
