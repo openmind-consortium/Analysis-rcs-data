@@ -13,6 +13,21 @@ Selection of Matlab functions to extract .json raw data from Summit RC+S device,
 - Compatibility - Mac or PC. We rely on a toolbox to open .json files which does not work on Linux. Requires **Matlab R2019a or prior**. The toolbox we rely on to open .json files is not compatible with Matlab R2019b
 - Clone this repository and add to Matlab path. 
 
+## Usage
+```[combinedDataTable, debugTable, timeDomainSettings, powerSettings, fftSettings, eventLogTable, metaData, stimSettingsOut, stimMetaData, stimLogSettings, DetectorSettings, AdaptiveStimSettings, AdaptiveRuns_StimSettings] = DEMO_ProcessRCS(pathName, processFlag)```
+
+Optional input argument(s):<br/>
+- pathName: Full path to RC+S Device folder, containing raw JSON files<br/>
+- processFlag: Flag indicating if data should be saved (or read if already created):
+  - 1: Process and save (overwrite if processed file already exist) -- DEFAULT
+  - 2: Process and do not save
+  - 3: If processed file already exists, then load. If it does not
+       exist, process and save
+  - 4: If processed file already exists, then load. If it does not
+       exist, process but do not save<br/>
+
+If applicable, data are saved in the same 'Device' directory where raw JSON were selected
+
 ## What is the RC+S native data format?
 The Medtronic API saves data into a session directory. There are 11 .json files which are created for each session, which contain both meta-data and numerical data. Out of the box, the size/duration of these files is limited by the battery powering the CTM. Unmodified, this battery lasts for 4-5 hours. The CTM can be modified to be powered with an external battery, leading to recording duration being limited by the INS (implanted neurostimulator) battery. The INS battery can stream for up to ~30 hours. 
 
