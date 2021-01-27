@@ -263,10 +263,10 @@ This list contains the functions that have been tested in branch and pushed to m
 - **createAccelTable**: Create Matlab table of raw data from RawDataAccel.json
 - **createAdaptiveSettingsfromDeviceSettings**: Create Matlab table of adaptive settings from DeviceSettings.json
 - **createAdaptiveTable**: Create Matlab table of adaptive time domain signals from AdaptiveLog.json
-- **createCombinedTable**: Create Matlab table of combined data
-- **createDataTableWithMultipleSamplingRates**:
+- **createCombinedTable**: Create Matlab table of combined data, with harmonized `DerivedTime`values
+- **createDataTableWithMultipleSamplingRates**: Create Matlab table from data with multiple sampling rates within a data stream
 - **createDeviceSettingsTable**: Extract information from DeviceSettings.json related to configuration for time domain, power domain, FFT domain, adaptive, and stimulation
-- **createEventLogTable**:
+- **createEventLogTable**: Extract information from EventLog.json 
 - **createFFTtable**: Create Matlab table of raw data from RawDataFFT.json
 - **createPowerTable**: Create Matlab table of raw data from RawDataPower.json
 - **createStimSettingsFromDeviceSettings**: Create Matlab table of stim settings data from DeviceSettings.json
@@ -274,13 +274,13 @@ This list contains the functions that have been tested in branch and pushed to m
 - **createTimeDomainTable**: Create Matlab table of raw data from RawDataTD.json
 
 ### Utility
-- **addNewEntry_FFTSettings**:
-- **addNewEntry_PowerDomainSettings**:
-- **addNewEntry_StimSettings**:
-- **addNewEntry_TimeDomainSettings**:
-- **addRowToTable**:
-- **calculateDeltaSystemTick**:
-- **convertMetadataCodes**:
+- **addNewEntry_FFTSettings**: Extract FFT settings in order to add a new row to the `FFT_SettingsTable`
+- **addNewEntry_PowerDomainSettings**: Extract powerDomain settings in order to collect data to add a new row to the `Power_SettingsTable`
+- **addNewEntry_StimSettings**: Collect data to add a new row to the `Stim_SettingsTable`
+- **addNewEntry_TimeDomainSettings**: Extract timeDomain settings in order to add a new row to the `TD_SettingsTable`
+- **addRowToTable**: Add row of new data to table
+- **calculateDeltaSystemTick**: A 'circular calculator' for `systemTick`, to determine total elapsed time (assuming no full rollover of `systemTick`)
+- **convertMetadataCodes**: Convert Medtronic numeric codes from the subjectInfo field of DeviceSettings to human readable information
 - **convertTDcodes**: Conversion of Medtronic numeric codes into values (e.g. Hz)
 - **deserializeJSON**: Reads .json files and loads into Matlab
 - **fixMalfomedJSON**: Checks for and replaces missing brackets and braces in json file, which can prevent proper loading
@@ -288,11 +288,11 @@ This list contains the functions that have been tested in branch and pushed to m
 - **getPowerBands**: Calculate lower and upper bounds, in Hz, for each power domain timeseries
 - **getSampleRate**: Convert Medtronic codes to sample rates in Hz for time domain data
 - **getSampleRateAcc**: Convert Medtronic codes to sample rates in Hz for accelerometer data
-- **getStimParameters**:
+- **getStimParameters**: For a given stimulation group, update prior fields with any information present in current fields
 
 ### (Pre)Processing
 - **assignTime**: Function for creating timestamps for each sample of valid RC+S data. 
-- **harmonizeTimeAcrossDataStreams**:
+- **harmonizeTimeAcrossDataStreams**: Shift `DerivedTime` values to nearest `unifiedDerivedTimes` value, extending `unifiedDerivedTimes` as needed
 
 ## How to get a time value for each sample of data
 Ideally, there would be a value reported with each packet from which we could easily re-create unix time for each sample. Nominally, this would be `PacketGenTime`. However, upon inspection we see that: 
