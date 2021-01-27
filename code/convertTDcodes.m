@@ -23,6 +23,8 @@ for iChan = 1:length(TDsettings)
             TDsettings(iChan).gain = 250;
         case 4
             TDsettings(iChan).gain = 2000;
+        otherwise
+            TDsettings(iChan).gain = 'Unexpected';
     end
     
     % HPF
@@ -35,6 +37,8 @@ for iChan = 1:length(TDsettings)
             TDsettings(iChan).hpf = 3.3;
         case 96
             TDsettings(iChan).hpf = 8.6;
+        otherwise
+            TDsettings(iChan).hpf = 'Unexpected';
     end
     
     % LFP 1 (front end)
@@ -46,7 +50,7 @@ for iChan = 1:length(TDsettings)
         case 36
             TDsettings(iChan).lpf1 = 50;
         otherwise
-            TDsettings(iChan).lpf1 = 'unexpected';
+            TDsettings(iChan).lpf1 = 'Unexpected';
     end
     % LFP 1 (back end amplifier)
     switch TDdata(iChan).lpf2
@@ -59,12 +63,12 @@ for iChan = 1:length(TDsettings)
         case 14
             TDsettings(iChan).lpf2 = 1700;
         otherwise
-            TDsettings(iChan).lpf2 = 'unexpected';
+            TDsettings(iChan).lpf2 = 'Unexpected';
     end
     % Channels - minus input
     switch TDdata(iChan).minusInput
         case 0
-            TDsettings(iChan).minusInput = 'floating';
+            TDsettings(iChan).minusInput = 'Floating';
         case 1
             TDsettings(iChan).minusInput = '0';
         case 2
@@ -82,18 +86,18 @@ for iChan = 1:length(TDsettings)
         case 128
             TDsettings(iChan).minusInput = '7';
         otherwise
-            TDsettings(iChan).minusInput = 'unexpected';
+            TDsettings(iChan).minusInput = 'Unexpected';
     end
     % For TD chans 3 and 4, shift electrode contact numbers to be 8-15 (corresponding to second lead)
     if iChan > 2
-        if ~strcmp(TDsettings(iChan).minusInput,'floating') && ~strcmp(TDsettings(iChan).minusInput,'unexpected')
+        if ~strcmp(TDsettings(iChan).minusInput,'Floating') && ~strcmp(TDsettings(iChan).minusInput,'Unexpected')
             TDsettings(iChan).minusInput = num2str(str2num(TDsettings(iChan).minusInput)+8);
         end
     end
     % Channels - plus input
     switch TDdata(iChan).plusInput
         case 0
-            TDsettings(iChan).plusInput = 'floating';
+            TDsettings(iChan).plusInput = 'Floating';
         case 1
             TDsettings(iChan).plusInput = '0';
         case 2
@@ -111,11 +115,11 @@ for iChan = 1:length(TDsettings)
         case 128
             TDsettings(iChan).plusInput = '7';
         otherwise
-            TDsettings(iChan).plusInput = 'unexpected';
+            TDsettings(iChan).plusInput = 'Unexpected';
     end
     % For TD chans 3 and 4, shift electrode contact numbers to be 8-15 (corresponding to second lead)
     if iChan > 2 % asssumes there is no bridging
-        if ~strcmp(TDsettings(iChan).plusInput,'floating') && ~strcmp(TDsettings(iChan).plusInput,'unexpected')
+        if ~strcmp(TDsettings(iChan).plusInput,'Floating') && ~strcmp(TDsettings(iChan).plusInput,'Unexpected')
             TDsettings(iChan).plusInput = num2str( str2num(TDsettings(iChan).plusInput)+8);
         end
     end
@@ -128,9 +132,9 @@ for iChan = 1:length(TDsettings)
         case 2
             TDsettings(iChan).sampleRate = 1000;
         case 240
-            TDsettings(iChan).sampleRate = 'disabled';
+            TDsettings(iChan).sampleRate = 'Disabled';
         otherwise
-            TDsettings(iChan).plusInput = 'unexpected';
+            TDsettings(iChan).plusInput = 'Unexpected';
     end
     TDsettings(iChan).chanOut = sprintf('+%s-%s',...
         TDsettings(iChan).plusInput,TDsettings(iChan).minusInput);
