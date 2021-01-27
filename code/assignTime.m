@@ -219,7 +219,7 @@ if numChunks > 1
             % systemTick rollover occurred
             elapsed_systemTick(iTimegap)= calculateDeltaSystemTick(systemTick_Preceeding,systemTick_FirstPacket);
         end
-    end 
+    end
 end
 
 %%
@@ -231,7 +231,7 @@ disp('Determining start time of each chunk')
 
 % PacketGenTime in ms; convert difference to 1e-4 seconds, units of
 % systemTick and expectedElapsed
-diff_PacketGenTime = [1; diff(dataTable.PacketGenTime) * 1e1]; % multiply by 1e1 to convert to 1e-4 seconds 
+diff_PacketGenTime = [1; diff(dataTable.PacketGenTime) * 1e1]; % multiply by 1e1 to convert to 1e-4 seconds
 
 singlePacketChunks = [];
 medianError = NaN(1,numChunks);
@@ -240,9 +240,9 @@ for iChunk = 1:numChunks
     
     % Chunks must have at least 2 packets in order to have a valid
     % diff_systemTick -- thus if chunk only one packet, it must be
-    % identified. These chunks can remain if the timeGap before is < 6 
+    % identified. These chunks can remain if the timeGap before is < 6
     % seconds, but must be excluded if the timeGap before is >= 6 seconds
-   
+    
     if length(currentTimestampIndices) == 1
         singlePacketChunks = [singlePacketChunks iChunk];
     end
@@ -324,97 +324,102 @@ disp(['Numer of chunks removed: ' num2str(length(chunksToRemove))])
 disp(['Number of chunks with time calculated from PacketGenTime: ' num2str(counter_recalculatedFromPacketGenTime)])
 
 %%
-% Indices in chunkIndices correspond to packets in dataTable.
-% CorrectedAlignTime corresponds to first packet for each chunk in
-% chunkIndices. Remove chunks identified above
-chunkIndices(chunksToRemove) = [];
-correctedAlignTime(find(isnan(correctedAlignTime))) = [];
+% At this point, possible that all chunks have been removed - check for
+% this and only proceed with processing if chunks remain
 
-% correctedAlignTime is shifted slightly to keep times exactly aligned to
-% sampling rate; use maxFs for alignment points. In other words, take first
-% correctedAlignTime, and place all other correctedAlignTimes at multiples of
-% (1/Fs)
-deltaTime = 1/maxFs * 1000; % in milliseconds
-
-disp('Shifting chunks to align with sampling rate')
-multiples = floor(((correctedAlignTime - correctedAlignTime(1))/deltaTime) + 0.5);
-correctedAlignTime_shifted = correctedAlignTime(1) + (multiples * deltaTime);
-
-% Full form data table
-outputDataTable = inputDataTable;
-clear inputDataTable
-
-% Remove packets and samples identified above as lacking proper metadata
-samplesToRemove = [];
-% If first packet is included, collect those samples separately
-if ismember(1,packetsToRemove)
-    samplesToRemove = 1:indicesOfTimestamps(1);
-    packetsToRemove = setdiff(packetsToRemove,1);
-end
-% Loop through all other packetsToRemove
-toRemove_start = indicesOfTimestamps(packetsToRemove - 1) + 1;
-toRemove_stop = indicesOfTimestamps(packetsToRemove);
-for iPacket = 1:length(packetsToRemove)
-    samplesToRemove = [samplesToRemove toRemove_start(iPacket):toRemove_stop(iPacket)];
-end
-outputDataTable(samplesToRemove,:) = [];
-
-% Indices referenced in chunkIndices can now be mapped back to timeDomainData
-% using indicesOfTimestamps_cleaned
-indicesOfTimestamps_cleaned = find(~isnan(outputDataTable.timestamp));
-
-% Map the chunk start/stop times back to samples
-for iChunk = 1:length(chunkIndices)
-    currentPackets = chunkIndices{iChunk};
-    chunkPacketStart(iChunk) = indicesOfTimestamps_cleaned(currentPackets(1));
-    if currentPackets(1) == 1 % First packet, thus take first sample
-        chunkSampleStart(iChunk) = 1;
-    else
-        chunkSampleStart(iChunk) = indicesOfTimestamps_cleaned(currentPackets(1) - 1) + 1;
-    end
-    chunkSampleEnd(iChunk) = indicesOfTimestamps_cleaned(currentPackets(end));
-end
-
-disp('Creating derivedTime for each sample')
-% Use correctedAlignTime and sampling rate to assign each included sample a
-% derivedTime
-
-% Initalize DerivedTime
-DerivedTime = nan(size(outputDataTable,1),1);
-for iChunk = 1:length(chunkIndices)
-    % Display status
-    if iChunk > 0 && mod(iChunk, 1000) == 0
-        disp(['Currently on chunk ' num2str(iChunk) ' of ' num2str(length(chunkIndices))])
-    end
-    % Assign derivedTimes to all samples (from before first packet time to end) -- all same
-    % sampling rate
-    currentFs = outputDataTable.samplerate(chunkPacketStart(iChunk));
-    elapsedTime_before = (chunkPacketStart(iChunk) - chunkSampleStart(iChunk)) * (1000/currentFs);
-    elapsedTime_after = (chunkSampleEnd(iChunk) - chunkPacketStart(iChunk)) * (1000/currentFs);
+if exist('correctedAlignTime','var')
+    % Indices in chunkIndices correspond to packets in dataTable.
+    % CorrectedAlignTime corresponds to first packet for each chunk in
+    % chunkIndices. Remove chunks identified above
+    chunkIndices(chunksToRemove) = [];
+    correctedAlignTime(find(isnan(correctedAlignTime))) = [];
     
-    DerivedTime(chunkSampleStart(iChunk):chunkSampleEnd(iChunk)) = ...
-        correctedAlignTime_shifted(iChunk) - elapsedTime_before : 1000/currentFs : correctedAlignTime_shifted(iChunk) + elapsedTime_after;
-end
-
-% Check to ensure that the same DerivedTime was not assigned to multiple
-% samples; if yes, flag the second instance for removal; note: in matlab, nans
-% are not equal
-if ~isequal(length(DerivedTime), length(unique(DerivedTime)))
-    [~,uniqueIndices] = unique(DerivedTime);
-    duplicateIndices = setdiff([1:length(DerivedTime)],uniqueIndices);
+    % correctedAlignTime is shifted slightly to keep times exactly aligned to
+    % sampling rate; use maxFs for alignment points. In other words, take first
+    % correctedAlignTime, and place all other correctedAlignTimes at multiples of
+    % (1/Fs)
+    deltaTime = 1/maxFs * 1000; % in milliseconds
+    
+    disp('Shifting chunks to align with sampling rate')
+    multiples = floor(((correctedAlignTime - correctedAlignTime(1))/deltaTime) + 0.5);
+    correctedAlignTime_shifted = correctedAlignTime(1) + (multiples * deltaTime);
+    
+    % Full form data table
+    outputDataTable = inputDataTable;
+    clear inputDataTable
+    
+    % Remove packets and samples identified above as lacking proper metadata
+    samplesToRemove = [];
+    % If first packet is included, collect those samples separately
+    if ismember(1,packetsToRemove)
+        samplesToRemove = 1:indicesOfTimestamps(1);
+        packetsToRemove = setdiff(packetsToRemove,1);
+    end
+    % Loop through all other packetsToRemove
+    toRemove_start = indicesOfTimestamps(packetsToRemove - 1) + 1;
+    toRemove_stop = indicesOfTimestamps(packetsToRemove);
+    for iPacket = 1:length(packetsToRemove)
+        samplesToRemove = [samplesToRemove toRemove_start(iPacket):toRemove_stop(iPacket)];
+    end
+    outputDataTable(samplesToRemove,:) = [];
+    
+    % Indices referenced in chunkIndices can now be mapped back to timeDomainData
+    % using indicesOfTimestamps_cleaned
+    indicesOfTimestamps_cleaned = find(~isnan(outputDataTable.timestamp));
+    
+    % Map the chunk start/stop times back to samples
+    for iChunk = 1:length(chunkIndices)
+        currentPackets = chunkIndices{iChunk};
+        chunkPacketStart(iChunk) = indicesOfTimestamps_cleaned(currentPackets(1));
+        if currentPackets(1) == 1 % First packet, thus take first sample
+            chunkSampleStart(iChunk) = 1;
+        else
+            chunkSampleStart(iChunk) = indicesOfTimestamps_cleaned(currentPackets(1) - 1) + 1;
+        end
+        chunkSampleEnd(iChunk) = indicesOfTimestamps_cleaned(currentPackets(end));
+    end
+    
+    disp('Creating derivedTime for each sample')
+    % Use correctedAlignTime and sampling rate to assign each included sample a
+    % derivedTime
+    
+    % Initalize DerivedTime
+    DerivedTime = nan(size(outputDataTable,1),1);
+    for iChunk = 1:length(chunkIndices)
+        % Display status
+        if iChunk > 0 && mod(iChunk, 1000) == 0
+            disp(['Currently on chunk ' num2str(iChunk) ' of ' num2str(length(chunkIndices))])
+        end
+        % Assign derivedTimes to all samples (from before first packet time to end) -- all same
+        % sampling rate
+        currentFs = outputDataTable.samplerate(chunkPacketStart(iChunk));
+        elapsedTime_before = (chunkPacketStart(iChunk) - chunkSampleStart(iChunk)) * (1000/currentFs);
+        elapsedTime_after = (chunkSampleEnd(iChunk) - chunkPacketStart(iChunk)) * (1000/currentFs);
+        
+        DerivedTime(chunkSampleStart(iChunk):chunkSampleEnd(iChunk)) = ...
+            correctedAlignTime_shifted(iChunk) - elapsedTime_before : 1000/currentFs : correctedAlignTime_shifted(iChunk) + elapsedTime_after;
+    end
+    
+    % Check to ensure that the same DerivedTime was not assigned to multiple
+    % samples; if yes, flag the second instance for removal; note: in matlab, nans
+    % are not equal
+    if ~isequal(length(DerivedTime), length(unique(DerivedTime)))
+        [~,uniqueIndices] = unique(DerivedTime);
+        duplicateIndices = setdiff([1:length(DerivedTime)],uniqueIndices);
+    else
+        duplicateIndices = [];
+    end
+    
+    % All samples which do not have a derivedTime should be removed from final
+    % data table, along with those with duplicate derivedTime values
+    disp('Cleaning up output table')
+    outputDataTable.DerivedTime = DerivedTime;
+    rowsToRemove = [find(isnan(DerivedTime)); duplicateIndices'];
+    outputDataTable(rowsToRemove,:) = [];
+    
+    % Make timing/metadata variables consistent across data streams
+    outputDataTable = movevars(outputDataTable,{'DerivedTime','timestamp','systemTick','PacketGenTime','PacketRxUnixTime','dataTypeSequence','samplerate','packetsizes'},'Before',1);
 else
-    duplicateIndices = [];
-end
-
-% All samples which do not have a derivedTime should be removed from final
-% data table, along with those with duplicate derivedTime values
-disp('Cleaning up output table')
-outputDataTable.DerivedTime = DerivedTime;
-rowsToRemove = [find(isnan(DerivedTime)); duplicateIndices'];
-outputDataTable(rowsToRemove,:) = [];
-
-% Make timing/metadata variables consistent across data streams
-outputDataTable = movevars(outputDataTable,{'DerivedTime','timestamp','systemTick','PacketGenTime','PacketRxUnixTime','dataTypeSequence','samplerate','packetsizes'},'Before',1);
-
-
+    outputDataTable = [];
+    
 end
