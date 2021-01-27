@@ -41,6 +41,7 @@ for iRecord = 1:length(DeviceSettings)
         if isfield(currentSettings.DetectionConfig,'Ld1')
             Ld1 = currentSettings.DetectionConfig.Ld1;
         end
+        
         % If first record, need to initalize and flag to add entry to table
         if iRecord == 1
             updatedLd0 = Ld0;
@@ -62,12 +63,24 @@ for iRecord = 1:length(DeviceSettings)
         end
     end
     
+    % Create variable with FFT interval - this will update (if applicable)
+    % while looping through records
+    if isfield(currentSettings,'SensingConfig') &&...
+            isfield(currentSettings.SensingConfig,'fftConfig') &&...
+            isfield(currentSettings.SensingConfig.fftConfig,'interval')
+        FFTinterval = currentSettings.SensingConfig.fftConfig.interval;
+    end
+       
     % If flagged, add entry to table
     if addEntry == 1
+        % Write convert values (human-readable) of information in updatedLd0 and
+        % updatedLd1 to table; maintain Medtronic values in updatedLd0 and 
+        % updatedLd1 variables for checking against subsequent records
         newEntry.HostUnixTime = HostUnixTime;
-        newEntry.Ld0 = updatedLd0;
-        newEntry.Ld1 = updatedLd1;
-        newEntry.DetectorStatus = updatedLd0.detectionEnable + updatedLd1.detectionEnable;
+        convertedLd0 = convertDetectorCodes(updatedLd0,FFTinterval);
+        convertedLd1 = convertDetectorCodes(updatedLd1,FFTinterval);
+        newEntry.Ld0 = convertedLd0;
+        newEntry.Ld1 = convertedLd1;
         newEntry.updatedParameters = updatedParameters;
         [DetectorSettings] = addRowToTable(newEntry,DetectorSettings);
         addEntry = 0;
