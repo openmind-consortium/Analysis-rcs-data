@@ -343,7 +343,8 @@ for iChunk = 1:length(recordingChunks)
             for iChan = 1:4
                 if ~strcmp(selectData.tdDataStruc{1}(iChan).sampleRate,'disabled') &&...
                         ~strcmp(selectData.tdDataStruc{1}(iChan).sampleRate,'unexpected')
-                    toAdd.samplingRate = str2num(selectData.tdDataStruc{1}(iChan).sampleRate(1:end-2));
+%                     toAdd.samplingRate = str2num(selectData.tdDataStruc{1}(iChan).sampleRate(1:end-2));
+                    toAdd.samplingRate = selectData.tdDataStruc{1}(iChan).sampleRate;
                     fieldName = sprintf('chan%d',iChan);
                     toAdd.(fieldName) = selectData.(fieldName){1};
                 else
@@ -351,7 +352,7 @@ for iChunk = 1:length(recordingChunks)
                     toAdd.(fieldName) = NaN;
                 end
             end
-            toAdd.TimeDomainDataStruc = selectData.tdDataStruc{1};
+            toAdd.TDsettings = selectData.tdDataStruc{1};
             
             if isempty(TD_SettingsOut)
                 TD_SettingsOut = struct2table(toAdd,'AsArray',true);

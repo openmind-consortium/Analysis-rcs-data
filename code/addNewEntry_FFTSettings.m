@@ -21,7 +21,7 @@ newEntry.fftConfig = fftConfig;
 % Get sample rate for each TD channel; all TD channels have
 % same Fs (or is listed as NaN)
 for iChan = 1:4
-    TDsampleRates(iChan) = str2double(TDsettings(iChan).sampleRate(1:end-2));
+    TDsampleRates(iChan) = TDsettings(iChan).sampleRate;
 end
 TDsampleRates = unique(TDsampleRates);
 currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
