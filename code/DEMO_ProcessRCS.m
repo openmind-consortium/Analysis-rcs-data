@@ -82,6 +82,15 @@ if processFlag == 1 || processFlag == 2
     DeviceSettings_fileToLoad = [folderPath filesep 'DeviceSettings.json'];
     if isfile(DeviceSettings_fileToLoad)
         [timeDomainSettings, powerSettings, fftSettings, metaData] = createDeviceSettingsTable(folderPath);
+        % Translate powerSettings.powerBands into Hz
+        numSettings = size(powerSettings,1);
+        for iSetting = 1:numSettings
+            powerBands_toConvert = powerSettings.powerBands{iSetting};
+            currentTDsampleRate = powerSettings.TDsampleRates(iSetting);
+            currentFFTconfig = powerSettings.fftConfig(iSetting);
+            [currentPowerBands] = getPowerBands(powerBands_toConvert,currentFFTconfig,currentTDsampleRate);
+            powerSettings.powerBandsInHz(iSetting) = currentPowerBands;
+        end
     else
         error('No DeviceSettings.json file')
     end
@@ -167,19 +176,9 @@ if processFlag == 1 || processFlag == 2
         
         % Calculate power band cutoffs (in Hz) and add column to powerSettings
         if ~isempty(outtable_Power)
-            % Translate powerSettings.powerBands into Hz
-            numSettings = size(powerSettings,1);
-            for iSetting = 1:numSettings
-                powerBands_toConvert = powerSettings.powerBands{iSetting};
-                currentTDsampleRate = powerSettings.TDsampleRates(iSetting);
-                currentFFTconfig = powerSettings.fftConfig(iSetting);
-                [currentPowerBands] = getPowerBands(powerBands_toConvert,currentFFTconfig,currentTDsampleRate);
-                powerSettings.powerBandsInHz(iSetting) = currentPowerBands;
-            end
-            
             % Add samplerate and packetsizes column to outtable_Power -- samplerate is inverse
             % of fftConfig.interval
-            
+            numSettings = size(powerSettings,1);
             % Determine if more than one sampling rate across recording
             for iSetting = 1:numSettings
                 all_powerFs(iSetting) =  1/((powerSettings.fftConfig(iSetting).interval)/1000);
