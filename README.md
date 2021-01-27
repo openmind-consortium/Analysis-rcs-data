@@ -28,8 +28,8 @@ Selection of Matlab functions to extract .json raw data from Summit RC+S device,
 - [How to calculate `DerivedTime`](#how-to-calculate-derivedtime)
 - [Harmonization of `DerivedTime` across data streams](#harmonization-of-derivedtime-across-data-streams)
 - [Factors Impacting Packet Loss](#factors-impacting-packet-loss)
-    + [CTM Mode:](#ctm-mode)
-    + [CTM Ratio:](#ctm-ratio)
+    + [CTM Mode](#ctm-mode)
+    + [CTM Ratio](#ctm-ratio)
     + [Other Factors which impact streaming performance:](#other-factors-which-impact-streaming-performance)
 - [Overview of Adaptive Stimulation](#overview-of-adaptive-stimulation)
 
@@ -429,12 +429,12 @@ Possible sample rates (in Hz):
 
 A number of factors impact the fidelity with which the RC+S streams data to the host computer. Several RC+S streaming parameters can be configured depending on the use case:
 
-### CTM Mode:
+### CTM Mode
 - The RC+S CTM can operate in two different modes, Mode 3 or Mode 4
   - Mode 3: Optimal for streaming data across longer distances at a slower rate
   - Mode 4: Optimal for streaming data across shorter distances at a faster rate
 
-### CTM Ratio:
+### CTM Ratio
 - This is a ratio between [the number of packets sent by the INS to the host computer] vs [the number of packets sent by the host computer to the INS]
 - In general, high CTM ratios should be used for high-throughput sensing applications; low CTM ratios should be used when the INS parameters must be updated rapidly (as would be the case during distributed DBS)
 
