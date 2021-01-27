@@ -49,6 +49,7 @@ if isempty(detectionInputs)
    detectionInputs = 0; 
 end
 convertedLd.detectionInputs = detectionInputs;
+convertedLd.detectionInputs_BinaryCode = dec2bin(inputLd.detectionInputs,8);
 
 % Detection Enable
 detectionEnable = {};
