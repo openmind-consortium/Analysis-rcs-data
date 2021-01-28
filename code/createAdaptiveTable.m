@@ -19,7 +19,7 @@ for iName = 1:length(fieldNames)
 end
 
 Header = [AdaptiveUpdate.Header];
-fieldNames = {'dataSize','dataType','info','dataTypeSequence','systemTick'}; % Under AdaptiveUpdate.Header
+fieldNames = {'dataTypeSequence','systemTick'}; % Under AdaptiveUpdate.Header
 for iName = 1:length(fieldNames)
     data.(fieldNames{iName}) = [Header.(fieldNames{iName})]';
 end
