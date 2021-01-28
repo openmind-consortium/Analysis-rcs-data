@@ -16,7 +16,7 @@ newEntry.time = HostUnixTime;
 if isfield(currentSettings,'SensingConfig') && isfield(currentSettings.SensingConfig,'fftConfig')
     fftConfig = currentSettings.SensingConfig.fftConfig;
 end
-newEntry.fftConfig = fftConfig;
+newEntry.fftConfig = convertFFTCodes(fftConfig);
 
 % Get sample rate for each TD channel; all TD channels have
 % same Fs (or is listed as NaN)

@@ -28,7 +28,10 @@ newEntry.TDsampleRates = currentTDsampleRate;
 if isfield(currentSettings,'SensingConfig') && isfield(currentSettings.SensingConfig,'fftConfig')
     fftConfig = currentSettings.SensingConfig.fftConfig;
 end
-newEntry.fftConfig = fftConfig;
+
+% Convert values when writing newEntry.fftConfig (but keep original
+% values in fftConfig for comparison with next records)
+newEntry.fftConfig = convertFFTCodes(fftConfig);
 
 % Convert powerBands to Hz
 [currentPowerBands] = getPowerBands(powerChannels,fftConfig,currentTDsampleRate);
