@@ -13,8 +13,7 @@ headerTable = table();
 %%
 % Parsing data contained in headers
 Header = [jsonobj_FFT.FftData.Header];
-variableNames = {'dataSize','dataType','dataTypeSequence',...
-    'globalSequence','info','systemTick','user1','user2'};
+variableNames = {'dataSize','dataType','dataTypeSequence','systemTick'};
 headerData = struct();
 for iVariable = 1:length(variableNames)
     headerData.(variableNames{iVariable}) = [Header.(variableNames{iVariable})]';
@@ -26,7 +25,6 @@ headerData.timestamp =  struct2array(timestamps)';
 
 % Convert headerData to table
 headerTable = struct2table(headerData);
-
 
 % Parsing data conatined in rawPowerData.PowerDomainData
 FFTtable = struct2table(jsonobj_FFT.FftData);
