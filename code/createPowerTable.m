@@ -23,12 +23,12 @@ try
     else
         % Parsing data contained in headers
         Header = [rawPowerData.PowerDomainData.Header];
-        variableNames = {'dataSize','dataType','dataTypeSequence',...
-            'globalSequence','info','systemTick'};
+        variableNames = {'dataTypeSequence','systemTick'};
         powerData = struct();
         for iVariable = 1:length(variableNames)
             powerData.(variableNames{iVariable}) = [Header.(variableNames{iVariable})]';
         end
+        
         % Parsing timestamp (stored inside struct)
         timestamps = [Header.timestamp];
         powerData.timestamp =  struct2array(timestamps)';
@@ -38,11 +38,25 @@ try
         
         % Parsing data conatined in rawPowerData.PowerDomainData
         PowerDomainData = [rawPowerData.PowerDomainData];
-        variableNames = {'PacketGenTime','PacketRxUnixTime',...
-            'ExternalValuesMask','FftSize','IsPowerChannelOverrange','ValidDataMask'};
+        variableNames = {'PacketGenTime','PacketRxUnixTime','IsPowerChannelOverrange'};
         for iVariable = 1:length(variableNames)
             powerData.(variableNames{iVariable}) = [PowerDomainData.(variableNames{iVariable})]';
         end
+        
+        % Convert FftSize to human-readable
+        temp_FftSize = [PowerDomainData.FftSize]';
+        temp_FftSize(temp_FftSize == 0) = 64;
+        temp_FftSize(temp_FftSize == 1) = 256;
+        temp_FftSize(temp_FftSize == 3) = 1024;     
+        powerData.('FftSize') = temp_FftSize;
+        
+        % Convert ValidDataMask to bit string
+        temp_ValidDataMask = [PowerDomainData.ValidDataMask]';
+        powerData.('ValidDataMask') = cellstr(dec2bin(temp_ValidDataMask,8));
+        
+         % Convert ExternalValuesMask to bit string
+        temp_ExternalValuesMask = [PowerDomainData.ExternalValuesMask]';
+        powerData.('ExternalValuesMask') = cellstr(dec2bin(temp_ExternalValuesMask,8));
         
         % Parsing data conatined in Bands
         bands = [PowerDomainData.Bands]';
