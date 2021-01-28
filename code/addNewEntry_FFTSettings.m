@@ -12,16 +12,17 @@ newEntry.recNum = recNum;
 newEntry.time = HostUnixTime;
 
 % Get fftConfig info if updated
-
 if isfield(currentSettings,'SensingConfig') && isfield(currentSettings.SensingConfig,'fftConfig')
-    fftConfig = currentSettings.SensingConfig.fftConfig;
+    fftConfig = convertFFTCodes(currentSettings.SensingConfig.fftConfig);
 end
-newEntry.fftConfig = convertFFTCodes(fftConfig);
+newEntry.fftConfig = fftConfig;
 
 % Get sample rate for each TD channel; all TD channels have
 % same Fs (or is listed as NaN)
 for iChan = 1:4
-    TDsampleRates(iChan) = TDsettings(iChan).sampleRate;
+    if isnumeric(TDsettings(iChan).sampleRate)
+        TDsampleRates(iChan) = TDsettings(iChan).sampleRate;
+    end
 end
 TDsampleRates = unique(TDsampleRates);
 currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
