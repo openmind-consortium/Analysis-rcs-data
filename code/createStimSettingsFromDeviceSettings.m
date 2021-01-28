@@ -96,6 +96,7 @@ therapyStatus = currentSettings.GeneralData.therapyStatusData.therapyStatus;
 stimSettingsOut.HostUnixTime(entryNumber) = HostUnixTime;
 stimSettingsOut.activeGroup{entryNumber} = activeGroup;
 stimSettingsOut.therapyStatus(entryNumber) = therapyStatus;
+stimSettingsOut.therapyStatusDescription{entryNumber} = convertTherapyStatus(therapyStatus);
 
 previousActiveGroup = activeGroup;
 previousTherapyStatus = therapyStatus;
@@ -143,6 +144,7 @@ for iRecord = 1:length(DeviceSettings)
         toAdd.HostUnixTime = HostUnixTime;
         toAdd.activeGroup = activeGroup;
         toAdd.therapyStatus = therapyStatus;
+        toAdd.therapyStatusDescription = convertTherapyStatus(therapyStatus);
         stimSettingsOut = [stimSettingsOut; struct2table(toAdd)];
         
         clear toAdd
