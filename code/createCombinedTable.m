@@ -65,10 +65,10 @@ for iStream = 1:length(dataStreams)
                 debugTable.Accel_PacketGenTime(select_Indices) = currentData.PacketGenTime;
                 
             case 3 % Power
-                combinedDataTable.Power_ExternalValuesMask = NaN(numRows,1);
+                combinedDataTable.Power_ExternalValuesMask(:) = {NaN};
                 combinedDataTable.Power_FftSize = NaN(numRows,1);
                 combinedDataTable.Power_IsPowerChannelOverrange = NaN(numRows,1);
-                combinedDataTable.Power_ValidDataMask = NaN(numRows,1);
+                combinedDataTable.Power_ValidDataMask(:) = {NaN};
                 combinedDataTable.Power_Band1 = NaN(numRows,1);
                 combinedDataTable.Power_Band2 = NaN(numRows,1);
                 combinedDataTable.Power_Band3 = NaN(numRows,1);
@@ -105,15 +105,11 @@ for iStream = 1:length(dataStreams)
                 combinedDataTable.FFT_FftSize = NaN(numRows,1);
                 combinedDataTable.FFT_FftOutput(:) = {NaN};
                 combinedDataTable.FFT_Units(:) = {NaN};
-                combinedDataTable.FFT_user1 = NaN(numRows,1);
-                combinedDataTable.FFT_user2 = NaN(numRows,1);
                 
                 combinedDataTable.FFT_Channel(select_Indices) = currentData.Channel;
                 combinedDataTable.FFT_FftSize(select_Indices) = currentData.FftSize;
                 combinedDataTable.FFT_FftOutput(select_Indices) = currentData.FftOutput;
                 combinedDataTable.FFT_Units(select_Indices) = currentData.Units;
-                combinedDataTable.FFT_user1(select_Indices) = currentData.user1;
-                combinedDataTable.FFT_user2(select_Indices) = currentData.user2;
                 
                 % temp for debugging
                 debugTable.FFT_systemTick = NaN(numRows,1);
@@ -147,8 +143,11 @@ for iStream = 1:length(dataStreams)
                 combinedDataTable.Adaptive_Ld1_lowThreshold = NaN(numRows,1);
                 combinedDataTable.Adaptive_Ld1_output = NaN(numRows,1);
                 
+                
+                
                 combinedDataTable.Adaptive_CurrentAdaptiveState(select_Indices) = currentData.CurrentAdaptiveState;
-                combinedDataTable.Adaptive_CurrentProgramAmplitudesInMilliamps(select_Indices) = {currentData.CurrentProgramAmplitudesInMilliamps};
+                combinedDataTable.Adaptive_CurrentProgramAmplitudesInMilliamps(select_Indices) =...
+                    mat2cell(currentData.CurrentProgramAmplitudesInMilliamps,ones(length(select_Indices),1));
                 combinedDataTable.Adaptive_IsInHoldOffOnStartup(select_Indices) = currentData.IsInHoldOffOnStartup;
                 combinedDataTable.Adaptive_Ld0DetectionStatus(select_Indices) = currentData.Ld0DetectionStatus;
                 combinedDataTable.Adaptive_Ld1DetectionStatus(select_Indices) = currentData.Ld1DetectionStatus;
@@ -158,12 +157,14 @@ for iStream = 1:length(dataStreams)
                 combinedDataTable.Adaptive_StateTime(select_Indices) = currentData.StateTime;
                 combinedDataTable.Adaptive_StimFlags(select_Indices) = currentData.StimFlags;
                 combinedDataTable.Adaptive_StimRateInHz(select_Indices) = currentData.StimRateInHz;
-                combinedDataTable.Adaptive_Ld0_featureInputs(select_Indices) = {currentData.Ld0_featureInputs};
+                combinedDataTable.Adaptive_Ld0_featureInputs(select_Indices) =...
+                    mat2cell(currentData.Ld0_featureInputs,ones(length(select_Indices),1));
                 combinedDataTable.Adaptive_Ld0_fixedDecimalPoint(select_Indices) = currentData.Ld0_fixedDecimalPoint;
                 combinedDataTable.Adaptive_Ld0_highThreshold(select_Indices) = currentData.Ld0_highThreshold;
                 combinedDataTable.Adaptive_Ld0_lowThreshold(select_Indices) = currentData.Ld0_lowThreshold;
                 combinedDataTable.Adaptive_Ld0_output(select_Indices) = currentData.Ld0_output;
-                combinedDataTable.Adaptive_Ld1_featureInputs(select_Indices)  = {currentData.Ld1_featureInputs};
+                combinedDataTable.Adaptive_Ld1_featureInputs(select_Indices)  =...
+                    mat2cell(currentData.Ld1_featureInputs,ones(length(select_Indices),1));
                 combinedDataTable.Adaptive_Ld1_fixedDecimalPoint(select_Indices) = currentData.Ld1_fixedDecimalPoint;
                 combinedDataTable.Adaptive_Ld1_highThreshold(select_Indices) = currentData.Ld1_highThreshold;
                 combinedDataTable.Adaptive_Ld1_lowThreshold(select_Indices) = currentData.Ld1_lowThreshold;
