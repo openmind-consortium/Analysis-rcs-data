@@ -18,7 +18,9 @@ end
 % Get sample rate for each TD channel; all TD channels have
 % same Fs (or is listed as NaN)
 for iChan = 1:4
-    TDsampleRates(iChan) = TDsettings(iChan).sampleRate;
+    if isnumeric(TDsettings(iChan).sampleRate)
+        TDsampleRates(iChan) = TDsettings(iChan,1).sampleRate;
+    end
 end
 TDsampleRates = unique(TDsampleRates);
 currentTDsampleRate = TDsampleRates(~isnan(TDsampleRates));
@@ -26,12 +28,10 @@ newEntry.TDsampleRates = currentTDsampleRate;
 
 % Get fftConfig info if updated
 if isfield(currentSettings,'SensingConfig') && isfield(currentSettings.SensingConfig,'fftConfig')
-    fftConfig = currentSettings.SensingConfig.fftConfig;
+    % Convert fftConfig values
+    fftConfig = convertFFTCodes(currentSettings.SensingConfig.fftConfig);
 end
-
-% Convert values when writing newEntry.fftConfig (but keep original
-% values in fftConfig for comparison with next records)
-newEntry.fftConfig = convertFFTCodes(fftConfig);
+newEntry.fftConfig = fftConfig;
 
 % Convert powerBands to Hz
 [currentPowerBands] = getPowerBands(powerChannels,fftConfig,currentTDsampleRate);
