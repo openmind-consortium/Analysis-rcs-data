@@ -210,7 +210,7 @@ if processFlag == 1 || processFlag == 2
                 fftParameters = getFFTparameters(currentFFTconfig,currentTDsampleRate);
                 fftSettings.fftParameters(iSetting) = fftParameters;
             end
-            % Add samplerate and packetsizes column to outtable_Power -- samplerate is inverse
+            % Add samplerate and packetsizes column to outtable_FFT -- samplerate is inverse
             % of fftConfig.interval; in principle this interval could change
             % over the course of the recording
             
@@ -244,12 +244,15 @@ if processFlag == 1 || processFlag == 2
         if isfield(jsonobj_Adaptive,'AdaptiveUpdate') && ~isempty(jsonobj_Adaptive(1).AdaptiveUpdate)
             disp('Loading Adaptive Data')
             outtable_Adaptive = createAdaptiveTable(jsonobj_Adaptive);
+            % Note: StateTime must still be converted to sec in
+            % outtable_Adaptive
             
             % Calculate adaptive_sampleRate - determine if more than one
             if size(fftSettings,1) == 1
                 adaptive_sampleRate =  1/((fftSettings.fftConfig(1).interval)/1000);
                 outtable_Adaptive.samplerate(:) = adaptive_sampleRate;
                 outtable_Adaptive.packetsizes(:) = 1;
+                outtable_Adaptive.StateTime = outtable_Adaptive.StateTime * (fftSettings.fftConfig(1).interval/1000);
                 
                 disp('Creating derivedTimes for Adaptive:')
                 AdaptiveData = assignTime(outtable_Adaptive);
