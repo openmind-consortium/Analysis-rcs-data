@@ -16,8 +16,9 @@ Selection of Matlab functions to extract .json raw data from Summit RC+S device,
 - [What is the RC+S native data format?](#what-is-the-rcs-native-data-format)
 - [Data parsing overview](#data-parsing-overview)
 - [RC+S raw data structures](#rcs-raw-data-structures)
-    + [Data in .json files](#data-in-json-files)
-    + [Data imported into Matlab](#data-imported-into-matlab)
+    + [JSON data files](#json-data-files)
+    + [Data tables created in Matlab during processing](#data-tables-created-in-matlab-during-processing)
+- [Data tables contained in output file (combinedDataTables.mat)](#data-tables-contained-in-output-file-combineddatatablesmat)
 - [Functions](#functions)
     + [Wrappers](#wrappers)
     + [CreateTables](#createtables)
@@ -58,7 +59,7 @@ Currently, time domain data are REQUIRED for processing to work. Other time seri
 
 ## Structure of Repository
 - **code**
-  - functions: code for specific needs; [TBD if these are further organized in subfolders]
+  - functions: code for specific needs
   - toolboxes: turtle_son, etc...
 - **documentationFigures**
 - **testDataSets**: benchtop generated test data sets for validation of code; often generated signals are simultaneously recorded with DAQ to allow for verification of timing across data streams. 
@@ -95,7 +96,7 @@ Each of the .json files has packets which were streamed from the RC+S using a UD
 Note that in each recording session, all .json files will be created and saved. If a particular datastream (e.g. FFT) is not enabled to stream, that .json file will be mostly empty, containing only minimal metadata.
 
 ### Data tables created in Matlab during processing 
-Not all of these tables are saved as output in the form shown below. [See section below for Data tables contained in output file](UPDATE HERE) 
+Not all of these tables are saved as output in the form shown below. [See section below for Data tables contained in output file](#data-tables-contained-in-output-file) 
 - **RawDataTD.json** --> **timeDomainData**:
   - `DerivedTime`: Computed time for each sample. [See How to Calculate DerivedTime for more information](https://github.com/openmind-consortium/Analysis-rcs-data/blob/DocumentationUpdate/README.md#how-to-calculate-derivedtime)
   - `timestamp`: INS clock driven timer that does not roll over. Highest resolution is 1 second. Total elaped time since March 1, 2000 at midnight. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
@@ -297,7 +298,7 @@ Not all of these tables are saved as output in the form shown below. [See sectio
 - **DiagnosticsLog.json**: Not currently used
 - **TimeSync.json**: Not currently used
 
-## Data tables contained in output file (combinedDataTables.mat)
+## Data tables contained in output file
 
 
 
