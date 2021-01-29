@@ -42,8 +42,9 @@ Selection of Matlab functions to extract .json raw data from Summit RC+S device,
 ```[combinedDataTable, debugTable, timeDomainSettings, powerSettings, fftSettings, eventLogTable, metaData, stimSettingsOut, stimMetaData, stimLogSettings, DetectorSettings, AdaptiveStimSettings, AdaptiveRuns_StimSettings] = DEMO_ProcessRCS(pathName, processFlag)```
 
 Optional input argument(s):<br/>
-- pathName: Full path to RC+S Device folder, containing raw JSON files<br/>
-- processFlag: Flag indicating if data should be saved (or read if already created):
+\[If no `pathName` is selected, a folder selection dialog box will open at the start of processing\]
+- `pathName`: Full path to RC+S Device folder, containing raw JSON files<br/>
+- `processFlag`: Flag indicating if data should be saved (or read if already created):
   - 1: Process and save (overwrite if processed file already exist) -- DEFAULT
   - 2: Process and do not save
   - 3: If processed file already exists, then load. If it does not
@@ -78,7 +79,7 @@ Each of the .json files has packets which were streamed from the RC+S using a UD
 
 ![Data Structure](documentationFigures/RCS_DataStructure.png)
 
-### Data in .json files
+### JSON data files 
 - **RawDataTD.json**: Contains continuous raw time domain data in packet form. Each packet has timing information (and packet sizes are not consistent). Data can be streamed from up to 4 time domain channels (2 on each bore; bore = connector in INS for one physical depth/strip, which has multiple contacts) at 250Hz and 500Hz or up to 2 time domain channels at 1000Hz. Bridging can be used to record all 4 time domain channels from one bore (this version of acquisition is untested in this code repo). A `timestamp` and `systemTick` are only available for the last element of each data packet and timing information for each sample must be deduced. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
 - **RawDataAccel.json**: Contains continuous raw onboard 3-axis accelerometry data as well as timing information. The structure and timing information is similar to the time domain files.
 - **DeviceSettings.json**: Contains information about which datastreams were enabled, start and stop times of streaming, stimulation settings, adaptive settings, and device parameters (e.g. sampling rate, montage configuration [which electrodes are being recorded from], power bands limits, etc). Many of these settings can be changed within a given recording; each time such a change is made, another record is written to DeviceSettings.json file. 
@@ -93,106 +94,107 @@ Each of the .json files has packets which were streamed from the RC+S using a UD
 
 Note that in each recording session, all .json files will be created and saved. If a particular datastream (e.g. FFT) is not enabled to stream, that .json file will be mostly empty, containing only minimal metadata.
 
-### Data imported into Matlab 
-
-- **RawDataTD.json** --> timeDomainData:
+### Data tables created in Matlab during processing 
+Not all of these tables are saved as output in the form shown below. [See section below for Data tables contained in output file](UPDATE HERE) 
+- **RawDataTD.json** --> **timeDomainData**:
   - `DerivedTime`: Computed time for each sample. [See How to Calculate DerivedTime for more information](https://github.com/openmind-consortium/Analysis-rcs-data/blob/DocumentationUpdate/README.md#how-to-calculate-derivedtime)
   - `timestamp`: INS clock driven timer that does not roll over. Highest resolution is 1 second. Total elaped time since March 1, 2000 at midnight. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
   - `systemTick`: 16-bit INS clock timer that rolls over every 2^16 values. Highest resolution is 100 microseconds. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
   - `PacketGenTime`: API estimate of when the packet was created on the INS within the PC clock domain. Estimate created by using results of latest latency check (one is done at system initialization, but can re-perform whenever you want) and time sync streaming. Only accurate within ~50ms.
   - `PacketRxUnixTime`: PC clock-driven time when the packet was received. Highly inaccurate after packet drops.
   - `dataTypeSequence`: 8-bit packet number counter that rolls over, ranging from 0 to 255; can be used to help identify if packets are in order or are missing. Should run continuously, but instances of resetting have been observed.
-  - `samplerate`: Fs in Hz; only written in rows corresponding to last sample of each packet.
+  - `samplerate`: Sampling rate in Hz; only written in rows corresponding to last sample of each packet.
   - `packetsizes`: Number of samples per packet. Written in rows corresponding to the last sample of each packet.
   - `key0`: Channel 0; contains numerical data in millivolts
   - `key1`: Channel 1; contains numerical data in millivolts
   - `key2`: Channel 2; contains numerical data in millivolts
   - `key3`: Channel 3; contains numerical data in millivolts
    
-- **RawDataAccel.json** --> AccelData:
-  - `DerivedTime`
-  - `timestamp`
-  - `systemTick`
-  - `PacketGenTime`
-  - `PacketRxUnixTime`
-  - `dataTypeSequence`
-  - `samplerate`
-  - `packetsizes`
+- **RawDataAccel.json** --> **AccelData**:
+  - `DerivedTime`: Same as above
+  - `timestamp`: Same as above
+  - `systemTick`: Same as above
+  - `PacketGenTime`: Same as above
+  - `PacketRxUnixTime`: Same as above
+  - `dataTypeSequence`: Same as above
+  - `samplerate`: Same as above
+  - `packetsizes`: Samve as above
   - `XSamples`: X-axis
   - `YSamples`: Y-axis
   - `ZSamples`: Z-axis
 
-- **RawDataPower.json** --> PowerData
-  - `DerivedTime`
-  - `timestamp`
-  - `systemTick`
-  - `PacketGenTime`
-  - `PacketRxUnixTime`
-  - `dataTypeSequence`
-  - `samplerate`
-  - `packetsizes`  
-  - `dataSize`
-  - `dataType`
-  - `globalSequence`
-  - `info`
-  - `TDsamplerate`
-  - `ExternalValueMask`
-  - `FftSize`
-  - `IsPowerChannelOverrange`
-  - `ValidDataMask`
-  - `Band1`
-  - `Band2`
-  - `Band3`
-  - `Band4`
-  - `Band5`
-  - `Band6`
-  - `Band7`
-  - `Band8`
+- **RawDataPower.json** --> **PowerData**
+  - `DerivedTime`: Same as above
+  - `timestamp`: Same as above
+  - `systemTick`: Same as above
+  - `PacketGenTime`: Same as above
+  - `PacketRxUnixTime`: Same as above
+  - `dataTypeSequence`: Same as above
+  - `samplerate`: Same as above
+  - `packetsizes`: Same as above
+  - `TDsamplerate`: Sampling rate (in Hz) of time domain data
+  - `IsPowerChannelOverrange`: Boolean 
+  - `FftSize`: Number of points in FFT calculation
+  - `ValidDataMask`: Binary string representing if data valid for each power channel (e.g. 00000011 indicates that Band1 and Band2 are valid)
+  - `ExternalValuesMask`: Binary string representing if external test values are being used instead of internal power data for each power channel (e.g. 00000000 indicates that all Bands are providing internal power data)
+  - `Band1`: Power values
+  - `Band2`: Power values
+  - `Band3`: Power values
+  - `Band4`: Power values
+  - `Band5`: Power values
+  - `Band6`: Power values
+  - `Band7`: Power values
+  - `Band8`: Power values
 
-- **RawDataFFT.json** --> FFTData
-  - `DerivedTime`
-  - `timestamp`
-  - `systemTick`
-  - `PacketGenTime`
-  - `PacketRxUnixTime`
-  - `dataTypeSequence`
-  - `samplerate`
-  - `packetsizes` 
-  - `Channel`
-  - `FftSize`
-  - `FftOutput`
-  - `Units`
-  - `TDsamplerate`
-  - `dataSize`
-  - `dataType`
-  - `globalSequence`
-  - `info`
-  - `user1`
-  - `user2`
+- **RawDataFFT.json** --> **FFTData**
+  - `DerivedTime`: Same as above
+  - `timestamp`: Same as above
+  - `systemTick`: Same as above
+  - `PacketGenTime`: Same as above
+  - `PacketRxUnixTime`: Same as above
+  - `dataTypeSequence`: Same as above
+  - `samplerate`: Same as above
+  - `packetsizes`: Same as above
+  - `Channel`: Byte indicating which FFT channel is being streamed, 0-3
+  - `FftOutput`: The FFT output bins from the INS
+  - `Units`: Units of the bins data points
+  - `FftSize`: Number of points in FFT calculation
+  - `TDsamplerate`: Sampling rate (in Hz) of time domain data
     
-- **AdaptiveLog.json** --> AdaptiveData
-  - `DerivedTime`
-  - `timestamp`
-  - `systemTick`
-  - `PacketGenTime`
-  - `PacketRxUnixTime`
-  - `dataTypeSequence`
-  - `samplerate`
-  - `packetsizes`  
-  - `CurrentAdaptiveState`
-  - `CurrentProgramAmplitudesInMilliamps`
-  - `IsInHoldOffOnStartup`
-  - `Ld0DetectionStatus`
-  - `Ld1DetectionStatus`
-  - `PreviousAdaptiveState`
-  - `SensingStatus`
-  - `StateEntryCount`
-  - `StateTime`
-  - `StimFlags`
+- **AdaptiveLog.json** --> **AdaptiveData**
+  - `DerivedTime`: Same as above
+  - `timestamp`: Same as above
+  - `systemTick`: Same as above
+  - `PacketGenTime`: Same as above
+  - `PacketRxUnixTime`: Same as above
+  - `dataTypeSequence`: Same as above
+  - `samplerate`: Same as above
+  - `packetsizes`: Same as above
+  - `CurrentAdaptiveState`: Indicates the current adaptive state (0-8), or no state
+  - `CurrentProgramAmplitudesInMilliamps`: The amplitude(s) of stimulation (in mA) for the current program
+  - `IsInHoldOffOnStartup`: Boolean
+  - `Ld0DetectionStatus`: Detection status relative to the two possible thresholds
+  - `Ld1DetectionStatus`: Detection status relative to the two possible thresholds
+  - `PreviousAdaptiveState`: Indicates the previous adaptive state (0-8), or no state
+  - `SensingStatus`: Binary string indicating which sense states are enabled:
+    - 0000 0000: None
+    - 0000 0001: LFP Sensing
+    - 0000 0010: FFT
+    - 0000 0100: Power
+    - 0000 1000: Unused
+    - 0001 0000: Detection - Ld0
+    - 0010 0000: Detection - Ld1
+    - 0100 0000: Loop Recording
+    - 1000 0000: Adaptive Stim    
+  - `StateEntryCount`: Number of times current state has been entered since last Ld diagnostic mirror reset
+  - `StateTime`: Time spent in this state since the last time the state times were cleared (in seconds) KS ENSURE CONVERTED IN LATER PROCESSING
+  - `StimFlags`: Indicates status flags for adaptive therapy operation (if any amplitude is currently ramping)
+    - 0000 0000: None
+    - 0000 0001: Program 0 amp ramping
+    - 0000 0010: Program 1 amp ramping
+    - 0000 0100: Program 2 amp ramping
+    - 0000 1000: Program 3 amp ramping
   - `StimRateInHz`
-  - `dataSize`
-  - `dataType`
-  - `info`
   - `Ld0_featureInputs`
   - `Ld0_fixedDecimalPoint`
   - `Ld0_highThreshold`
@@ -204,7 +206,7 @@ Note that in each recording session, all .json files will be created and saved. 
   - `Ld1_lowThreshold`
   - `Ld1_output`
   
-- **StimLog.json** --> stimLogSettings 
+- **StimLog.json** --> **stimLogSettings**
   - `HostUnixTime`
   - `activeGroup`
   - `therapyStatus`
@@ -214,7 +216,7 @@ Note that in each recording session, all .json files will be created and saved. 
   - `GroupD`: Contains settings for stimulation group D (`RateInHz`, `ampInMilliamps`, `pulseWidthInMicroseconds`)
   - `updatedParameters`: Which variable(s) were updated from the prior entry in stimLogSettings
 
-- **EventLog.json** --> eventLogTable
+- **EventLog.json** --> **eventLogTable**
   - `SessionId`
   - `HostUnixTime`
   - `EventName`
@@ -294,6 +296,12 @@ Note that in each recording session, all .json files will be created and saved. 
 - **ErrorLog.json**: Not currently used
 - **DiagnosticsLog.json**: Not currently used
 - **TimeSync.json**: Not currently used
+
+## Data tables contained in output file (combinedDataTables.mat)
+
+
+
+
 
 ## Functions
 This list contains the functions that have been tested in branch and pushed to master (brief description of function input output next to each function name)
