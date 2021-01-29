@@ -1,4 +1,4 @@
-function [outtable] = createAdaptiveTable(Adaptive)
+function [outtable] = createAdaptiveTable(jsonobj_Adaptive)
 %% 
 % Function to unravel Adaptive time series data, creating a table with all
 % variables
@@ -7,9 +7,9 @@ function [outtable] = createAdaptiveTable(Adaptive)
 % (To transform *.json file into structure use deserializeJSON.m)
 %%
 
-numRecords = length(Adaptive); % If fix was required when opening JSON file, dimensions may be flipped
+numRecords = length(jsonobj_Adaptive); % If fix was required when opening JSON file, dimensions may be flipped
 
-AdaptiveUpdate = [Adaptive.AdaptiveUpdate];
+AdaptiveUpdate = [jsonobj_Adaptive.AdaptiveUpdate];
 fieldNames = {'PacketGenTime','PacketRxUnixTime','CurrentProgramAmplitudesInMilliamps',...
     'IsInHoldOffOnStartup','StateEntryCount',...
     'StateTime','StimRateInHz'};
@@ -79,16 +79,18 @@ data.('SensingStatus') = cellstr(dec2bin(temp_SensingStatus,8));
 temp_StimFlags = [AdaptiveUpdate.StimFlags]';
 data.('StimFlags') = cellstr(dec2bin(temp_StimFlags,8));
 
-
+% Extract info from Header
 Header = [AdaptiveUpdate.Header];
 fieldNames = {'dataTypeSequence','systemTick'}; % Under AdaptiveUpdate.Header
 for iName = 1:length(fieldNames)
     data.(fieldNames{iName}) = [Header.(fieldNames{iName})]';
 end
 
+% Extract more info from within Header
 Timestamp = [Header.timestamp];
 data.timestamp = struct2array(Timestamp)';
 
+% Extract info from Ld0Status
 Ld0Status = [AdaptiveUpdate.Ld0Status];
 fieldNames = {'featureInputs','fixedDecimalPoint','highThreshold',...
     'lowThreshold','output'};
