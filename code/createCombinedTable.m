@@ -121,16 +121,16 @@ for iStream = 1:length(dataStreams)
                 debugTable.FFT_PacketGenTime(select_Indices) = currentData.PacketGenTime;
                 
             case 5 % Adaptive
-                combinedDataTable.Adaptive_CurrentAdaptiveState = NaN(numRows,1);
+                combinedDataTable.Adaptive_CurrentAdaptiveState(:) = {NaN};
                 combinedDataTable.Adaptive_CurrentProgramAmplitudesInMilliamps(:) = {NaN};
                 combinedDataTable.Adaptive_IsInHoldOffOnStartup = NaN(numRows,1);
-                combinedDataTable.Adaptive_Ld0DetectionStatus = NaN(numRows,1);
-                combinedDataTable.Adaptive_Ld1DetectionStatus = NaN(numRows,1);
-                combinedDataTable.Adaptive_PreviousAdaptiveState = NaN(numRows,1);
-                combinedDataTable.Adaptive_SensingStatus = NaN(numRows,1);
+                combinedDataTable.Adaptive_Ld0DetectionStatus(:) = {NaN};
+                combinedDataTable.Adaptive_Ld1DetectionStatus(:) = {NaN};
+                combinedDataTable.Adaptive_PreviousAdaptiveState(:) = {NaN};
+                combinedDataTable.Adaptive_SensingStatus(:) = {NaN};
                 combinedDataTable.Adaptive_StateEntryCount = NaN(numRows,1);
                 combinedDataTable.Adaptive_StateTime = NaN(numRows,1);
-                combinedDataTable.Adaptive_StimFlags = NaN(numRows,1);
+                combinedDataTable.Adaptive_StimFlags(:) = {NaN};
                 combinedDataTable.Adaptive_StimRateInHz = NaN(numRows,1);
                 combinedDataTable.Adaptive_Ld0_featureInputs(:) = {NaN};
                 combinedDataTable.Adaptive_Ld0_fixedDecimalPoint = NaN(numRows,1);
@@ -143,8 +143,6 @@ for iStream = 1:length(dataStreams)
                 combinedDataTable.Adaptive_Ld1_lowThreshold = NaN(numRows,1);
                 combinedDataTable.Adaptive_Ld1_output = NaN(numRows,1);
                 
-                
-                
                 combinedDataTable.Adaptive_CurrentAdaptiveState(select_Indices) = currentData.CurrentAdaptiveState;
                 combinedDataTable.Adaptive_CurrentProgramAmplitudesInMilliamps(select_Indices) =...
                     mat2cell(currentData.CurrentProgramAmplitudesInMilliamps,ones(length(select_Indices),1));
@@ -152,10 +150,12 @@ for iStream = 1:length(dataStreams)
                 combinedDataTable.Adaptive_Ld0DetectionStatus(select_Indices) = currentData.Ld0DetectionStatus;
                 combinedDataTable.Adaptive_Ld1DetectionStatus(select_Indices) = currentData.Ld1DetectionStatus;
                 combinedDataTable.Adaptive_PreviousAdaptiveState(select_Indices) = currentData.PreviousAdaptiveState;
-                combinedDataTable.Adaptive_SensingStatus(select_Indices) = currentData.SensingStatus;
+                combinedDataTable.Adaptive_SensingStatus(select_Indices) =...
+                    mat2cell(currentData.SensingStatus,ones(length(select_Indices),1));
                 combinedDataTable.Adaptive_StateEntryCount(select_Indices) = currentData.StateEntryCount;
                 combinedDataTable.Adaptive_StateTime(select_Indices) = currentData.StateTime;
-                combinedDataTable.Adaptive_StimFlags(select_Indices) = currentData.StimFlags;
+                combinedDataTable.Adaptive_StimFlags(select_Indices) =...
+                    mat2cell(currentData.StimFlags,ones(length(select_Indices),1));
                 combinedDataTable.Adaptive_StimRateInHz(select_Indices) = currentData.StimRateInHz;
                 combinedDataTable.Adaptive_Ld0_featureInputs(select_Indices) =...
                     mat2cell(currentData.Ld0_featureInputs,ones(length(select_Indices),1));
