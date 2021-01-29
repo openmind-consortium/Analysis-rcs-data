@@ -2,7 +2,7 @@ function [FFTtable] = createFFTtable(jsonobj_FFT)
 %%
 % Function for creating table with raw FFT data
 %
-% Input: jsonobj of raw FFT data 
+% Input: jsonobj of raw FFT data
 %
 % Output: FFTtable
 %
@@ -13,7 +13,7 @@ headerTable = table();
 %%
 % Parsing data contained in headers
 Header = [jsonobj_FFT.FftData.Header];
-variableNames = {'dataSize','dataType','dataTypeSequence','systemTick'};
+variableNames = {'dataTypeSequence','systemTick'};
 headerData = struct();
 for iVariable = 1:length(variableNames)
     headerData.(variableNames{iVariable}) = [Header.(variableNames{iVariable})]';
@@ -28,7 +28,15 @@ headerTable = struct2table(headerData);
 
 % Parsing data conatined in rawPowerData.PowerDomainData
 FFTtable = struct2table(jsonobj_FFT.FftData);
-FFTtable = FFTtable(:,{'PacketGenTime','PacketRxUnixTime','Channel','FftSize','FftOutput','Units'});
+
+% Convert FftSize to human-readable values
+temp_FftSize = [FFTtable.FftSize];
+temp_FftSize(temp_FftSize == 0) = 64;
+temp_FftSize(temp_FftSize == 1) = 256;
+temp_FftSize(temp_FftSize == 3) = 1024;
+
+FFTtable = FFTtable(:,{'PacketGenTime','PacketRxUnixTime','Channel','FftOutput','Units'});
+FFTtable.FftSize = temp_FftSize;
 
 % Converting TD samplerate
 FFTtable.TDsamplerate = getSampleRate([jsonobj_FFT.FftData.SampleRate]');
