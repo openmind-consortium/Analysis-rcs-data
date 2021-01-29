@@ -18,7 +18,7 @@ Selection of Matlab functions to extract .json raw data from Summit RC+S device,
 - [RC+S raw data structures](#rcs-raw-data-structures)
     + [JSON data files](#json-data-files)
     + [Data tables created in Matlab during processing](#data-tables-created-in-matlab-during-processing)
-- [Data tables contained in output file (combinedDataTables.mat)](#data-tables-contained-in-output-file-combineddatatablesmat)
+- [Data tables contained in output file](#data-tables-contained-in-output-file)
 - [Functions](#functions)
     + [Wrappers](#wrappers)
     + [CreateTables](#createtables)
@@ -188,24 +188,24 @@ Not all of these tables are saved as output in the form shown below. [See sectio
     - 0100 0000: Loop Recording
     - 1000 0000: Adaptive Stim    
   - `StateEntryCount`: Number of times current state has been entered since last Ld diagnostic mirror reset
-  - `StateTime`: Time spent in this state since the last time the state times were cleared (in seconds) KS ENSURE CONVERTED IN LATER PROCESSING
+  - `StateTime`: Time spent in this state since the last time the state times were cleared (in seconds)
   - `StimFlags`: Indicates status flags for adaptive therapy operation (if any amplitude is currently ramping)
     - 0000 0000: None
     - 0000 0001: Program 0 amp ramping
     - 0000 0010: Program 1 amp ramping
     - 0000 0100: Program 2 amp ramping
     - 0000 1000: Program 3 amp ramping
-  - `StimRateInHz`
+  - `StimRateInHz`: Stimulation rate in Hz
   - `Ld0_featureInputs`
   - `Ld0_fixedDecimalPoint`
-  - `Ld0_highThreshold`
-  - `Ld0_lowThreshold`
-  - `Ld0_output`
+  - `Ld0_highThreshold`: The high threshold value
+  - `Ld0_lowThreshold`: The low threshold value
+  - `Ld0_output`: The linear discriminant output
   - `Ld1_featureInputs`
   - `Ld1_fixedDecimalPoint`
-  - `Ld1_highThreshold`
-  - `Ld1_lowThreshold`
-  - `Ld1_output`
+  - `Ld1_highThreshold`: The high threshold value
+  - `Ld1_lowThreshold`: The low threshold value
+  - `Ld1_output`: The linear discriminant output
   
 - **StimLog.json** --> **stimLogSettings**
   - `HostUnixTime`
