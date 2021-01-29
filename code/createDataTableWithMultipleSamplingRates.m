@@ -71,6 +71,11 @@ else
             temp_outtable = outtable_data(startIndices(iSegment):stopIndices(iSegment),:);
             temp_outtable.samplerate(:) = all_Fs(iSegment);
             temp_outtable.packetsizes(:) = 1;
+            
+            if isfield(temp_outtable,'StateTime')
+                temp_outtable.StateTime = temp_outtable.StateTime * (1/all_Fs(iSegment)); % to convert to seconds
+            end
+            
             outputData = [outputData; assignTime(temp_outtable)];
         end
     end
