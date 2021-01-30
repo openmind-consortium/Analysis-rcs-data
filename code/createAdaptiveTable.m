@@ -19,6 +19,7 @@ end
 
 % Convert CurrentAdaptiveState
 temp_currentAdaptiveState = [AdaptiveUpdate.CurrentAdaptiveState]';
+CurrentAdaptiveState = cell(1,length(temp_currentAdaptiveState));
 CurrentAdaptiveState(temp_currentAdaptiveState == 0) = {'State 0'};
 CurrentAdaptiveState(temp_currentAdaptiveState == 1) = {'State 1'};
 CurrentAdaptiveState(temp_currentAdaptiveState == 2) = {'State 2'};
@@ -33,6 +34,7 @@ data.('CurrentAdaptiveState') = CurrentAdaptiveState';
 
 % Convert detector status
 temp_Ld0DetectionStatus = [AdaptiveUpdate.Ld0DetectionStatus]';
+Ld0DetectionStatus = cell(1,length(temp_Ld0DetectionStatus));
 Ld0DetectionStatus(temp_Ld0DetectionStatus == 0) = {'None'};
 Ld0DetectionStatus(temp_Ld0DetectionStatus == 1) = {'Low Immediate Detect'};
 Ld0DetectionStatus(temp_Ld0DetectionStatus == 2) = {'High Immediate Detect'};
@@ -46,6 +48,7 @@ data.('Ld0DetectionStatus') = Ld0DetectionStatus';
 
 % Convert detector status
 temp_Ld1DetectionStatus = [AdaptiveUpdate.Ld1DetectionStatus]';
+Ld1DetectionStatus = cell(1,length(temp_Ld1DetectionStatus));
 Ld1DetectionStatus(temp_Ld1DetectionStatus == 0) = {'None'};
 Ld1DetectionStatus(temp_Ld1DetectionStatus == 1) = {'Low Immediate Detect'};
 Ld1DetectionStatus(temp_Ld1DetectionStatus == 2) = {'High Immediate Detect'};
@@ -59,6 +62,7 @@ data.('Ld1DetectionStatus') = Ld1DetectionStatus';
 
 % Convert PreviousAdaptiveState
 temp_previousAdaptiveState = [AdaptiveUpdate.PreviousAdaptiveState]';
+PreviousAdaptiveState = cell(1,length(temp_previousAdaptiveState));
 PreviousAdaptiveState(temp_previousAdaptiveState == 0) = {'State 0'};
 PreviousAdaptiveState(temp_previousAdaptiveState == 1) = {'State 1'};
 PreviousAdaptiveState(temp_previousAdaptiveState == 2) = {'State 2'};
