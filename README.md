@@ -299,7 +299,7 @@ Not all of these tables are saved as output in the form shown below. [See sectio
 - **TimeSync.json**: Not currently used
 
 ## Data tables contained in output file
-
+(UNDER DEVELOPMENT)
 
 
 
@@ -331,8 +331,11 @@ This list contains the functions that have been tested in branch and pushed to m
 - **addNewEntry_TimeDomainSettings**: Extract timeDomain settings in order to add a new row to the `TD_SettingsTable`
 - **addRowToTable**: Add row of new data to table
 - **calculateDeltaSystemTick**: A 'circular calculator' for `systemTick`, to determine total elapsed time (assuming no full rollover of `systemTick`)
+- **convertDetectorCodes**: Convert information from Ld0 and Ld1 fields of DeviceSettings.DetectionConfig into human readable information
+- **convertFFTCodes**: Convert information from fftConfig into human readable information
 - **convertMetadataCodes**: Convert Medtronic numeric codes from the subjectInfo field of DeviceSettings to human readable information
 - **convertTDcodes**: Conversion of Medtronic numeric codes into values (e.g. Hz)
+- **convertTherapyStatus**: Take information from therapyStatus and create therapyStatusDescription
 - **deserializeJSON**: Reads .json files and loads into Matlab
 - **fixMalfomedJSON**: Checks for and replaces missing brackets and braces in json file, which can prevent proper loading
 - **getFFTparameters**: Determine FFT parameters from FFTconfig and TD sample rate
