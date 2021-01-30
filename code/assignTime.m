@@ -23,11 +23,10 @@ function outputDataTable = assignTime(inputDataTable)
 %%
 
 % Pull out info for each packet
-indicesOfTimestamps = find(inputDataTable.timestamp ~= 0);
+indicesOfTimestamps = find(~isnan(inputDataTable.timestamp));
 dataTable_original = inputDataTable(indicesOfTimestamps,:);
 
-%%
-% Identify packets for rejection
+%%% Identify packets for rejection
 
 disp('Identifying and removing bad packets')
 % Remove any packets with timestamp that are more than 24 hours from median timestamp
@@ -64,15 +63,26 @@ packetGenTime_diffs = diff(dataTable_original.PacketGenTime);
 diffIndices = find(packetGenTime_diffs < 0 );
 
 % Need to remove [diffIndices + 1], but may also need to remove subsequent
-% packets. Remove at most 5 adjacent packets (to prevent large un-needed
+% packets. Automatically remove the next packet [diffIndices + 2], as this is easier than
+% trying to confirm there is enough time to assign to samples without
+% causing overlap.
+% Remove at most 6 adjacent packets (to prevent large un-needed
 % packet rejection driven by positive outliers)
+numPackets = size(dataTable_original,1);
 indices_backInTime = [];
 for iIndex = 1:length(diffIndices)
-    counter = 1;
-    while (counter < 6) && dataTable_original.PacketGenTime(diffIndices(iIndex) + counter)...
-            < dataTable_original.PacketGenTime(diffIndices(iIndex))
+    counter = 3;
+    % Check if next packet index exists in the recording
+    if (diffIndices(iIndex) + 2) <= numPackets
+        indices_backInTime = [indices_backInTime (diffIndices(iIndex) + 1) (diffIndices(iIndex) + 2)];
+    end
+    % If there are more packets after this, check if they need to also be
+    % removed
+    while (counter <= 6) && dataTable_original.PacketGenTime(diffIndices(iIndex) + counter)...
+            < dataTable_original.PacketGenTime(diffIndices(iIndex)) &&... 
+            (diffIndices(iIndex) + counter) <= numPackets
         
-        indices_backInTime = [indices_backInTime (diffIndices(iIndex) + counter)];
+            indices_backInTime = [indices_backInTime (diffIndices(iIndex) + counter)];
         counter = counter + 1;
     end
 end
@@ -124,9 +134,9 @@ end
 % samples per packet; in units of systemTick (1e-4 seconds)
 expectedElapsed = dataTable.packetsizes .* (1./dataTable.samplerate) * 1e4;
 
-% If diff_systemTick and expectedElapsed differ by more than 10% of expectedElapsed,
+% If diff_systemTick and expectedElapsed differ by more than 20% of expectedElapsed,
 % flag as gap
-indices_systemTickFlagged = find (abs(expectedElapsed(2:end) - diff_systemTick(2:end)) > 0.1*expectedElapsed(2:end));
+indices_systemTickFlagged = find (abs(expectedElapsed(2:end) - diff_systemTick(2:end)) > 0.2*expectedElapsed(2:end));
 
 % All packets flagged as end of continuous chunks
 allFlaggedIndices = unique([indices_changeFs; indices_timestampFlagged;...
@@ -163,24 +173,72 @@ else
 end
 
 %%
+% Two types of chunks -- those which come after gaps < 6 seconds (as determined by
+% timestamp) and those which come after gaps > 6 seconds (potential for complete
+% roll-over of systemTick). For chunks which follow a gap < 6 seconds,
+% use systemTick to continue calculation of DerivedTime after the gap (rather
+% than creating a new correctedAlignTime for that chunk); still honor 1/Fs
+% spacing of DerivedTime. Note -- if new chunk is created because of change
+% in sampling rate, calculate a new correctedAlignTime for that chunk
+
+% Only need to do this calculation if more than 1 chunk
+numChunks = length(chunkIndices);
+chunksWithTimingFromPrevious = [];
+if numChunks > 1
+    % Get timestamps of first and last packet in chunks to calculate time gaps
+    for iChunk = 1:numChunks
+        indices_FirstPacket(iChunk) = chunkIndices{iChunk}(1);
+        indices_LastPacket(iChunk) = chunkIndices{iChunk}(end);
+    end
+    timestamps_FirstPacket = dataTable.timestamp(indices_FirstPacket);
+    timestamps_LastPacket = dataTable.timestamp(indices_LastPacket);
+    timestamp_gaps = timestamps_FirstPacket(2:end) - timestamps_LastPacket(1:end-1); % in seconds
+    
+    % If the gap in timestamp between packets is < 6 seconds, flag this packet;
+    % calculate elapsed time in systemTick
+    
+    % iTimegap + 1 is the index of the chunk which does not need a new
+    % correctedAlignTime calculated (aka chunksWithTimingFromPrevious)
+    elapsed_systemTick = NaN(1,length(timestamp_gaps));
+    
+    for iTimegap = 1:length(timestamp_gaps)
+        % Check if timegap is < 6 seconds and if this chunk was not created
+        % because of change in sampling rate
+        if timestamp_gaps(iTimegap) < 6 && ~ismember(indices_LastPacket(iTimegap),indices_changeFs)
+            chunksWithTimingFromPrevious = [chunksWithTimingFromPrevious iTimegap + 1];
+            systemTick_FirstPacket = dataTable.systemTick(indices_FirstPacket(iTimegap + 1));
+            systemTick_Preceeding = dataTable.systemTick(indices_LastPacket(iTimegap));
+            
+            % Need to use calculateDeltaSystemTick in order to handle situations when
+            % systemTick rollover occurred
+            elapsed_systemTick(iTimegap)= calculateDeltaSystemTick(systemTick_Preceeding,systemTick_FirstPacket);
+        end
+    end 
+end
+
+%%
 % Loop through each chunk to determine offset to apply (as determined by
-% average difference between packetGenTime and expectedElapsed)
+% average difference between packetGenTime and expectedElapsed) --
+% calculated for all chunks here, will subsequently only apply error for
+% chunks which are preceeded by gaps >= 6 seconds
 disp('Determining start time of each chunk')
 
 % PacketGenTime in ms; convert difference to 1e-4 seconds, units of
 % systemTick and expectedElapsed
 diff_PacketGenTime = [1; diff(dataTable.PacketGenTime) * 1e1];
 
-numChunks = length(chunkIndices);
-chunksToExclude = [];
+singlePacketChunks = [];
 medianError = NaN(1,numChunks);
 for iChunk = 1:numChunks
     currentTimestampIndices = chunkIndices{iChunk};
     
     % Chunks must have at least 2 packets in order to have a valid
-    % diff_systemTick -- thus if chunk only one packet, it must be excluded
+    % diff_systemTick -- thus if chunk only one packet, it must be
+    % identified. These chunks can remain if the timeGap before is < 6 
+    % seconds, but must be excluded if the timeGap before is >= 6 seconds
+   
     if length(currentTimestampIndices) == 1
-        chunksToExclude = [chunksToExclude iChunk];
+        singlePacketChunks = [singlePacketChunks iChunk];
     end
     % Always exclude the first packet of the chunk, because don't have an
     % accurate diff_systemTick value for this first packet
@@ -193,33 +251,79 @@ for iChunk = 1:numChunks
 end
 %%
 % Create corrected timing for each chunk
+
 % Pre-allocate array
-correctedAlignTime = zeros(1, numChunks - length(chunksToExclude));      
+% correctedAlignTime = zeros(1, numChunks - length(chunksToExclude));
+% correctedAlignTime = NaN(1, numChunks);
+
 counter = 1;
+chunksToRemove = [];
+realignTime = 0; % If a chunk is flagged for removal, the next chunk will require
+% calculation of correctedAlignTime from PacketGenTime; this would happen
+% (for example) if chunk number x had one packet, with a timeGap of >=6 seconds
+% immediately prior; chunk x + 1 should have correctedAlignTime calculated
+% from PacketGenTime
 for iChunk = 1:numChunks
-    if ~ismember(iChunk,chunksToExclude)
+    if ismember(iChunk,chunksWithTimingFromPrevious) && realignTime == 0 % First chunk will never fall into this category
+        % Determine amount of cumulative time since the previous
+        % packet's correctedAlignTime -- add this cumulative time to
+        % the previous packet's correctedAlignTime in order to
+        % calculate the current packet's correctedAlignTime
+        
+        % elapsed_systemTick accounts for time from last packet in the
+        % preceeding chunk to the first packet in the current chunk
+        
+        % otherTime_previousChunk accounts for time from fist packet to
+        % last packet in the previous chunk; do this as a function of
+        % number of samples and Fs (these two chunks will have the same
+        % Fs, as enforced above)
+        Fs_previousChunk = dataTable.samplerate(chunkIndices{iChunk - 1}(1));
+        
+        allPacketSizes_previousChunk = dataTable.packetsizes(chunkIndices{iChunk - 1});
+        
+        % We just need to account for time from samples from packets two to end of the
+        % previous chunk (in ms)
+        otherTime_previousChunk = sum(allPacketSizes_previousChunk(2:end)) * (1/Fs_previousChunk) * 1000;
+        
+        correctedAlignTime(counter) = correctedAlignTime(counter - 1) +...
+            (elapsed_systemTick(iChunk - 1)*1e-1) + otherTime_previousChunk;
+        counter = counter + 1;
+    elseif ~ismember(iChunk,singlePacketChunks)
         alignTime = dataTable.PacketGenTime(chunkIndices{iChunk}(1));
         % alignTime in ms; medianError in units of systemTick
         correctedAlignTime(counter) = alignTime + medianError(iChunk)*1e-1;
+        % Development Note: The medianError calculated and applied here
+        % only includes samples within an original chunk; thus, if
+        % there are two chunks with < 6 second gap, only the error
+        % calculated from the first chunk will be used to create the
+        % correctedAlignTime
         
-        % Adding error above because we assume the expectedElapsed time (function of 
+        % Adding error above because we assume the expectedElapsed time (function of
         % sampling rate and number of samples in packet) represents the
         % correct amount of elapsed time. We calculated the median difference
-        % between the expected elapsed time according to the packet size 
-        % and the diff PacketGenTime. The number of time units will be 
-        % negative if the diff PacketGenTime is consistently larger than 
-        % the expected elapsed time, so adding removes the bias. 
-        % The alternatiave would be if we thought PacketGenTime was a more 
+        % between the expected elapsed time according to the packet size
+        % and the diff PacketGenTime. The number of time units will be
+        % negative if the diff PacketGenTime is consistently larger than
+        % the expected elapsed time, so adding removes the bias.
+        % The alternatiave would be if we thought PacketGenTime was a more
         % accurate representation of time, then we would want to subtract the value in medianError.
         counter = counter + 1;
+        realignTime = 0;
+    else
+        chunksToRemove = [chunksToRemove iChunk];
+        realignTime = 1;
     end
 end
+
+% Print metrics to command window
+disp(['Number of chunks: ' num2str(numChunks)]);
+disp(['Numer of chunks removed: ' num2str(length(chunksToRemove))])
 
 %%
 % Indices in chunkIndices correspond to packets in dataTable.
 % CorrectedAlignTime corresponds to first packet for each chunk in
 % chunkIndices. Remove chunks identified above
-chunkIndices(chunksToExclude) = [];
+chunkIndices(chunksToRemove) = [];
 correctedAlignTime(find(isnan(correctedAlignTime))) = [];
 
 % correctedAlignTime is shifted slightly to keep times exactly aligned to
@@ -253,7 +357,7 @@ outputDataTable(samplesToRemove,:) = [];
 
 % Indices referenced in chunkIndices can now be mapped back to timeDomainData
 % using indicesOfTimestamps_cleaned
-indicesOfTimestamps_cleaned = find(outputDataTable.timestamp ~= 0);
+indicesOfTimestamps_cleaned = find(~isnan(outputDataTable.timestamp));
 
 % Map the chunk start/stop times back to samples
 for iChunk = 1:length(chunkIndices)
@@ -288,11 +392,21 @@ for iChunk = 1:length(chunkIndices)
         correctedAlignTime_shifted(iChunk) - elapsedTime_before : 1000/currentFs : correctedAlignTime_shifted(iChunk) + elapsedTime_after;
 end
 
+% Check to ensure that the same DerivedTime was not assigned to multiple
+% samples; if yes, flag the second instance for removal; note: in matlab, nans
+% are not equal
+if ~isequal(length(DerivedTime), length(unique(DerivedTime)))
+    [~,uniqueIndices] = unique(DerivedTime);
+    duplicateIndices = setdiff([1:length(DerivedTime)],uniqueIndices);
+else
+    duplicateIndices = [];
+end
+
 % All samples which do not have a derivedTime should be removed from final
-% data table
+% data table, along with those with duplicate derivedTime values
 disp('Cleaning up output table')
 outputDataTable.DerivedTime = DerivedTime;
-rowsToRemove = find(isnan(DerivedTime));
+rowsToRemove = [find(isnan(DerivedTime)); duplicateIndices'];
 outputDataTable(rowsToRemove,:) = [];
 
 % Make timing/metadata variables consistent across data streams

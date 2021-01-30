@@ -22,6 +22,9 @@ if isstruct(DeviceSettings)
     DeviceSettings = {DeviceSettings};
 end
 %%
+% Convert metaData variables into human readable
+metaData = convertMetadataCodes(DeviceSettings{1}.SubjectInfo);
+
 % UTC offset to determine timezone conversion
 metaData.UTCoffset = DeviceSettings{1,1}.UtcOffset;
 
@@ -343,6 +346,9 @@ for iChunk = 1:length(recordingChunks)
                     toAdd.samplingRate = str2num(selectData.tdDataStruc{1}(iChan).sampleRate(1:end-2));
                     fieldName = sprintf('chan%d',iChan);
                     toAdd.(fieldName) = selectData.(fieldName){1};
+                else
+                    fieldName = sprintf('chan%d',iChan);
+                    toAdd.(fieldName) = NaN;
                 end
             end
             toAdd.TimeDomainDataStruc = selectData.tdDataStruc{1};

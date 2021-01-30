@@ -1,4 +1,6 @@
-function [combinedDataTable] = DEMO_ProcessRCS(varargin)
+function [combinedDataTable, debugTable, timeDomainSettings,powerSettings,...
+    fftSettings,metaData,stimSettingsOut,stimMetaData,stimLogSettings,...
+    DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = DEMO_ProcessRCS(varargin)
 %%
 % Demo wrapper script for importing raw .JSON files from RC+S, parsing
 % into Matlab table format, and handling missing packets / harmonizing
@@ -43,8 +45,28 @@ else
 end
 %%
 % Stimulation settings
+disp('Collecting Stimulation Settings from Device Settings file')
+if isfile(DeviceSettings_fileToLoad)
+    [stimSettingsOut, stimMetaData] = createStimSettingsFromDeviceSettings(folderPath);
+else
+    warning('No DeviceSettings.json file - could not extract stimulation settings')
+end
 
-
+disp('Collecting Stimulation Settings from Stim Log file')
+StimLog_fileToLoad = [folderPath filesep 'StimLog.json'];
+if isfile(StimLog_fileToLoad)
+    [stimLogSettings] = createStimSettingsTable(folderPath);
+else
+    warning('No StimLog.json file')
+end
+%%
+% Adaptive Settings
+disp('Collecting adaptive settings from Device Settings file')
+if isfile(DeviceSettings_fileToLoad)
+    [DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = createAdaptiveSettingsfromDeviceSettings(folderPath);
+else
+    error('No DeviceSettings.json file - could not extract detector and adaptive stimulation settings')
+end
 
 %%
 % TimeDomain data
@@ -180,5 +202,58 @@ if isfile(FFT_fileToLoad)
 else
     FFTData = [];
 end
+
+%%
+% First, need to create unifiedDerivedTimes - which has DerivedTimes
+% filling in the gaps (even when there is no TD data)
+unifiedDerivedTimes = timeDomainData.DerivedTime(1):1000/srates_TD(1):timeDomainData.DerivedTime(end);
+unifiedDerivedTimes = unifiedDerivedTimes';
+
+% Harmonize Accel with unifiedDerivedTimes
+if ~isempty(AccelData)
+    disp('Harmonizing time of Accelerometer data with unifiedDerivedTimes')
+    derivedTime_Accel = AccelData.DerivedTime;
+    [newDerivedTime,newDerivedTimes_Accel] = harmonizeTimeAcrossDataStreams(unifiedDerivedTimes, derivedTime_Accel, srates_TD(1));
+    
+    % Update unifiedDerivedTimes with newDerivedTime, as additional times
+    % may have been added at the beginning and/or end
+    unifiedDerivedTimes = newDerivedTime;
+    
+    AccelData.newDerivedTime = newDerivedTimes_Accel;
+end
+
+% Harmonize Power with unifiedDerivedTimes
+if ~isempty(PowerData)
+    disp('Harmonizing time of Power data with unifiedDerivedTimes')
+    derivedTime_Power = PowerData.DerivedTime;
+    [newDerivedTime,newDerivedTimes_Power] = harmonizeTimeAcrossDataStreams(unifiedDerivedTimes, derivedTime_Power, srates_TD(1));
+    
+    % Update unifiedDerivedTimes with newDerivedTime, as additional times
+    % may have been added at the beginning and/or end
+    unifiedDerivedTimes = newDerivedTime;
+    
+    PowerData.newDerivedTime = newDerivedTimes_Power;
+end
+
+% Harmonize FFT with unifiedDerivedTimes
+if ~isempty(FFTData)
+    disp('Harmonizing time of FFT data with unifiedDerivedTimes')
+    derivedTime_FFT = FFTData.DerivedTime;
+    [newDerivedTime,newDerivedTimes_FFT] = harmonizeTimeAcrossDataStreams(unifiedDerivedTimes, derivedTime_FFT, srates_TD(1));
+    
+    % Update unifiedDerivedTimes with newDerivedTime, as additional times
+    % may have been added at the beginning and/or end
+    unifiedDerivedTimes = newDerivedTime;
+    
+    FFTData.newDerivedTime = newDerivedTimes_FFT;
+end
+
+%%
+% Create unified table with all above data streams -- use timeDomain data as
+% time base
+dataStreams = {timeDomainData, AccelData, PowerData, FFTData};
+[combinedDataTable, debugTable] = createCombinedTable(dataStreams,unifiedDerivedTimes);
+
+
 end
 

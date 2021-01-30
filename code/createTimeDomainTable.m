@@ -23,7 +23,7 @@ nrows = sum(packetSizes);
 allVarNames = {'key0','key1','key2','key3','systemTick','timestamp',...
     'samplerate','PacketGenTime','PacketRxUnixTime','packetsizes',...
     'dataTypeSequence'};
-outdat = zeros(nrows, length(allVarNames)); % pre allocate memory
+outdat = NaN(nrows, length(allVarNames)); % pre allocate memory
 
 % Loop through packets to populate  fields
 start = tic;
