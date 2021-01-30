@@ -41,6 +41,7 @@ for iRecord = 1:length(DeviceSettings)
         if isfield(currentSettings.DetectionConfig,'Ld1')
             Ld1 = currentSettings.DetectionConfig.Ld1;
         end
+        
         % If first record, need to initalize and flag to add entry to table
         if iRecord == 1
             updatedLd0 = Ld0;
@@ -62,12 +63,24 @@ for iRecord = 1:length(DeviceSettings)
         end
     end
     
+    % Create variable with FFT interval - this will update (if applicable)
+    % while looping through records
+    if isfield(currentSettings,'SensingConfig') &&...
+            isfield(currentSettings.SensingConfig,'fftConfig') &&...
+            isfield(currentSettings.SensingConfig.fftConfig,'interval')
+        FFTinterval = currentSettings.SensingConfig.fftConfig.interval;
+    end
+    
     % If flagged, add entry to table
     if addEntry == 1
+        % Write convert values (human-readable) of information in updatedLd0 and
+        % updatedLd1 to table; maintain Medtronic values in updatedLd0 and
+        % updatedLd1 variables for checking against subsequent records
         newEntry.HostUnixTime = HostUnixTime;
-        newEntry.Ld0 = updatedLd0;
-        newEntry.Ld1 = updatedLd1;
-        newEntry.DetectorStatus = updatedLd0.detectionEnable + updatedLd1.detectionEnable;
+        convertedLd0 = convertDetectorCodes(updatedLd0,FFTinterval);
+        convertedLd1 = convertDetectorCodes(updatedLd1,FFTinterval);
+        newEntry.Ld0 = convertedLd0;
+        newEntry.Ld1 = convertedLd1;
         newEntry.updatedParameters = updatedParameters;
         [DetectorSettings] = addRowToTable(newEntry,DetectorSettings);
         addEntry = 0;
@@ -91,6 +104,13 @@ for iRecord = 1:length(DeviceSettings)
         if iRecord == 1
             updatedAdaptive = adaptiveMetaData;
             updatedDeltas = deltas;
+            
+            for iDelta = 1:4
+                % Convert to mA/sec
+                updatedDeltas{1}(iDelta).fall = (updatedDeltas{1}(iDelta).fall / 655360)*10;
+                updatedDeltas{1}(iDelta).rise = (updatedDeltas{1}(iDelta).rise / 655360)*10;
+            end
+            
             addEntry = 1;
             updatedParameters = [updatedParameters; 'adaptiveMetadata'; 'deltas'];
         end
@@ -103,6 +123,11 @@ for iRecord = 1:length(DeviceSettings)
         % If deltas have changed, update and flag to add entry to table
         if ~isequal(updatedDeltas, deltas)
             updatedDeltas = deltas;
+            for iDelta = 1:4
+                % Convert to mA/sec
+                updatedDeltas{1}(iDelta).fall = (updatedDeltas{1}(iDelta).fall / 655360)*10;
+                updatedDeltas{1}(iDelta).rise = (updatedDeltas{1}(iDelta).rise / 655360)*10;
+            end
             addEntry = 1;
             updatedParameters = [updatedParameters; 'deltas'];
         end
@@ -115,15 +140,20 @@ for iRecord = 1:length(DeviceSettings)
                 temp.([allStates{iState} '_isValid']) = currentSettings.AdaptiveConfig.(allStates{iState}).isValid;
                 % If the state is valid, get program amplitudes; otherwise fill with NaNs
                 if currentSettings.AdaptiveConfig.(allStates{iState}).isValid
-                    temp.([allStates{iState} '_AmpInMilliamps']) = [currentSettings.AdaptiveConfig.(allStates{iState}).prog0AmpInMilliamps,...
-                        currentSettings.AdaptiveConfig.(allStates{iState}).prog1AmpInMilliamps,...
-                        currentSettings.AdaptiveConfig.(allStates{iState}).prog2AmpInMilliamps,...
-                        currentSettings.AdaptiveConfig.(allStates{iState}).prog3AmpInMilliamps];
+                    for iProgram = 0:3
+                        % 25.5 indicates hold -- record as -1
+                        if isequal(currentSettings.AdaptiveConfig.(allStates{iState}).(['prog' num2str(iProgram) 'AmpInMilliamps']),25.5)
+                            currentAmps(iProgram + 1) = -1;
+                        else
+                            currentAmps(iProgram + 1) = currentSettings.AdaptiveConfig.(allStates{iState}).(['prog' num2str(iProgram) 'AmpInMilliamps']);
+                        end
+                    end
+                    temp.([allStates{iState} '_AmpInMilliamps']) = currentAmps;
                     rate = currentSettings.AdaptiveConfig.(allStates{iState}).rateTargetInHz;
                 else
-                    % Use -1 to temporarily indicate that state is invalid,
+                    % Use -2 to temporarily indicate that state is invalid,
                     % and thus do not need to record amp
-                    temp.([allStates{iState} '_AmpInMilliamps']) = [-1, -1, -1, -1];
+                    temp.([allStates{iState} '_AmpInMilliamps']) = [-2, -2, -2, -2];
                 end
             end
         end
@@ -132,8 +162,8 @@ for iRecord = 1:length(DeviceSettings)
         if iRecord == 1
             for iField = 1:length(fieldnames(temp))
                 allFieldnames = fieldnames(temp);
-                % Convert ampInMilliamp values that are -1 to NaN
-                if isequal(temp.(allFieldnames{iField}),[-1 -1 -1 -1])
+                % Convert ampInMilliamp values that are -2 to NaN
+                if isequal(temp.(allFieldnames{iField}),[-2 -2 -2 -2])
                     temp.(allFieldnames{iField}) = [NaN, NaN, NaN, NaN];
                 end
             end
@@ -147,9 +177,9 @@ for iRecord = 1:length(DeviceSettings)
             for iField = 1:length(fieldnames(temp))
                 allFieldnames = fieldnames(temp);
                 if ~isequal(updatedStates.(allFieldnames{iField}), temp.(allFieldnames{iField}))
-                    % Convert ampInMilliamp values that are -1 to NaN; did
+                    % Convert ampInMilliamp values that are -2 to NaN; did
                     % not do this previously, because NaN ~= NaN
-                    if isequal(temp.(allFieldnames{iField}),[-1 -1 -1 -1])
+                    if isequal(temp.(allFieldnames{iField}),[-2 -2 -2 -2])
                         temp.(allFieldnames{iField}) = [NaN, NaN, NaN, NaN];
                     end
                     
@@ -170,11 +200,62 @@ for iRecord = 1:length(DeviceSettings)
         % If flagged, add entry to table
         if addEntry == 1
             newEntry.HostUnixTime = HostUnixTime;
-            newEntry.adaptiveMetaData = updatedAdaptive;
             newEntry.deltas = updatedDeltas;
             newEntry.states = updatedStates;
             newEntry.stimRate = updatedRate;
-            newEntry.adaptiveStatus = updatedAdaptive.adaptiveMode;
+            
+            switch updatedAdaptive.adaptiveMode
+                case 0
+                    currentAdaptiveMode = 'Disabled';
+                case 1
+                    currentAdaptiveMode = 'Operative';
+                case 2
+                    currentAdaptiveMode = 'Embedded';
+                otherwise
+                    currentAdaptiveMode = 'Unexpected';
+            end
+            newEntry.adaptiveMode = currentAdaptiveMode;
+            
+            switch updatedAdaptive.adaptiveStatus
+                case 0
+                    currentAdaptiveStatus = 'Inactive';
+                case 1
+                    currentAdaptiveStatus = 'Operative Active';
+                case 2
+                    currentAdaptiveStatus = 'Embedded Active';
+                otherwise
+                    currentAdaptiveStatus = 'Unexpected';
+            end
+            newEntry.adaptiveStatus = currentAdaptiveStatus;
+            
+            switch updatedAdaptive.currentState
+                case 0
+                    currentState = 'State 0';
+                case 1
+                    currentState = 'State 1';
+                case 2
+                    currentState = 'State 2';
+                case 3
+                    currentState = 'State 3';
+                case 4
+                    currentState = 'State 4';
+                case 5
+                    currentState = 'State 5';
+                case 6
+                    currentState = 'State 6';
+                case 7
+                    currentState = 'State 7';
+                case 8
+                    currentState = 'State 8';
+                case 15
+                    currentState = 'No state';
+                otherwise
+                    currentState = 'Unexpected';
+            end
+            newEntry.currentState = currentState;
+            
+            newEntry.deltaLimitsValid = updatedAdaptive.deltaLimitsValid;
+            newEntry.deltasValid = updatedAdaptive.deltasValid;
             newEntry.updatedParameters = updatedParameters;
             [AdaptiveStimSettings] = addRowToTable(newEntry,AdaptiveStimSettings);
             addEntry = 0;
@@ -183,20 +264,22 @@ for iRecord = 1:length(DeviceSettings)
     end
 end
 
+% KS NEED TO UPDATE HERE
+
 % Create a 'cleaned' version of the AdaptiveStimSettings table, only
 % reporting values when adaptive status was 2, or switch from 2->0
 
-indices_AdaptiveOn = find(AdaptiveStimSettings.adaptiveStatus == 2);
-allIndices = sort([indices_AdaptiveOn; indices_AdaptiveOn + 1]);
+% indices_AdaptiveOn = find(AdaptiveStimSettings.adaptiveStatus == 2);
+% allIndices = sort([indices_AdaptiveOn; indices_AdaptiveOn + 1]);
 
 AdaptiveRuns_StimSettings = table;
-if ~isempty(indices_AdaptiveOn)
-    % Check that we haven't exceeded the number of entries in the table
-    if allIndices(end) > size(AdaptiveStimSettings,1)
-        allIndices(end) = [];
-    end
-    AdaptiveRuns_StimSettings = AdaptiveStimSettings(allIndices,:);
-    AdaptiveRuns_StimSettings = removevars(AdaptiveRuns_StimSettings,'updatedParameters');
-end
+% if ~isempty(indices_AdaptiveOn)
+%     % Check that we haven't exceeded the number of entries in the table
+%     if allIndices(end) > size(AdaptiveStimSettings,1)
+%         allIndices(end) = [];
+%     end
+%     AdaptiveRuns_StimSettings = AdaptiveStimSettings(allIndices,:);
+%     AdaptiveRuns_StimSettings = removevars(AdaptiveRuns_StimSettings,'updatedParameters');
+% end
 
 end

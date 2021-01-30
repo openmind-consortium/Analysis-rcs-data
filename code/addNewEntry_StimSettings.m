@@ -11,6 +11,7 @@ HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
 newEntry.HostUnixTime = HostUnixTime;
 newEntry.activeGroup = activeGroup;
 newEntry.therapyStatus = therapyStatus;
+newEntry.therapyStatusDescription = convertTherapyStatus(therapyStatus);
 newEntry.GroupA = GroupA;
 newEntry.GroupB = GroupB;
 newEntry.GroupC = GroupC;

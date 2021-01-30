@@ -8,6 +8,9 @@ function [stimLogSettings] = createStimSettingsTable(folderPath)
 %%
 % Load in StimLog.json file
 stimLog = jsondecode(fixMalformedJson(fileread([folderPath filesep 'StimLog.json']),'StimLog'));
+if isstruct(stimLog)
+    stimLog = {stimLog};
+end
 
 %%
 stimLogSettings = table;
