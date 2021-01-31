@@ -3,15 +3,7 @@ function [fftParameters] = getFFTparameters(currentFFTconfig,currentTDsampleRate
 % Determine FFT parameters from FFTconfig and TD sample rate
 
 %%
-% Decode fftSize
-switch currentFFTconfig.size
-    case 0
-        fftSize = 64;
-    case 1
-        fftSize = 256;
-    case 3
-        fftSize = 1024;
-end
+fftSize = currentFFTconfig.size;
 
 % Determine frequency cutoffs for each FFT bin
 numBins = fftSize/2;

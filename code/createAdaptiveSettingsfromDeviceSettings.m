@@ -41,6 +41,7 @@ for iRecord = 1:length(DeviceSettings)
         if isfield(currentSettings.DetectionConfig,'Ld1')
             Ld1 = currentSettings.DetectionConfig.Ld1;
         end
+        
         % If first record, need to initalize and flag to add entry to table
         if iRecord == 1
             updatedLd0 = Ld0;
@@ -62,12 +63,24 @@ for iRecord = 1:length(DeviceSettings)
         end
     end
     
+    % Create variable with FFT interval - this will update (if applicable)
+    % while looping through records
+    if isfield(currentSettings,'SensingConfig') &&...
+            isfield(currentSettings.SensingConfig,'fftConfig') &&...
+            isfield(currentSettings.SensingConfig.fftConfig,'interval')
+        FFTinterval = currentSettings.SensingConfig.fftConfig.interval;
+    end
+    
     % If flagged, add entry to table
     if addEntry == 1
+        % Write convert values (human-readable) of information in updatedLd0 and
+        % updatedLd1 to table; maintain Medtronic values in updatedLd0 and
+        % updatedLd1 variables for checking against subsequent records
         newEntry.HostUnixTime = HostUnixTime;
-        newEntry.Ld0 = updatedLd0;
-        newEntry.Ld1 = updatedLd1;
-        newEntry.DetectorStatus = updatedLd0.detectionEnable + updatedLd1.detectionEnable;
+        convertedLd0 = convertDetectorCodes(updatedLd0,FFTinterval);
+        convertedLd1 = convertDetectorCodes(updatedLd1,FFTinterval);
+        newEntry.Ld0 = convertedLd0;
+        newEntry.Ld1 = convertedLd1;
         newEntry.updatedParameters = updatedParameters;
         [DetectorSettings] = addRowToTable(newEntry,DetectorSettings);
         addEntry = 0;
@@ -190,9 +203,57 @@ for iRecord = 1:length(DeviceSettings)
             newEntry.deltas = updatedDeltas;
             newEntry.states = updatedStates;
             newEntry.stimRate = updatedRate;
-            newEntry.adaptiveMode = updatedAdaptive.adaptiveMode;
-            newEntry.adaptiveStatus = updatedAdaptive.adaptiveStatus;
-            newEntry.currentState = updatedAdaptive.currentState;
+            
+            switch updatedAdaptive.adaptiveMode
+                case 0
+                    currentAdaptiveMode = 'Disabled';
+                case 1
+                    currentAdaptiveMode = 'Operative';
+                case 2
+                    currentAdaptiveMode = 'Embedded';
+                otherwise
+                    currentAdaptiveMode = 'Unexpected';
+            end
+            newEntry.adaptiveMode = currentAdaptiveMode;
+            
+            switch updatedAdaptive.adaptiveStatus
+                case 0
+                    currentAdaptiveStatus = 'Inactive';
+                case 1
+                    currentAdaptiveStatus = 'Operative Active';
+                case 2
+                    currentAdaptiveStatus = 'Embedded Active';
+                otherwise
+                    currentAdaptiveStatus = 'Unexpected';
+            end
+            newEntry.adaptiveStatus = currentAdaptiveStatus;
+            
+            switch updatedAdaptive.currentState
+                case 0
+                    currentState = 'State 0';
+                case 1
+                    currentState = 'State 1';
+                case 2
+                    currentState = 'State 2';
+                case 3
+                    currentState = 'State 3';
+                case 4
+                    currentState = 'State 4';
+                case 5
+                    currentState = 'State 5';
+                case 6
+                    currentState = 'State 6';
+                case 7
+                    currentState = 'State 7';
+                case 8
+                    currentState = 'State 8';
+                case 15
+                    currentState = 'No state';
+                otherwise
+                    currentState = 'Unexpected';
+            end
+            newEntry.currentState = currentState;
+            
             newEntry.deltaLimitsValid = updatedAdaptive.deltaLimitsValid;
             newEntry.deltasValid = updatedAdaptive.deltasValid;
             newEntry.updatedParameters = updatedParameters;
@@ -203,20 +264,22 @@ for iRecord = 1:length(DeviceSettings)
     end
 end
 
+% KS NEED TO UPDATE HERE
+
 % Create a 'cleaned' version of the AdaptiveStimSettings table, only
 % reporting values when adaptive status was 2, or switch from 2->0
 
-indices_AdaptiveOn = find(AdaptiveStimSettings.adaptiveStatus == 2);
-allIndices = sort([indices_AdaptiveOn; indices_AdaptiveOn + 1]);
+% indices_AdaptiveOn = find(AdaptiveStimSettings.adaptiveStatus == 2);
+% allIndices = sort([indices_AdaptiveOn; indices_AdaptiveOn + 1]);
 
 AdaptiveRuns_StimSettings = table;
-if ~isempty(indices_AdaptiveOn)
-    % Check that we haven't exceeded the number of entries in the table
-    if allIndices(end) > size(AdaptiveStimSettings,1)
-        allIndices(end) = [];
-    end
-    AdaptiveRuns_StimSettings = AdaptiveStimSettings(allIndices,:);
-    AdaptiveRuns_StimSettings = removevars(AdaptiveRuns_StimSettings,'updatedParameters');
-end
+% if ~isempty(indices_AdaptiveOn)
+%     % Check that we haven't exceeded the number of entries in the table
+%     if allIndices(end) > size(AdaptiveStimSettings,1)
+%         allIndices(end) = [];
+%     end
+%     AdaptiveRuns_StimSettings = AdaptiveStimSettings(allIndices,:);
+%     AdaptiveRuns_StimSettings = removevars(AdaptiveRuns_StimSettings,'updatedParameters');
+% end
 
 end

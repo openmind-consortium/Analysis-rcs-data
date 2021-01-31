@@ -81,8 +81,7 @@ while recordCounter <= length(DeviceSettings)
             recNum = NaN;
             [newEntry, powerChannels, fftConfig] = addNewEntry_PowerDomainSettings(actionType,...
                 recNum,currentSettings,TDsettings,powerChannels,fftConfig);
-            % This populates information about the powerBands (coded
-            % values, not in Hz). The bipolar channels associated with the
+            % This populates information about the powerBands. The bipolar channels associated with the
             % bands are defined above (from timeDomainChannels). Sense chan1: Bands
             % 1-2, sense chan2: Bands 3-4, Sense chan3: Bands 5-6, Sense
             % chan4: Bands 7-8
@@ -343,7 +342,7 @@ for iChunk = 1:length(recordingChunks)
             for iChan = 1:4
                 if ~strcmp(selectData.tdDataStruc{1}(iChan).sampleRate,'disabled') &&...
                         ~strcmp(selectData.tdDataStruc{1}(iChan).sampleRate,'unexpected')
-                    toAdd.samplingRate = str2num(selectData.tdDataStruc{1}(iChan).sampleRate(1:end-2));
+                    toAdd.samplingRate = selectData.tdDataStruc{1}(iChan).sampleRate;
                     fieldName = sprintf('chan%d',iChan);
                     toAdd.(fieldName) = selectData.(fieldName){1};
                 else
@@ -351,7 +350,7 @@ for iChunk = 1:length(recordingChunks)
                     toAdd.(fieldName) = NaN;
                 end
             end
-            toAdd.TimeDomainDataStruc = selectData.tdDataStruc{1};
+            toAdd.TDsettings = selectData.tdDataStruc{1};
             
             if isempty(TD_SettingsOut)
                 TD_SettingsOut = struct2table(toAdd,'AsArray',true);
@@ -410,7 +409,7 @@ for iChunk = 1:length(recordingChunks)
             toAdd.timeStart = timeStart;
             toAdd.timeStop = timeStop;
             
-            toAdd.powerBands = selectData.powerBands{1};
+            toAdd.powerBands = selectData.powerBands(1);
             toAdd.TDsampleRates = selectData.TDsampleRates(1);
             toAdd.fftConfig = selectData.fftConfig(1);
             

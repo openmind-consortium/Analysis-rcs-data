@@ -81,7 +81,7 @@ if processFlag == 1 || processFlag == 2
     disp('Collecting Device Settings data')
     DeviceSettings_fileToLoad = [folderPath filesep 'DeviceSettings.json'];
     if isfile(DeviceSettings_fileToLoad)
-        [timeDomainSettings, powerSettings, fftSettings, metaData] = createDeviceSettingsTable(folderPath);
+        [timeDomainSettings, powerSettings, fftSettings, metaData] = createDeviceSettingsTable(folderPath);   
     else
         error('No DeviceSettings.json file')
     end
@@ -167,19 +167,9 @@ if processFlag == 1 || processFlag == 2
         
         % Calculate power band cutoffs (in Hz) and add column to powerSettings
         if ~isempty(outtable_Power)
-            % Translate powerSettings.powerBands into Hz
-            numSettings = size(powerSettings,1);
-            for iSetting = 1:numSettings
-                powerBands_toConvert = powerSettings.powerBands{iSetting};
-                currentTDsampleRate = powerSettings.TDsampleRates(iSetting);
-                currentFFTconfig = powerSettings.fftConfig(iSetting);
-                [currentPowerBands] = getPowerBands(powerBands_toConvert,currentFFTconfig,currentTDsampleRate);
-                powerSettings.powerBandsInHz(iSetting) = currentPowerBands;
-            end
-            
             % Add samplerate and packetsizes column to outtable_Power -- samplerate is inverse
             % of fftConfig.interval
-            
+            numSettings = size(powerSettings,1);
             % Determine if more than one sampling rate across recording
             for iSetting = 1:numSettings
                 all_powerFs(iSetting) =  1/((powerSettings.fftConfig(iSetting).interval)/1000);
@@ -220,7 +210,7 @@ if processFlag == 1 || processFlag == 2
                 fftParameters = getFFTparameters(currentFFTconfig,currentTDsampleRate);
                 fftSettings.fftParameters(iSetting) = fftParameters;
             end
-            % Add samplerate and packetsizes column to outtable_Power -- samplerate is inverse
+            % Add samplerate and packetsizes column to outtable_FFT -- samplerate is inverse
             % of fftConfig.interval; in principle this interval could change
             % over the course of the recording
             
@@ -254,12 +244,15 @@ if processFlag == 1 || processFlag == 2
         if isfield(jsonobj_Adaptive,'AdaptiveUpdate') && ~isempty(jsonobj_Adaptive(1).AdaptiveUpdate)
             disp('Loading Adaptive Data')
             outtable_Adaptive = createAdaptiveTable(jsonobj_Adaptive);
+            % Note: StateTime must still be converted to sec in
+            % outtable_Adaptive
             
             % Calculate adaptive_sampleRate - determine if more than one
             if size(fftSettings,1) == 1
                 adaptive_sampleRate =  1/((fftSettings.fftConfig(1).interval)/1000);
                 outtable_Adaptive.samplerate(:) = adaptive_sampleRate;
                 outtable_Adaptive.packetsizes(:) = 1;
+                outtable_Adaptive.StateTime = outtable_Adaptive.StateTime * (fftSettings.fftConfig(1).interval/1000);
                 
                 disp('Creating derivedTimes for Adaptive:')
                 AdaptiveData = assignTime(outtable_Adaptive);

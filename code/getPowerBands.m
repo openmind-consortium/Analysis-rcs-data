@@ -1,4 +1,4 @@
-function [powerBands] = getPowerBands(powerBands_toConvert,currentFFTconfig,currentTDsampleRate)
+function [powerBands] = getPowerBands(powerBands_toConvert,fftConfig,currentTDsampleRate)
 %%
 % Calculate lower and upper bounds, in Hz, for each power domain timeseries
 %
@@ -14,7 +14,7 @@ function [powerBands] = getPowerBands(powerBands_toConvert,currentFFTconfig,curr
 powerBands = struct();
 
 % Get FFT parameters
-fftParameters = getFFTparameters(currentFFTconfig,currentTDsampleRate);
+fftParameters = getFFTparameters(fftConfig,currentTDsampleRate);
 
 % Unwrap powerBands_toConvert
 %   Ch1: band0
@@ -42,14 +42,22 @@ unwrapped_powerBandsToConvert = unwrapped_powerBandsToConvert + 1; % since C# is
 % Convert powerBands to Hz, based on upper and lower bounds of bins
 % calculated above
 powerBandsInHz = {};
+powerBinsInHz = {};
 for iBand = 1:size(unwrapped_powerBandsToConvert,1)
+    % Lower and upper bounds of the power band (a BAND being difined by 3 frequencies: lower, center, and upper frequencies)
     lowerBounds(iBand) = fftParameters.lower(unwrapped_powerBandsToConvert(iBand,1));
     upperBounds(iBand) = fftParameters.upper(unwrapped_powerBandsToConvert(iBand,2));
-    powerBandsInHz{iBand,1} = sprintf('%.2fHz-%.2fHz',...
-        lowerBounds(iBand),upperBounds(iBand));
+    powerBandsInHz{iBand,1} = sprintf('%.2fHz-%.2fHz', lowerBounds(iBand),upperBounds(iBand));
+    
+    % Bins used for FFT computed power in band (number of pins in a power
+    % band are >=1)
+    lowerBin(iBand) = fftParameters.fftBins(unwrapped_powerBandsToConvert(iBand,1));
+    upperBin(iBand) = fftParameters.fftBins(unwrapped_powerBandsToConvert(iBand,2));
+    powerBinsInHz{iBand,1} = sprintf('%.2fHz-%.2fHz', lowerBin(iBand),upperBin(iBand));
 end
 
 powerBands.powerBandsInHz = powerBandsInHz;
+powerBands.powerBinsInHz = powerBinsInHz;
 powerBands.lowerBound = lowerBounds';
 powerBands.upperBound = upperBounds';
 powerBands.fftSize = fftParameters.fftSize;
