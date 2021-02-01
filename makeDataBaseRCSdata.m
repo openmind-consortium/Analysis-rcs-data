@@ -1,5 +1,5 @@
-function tblout = getDataBaseRCSdata(dirname)
-% function tblout = getDataBaseRCSdata(dirname)
+function database_out = makeDataBaseRCSdata(dirname)
+% function database_out = makeDataBaseRCSdata(dirname)
 %
 %
 % This function creates a database of rcs data
@@ -8,8 +8,8 @@ function tblout = getDataBaseRCSdata(dirname)
 %               e.g. DIRNAME = '/Desktop/[PATIENTID]/SummitData/SummitContinuousBilateralStreaming/[PATIENT_Device_ID]'
 %               e.g. DIRNAME = '/Volumes/Prasad_X5/RCS02/SummitData/SummitContinuousBilateralStreaming/RCS02R';
 %
-% OUTPUT:   TBLOUT is a table with fields ordered in importance, which can
-%           be saved as a mat file or as .txt, .csv, etc using 'writetable'
+% OUTPUT:   TBLOUT is a table with fields ordered in importance, which will
+%            be saved as a mat file and csv to DIRNAME
 %
 %
 %          Included fields are:
@@ -160,6 +160,12 @@ fieldorder = [{'time'}; {'sessname'  };  {'duration'  }; ...
     {'stim'    };   {'stimName'  }; ...
     {'stimparams'};   {'matExist'  };  {'path'};  {'powerbands'}];
 dborder = orderfields(dbout,fieldorder);
-tblout = struct2table(dborder,'AsArray',true);
+database_out = struct2table(dborder,'AsArray',true);
+
+
+writetable(database_out,fullfile(dirname,'database_summary.csv'))
+save(fullfile(dirname,'database_summary.mat'),'database_out')
+fprintf('csv and mat of database saved to %s \n', dirname);
+
 
 end
