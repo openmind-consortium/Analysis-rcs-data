@@ -12,7 +12,8 @@ clc
 PATIENTID = 'RCS02R'
 % 'CPRCS01';
 
-
+% define locations of JSON file inputs,  MAT file outputs 
+% loaddir = '/Volumes/Prasad_X5/RCS02/SummitData/SummitContinuousBilateralStreaming/RCS02R/Session1605741783275/DeviceNPC700457H';
 rootdir = ['/Volumes/Prasad_X5/' PATIENTID(1:end-1)];
 loaddir = [rootdir '/SummitData/SummitContinuousBilateralStreaming/' PATIENTID];
 github_dir = '/Users/pshirvalkar/Documents/GitHub/UCSF-rcs-data-analysis';
@@ -26,34 +27,36 @@ T= getDataBaseRCSdata(loaddir);
 writetable(T,fullfile(rootdir,'database_summary.csv'))
 save(fullfile(rootdir,'database_summary.mat'),'T')
 
- %% Process and load all data - skip if mat already exists
+ %% Process and load all data
  
-dirsdata = findFilesBVQX(loaddir,'Sess*',struct('dirs',1,'depth',1));
+dirsdata = findFilesBVQX(dirname,'Sess*',struct('dirs',1,'depth',1));
 
-% find out if a mat file was already created in this folder
-% if so, just an update is needed and will not recreate mat file
+% find out if a database file was already created in this folder
+% if so, just an update is needed no need to recrate the whole
+% database
 
 % extract times and .mat status
 dbout = [];
 for d = 1:length(dirsdata)
     diruse = findFilesBVQX(dirsdata{d},'Device*',struct('dirs',1,'depth',1));
     
-    fprintf('\n \n Reading Session Folder %d of %d  \n',d,length(dirsdata))
+    fprintf('Reading folder %d of %d  \n',d,length(dirsdata))
     if isempty(diruse) % no data exists inside
-    fprintf('No data...\n');
-    
-    elseif exist(fullfile(diruse{1},'combinedDataTable.mat')) == 2
-         fprintf('combinedDataTable mat file already exists... skipping \n');
-         
-    else % process the data      
-        try
+        
+        dbout(d).rectime = [];
+        dbout(d).matExist  = 0;
+        dbout(d).fnm     = [];
+        [pn,fn] = fileparts(dirsdata{d});
+        dbout(d).sessname = fn;
+    else % data may exist, check for time domain ndata
+        
+        
+        
+        
 [combinedDataTable, debugTable, timeDomainSettings,powerSettings,...
     fftSettings,eventLogTable, metaData,stimSettingsOut,stimMetaData,stimLogSettings,...
-    DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = DEMO_ProcessRCS(diruse{1});
-        catch
-        end
-    end
-end
+    DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = DEMO_ProcessRCS(loaddir)
+
 
 %%  Check if mat file exists, if not, load raw data and save to new matfile
 
