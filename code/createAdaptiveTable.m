@@ -34,31 +34,11 @@ data.('CurrentAdaptiveState') = CurrentAdaptiveState';
 
 % Convert detector status
 temp_Ld0DetectionStatus = [AdaptiveUpdate.Ld0DetectionStatus]';
-Ld0DetectionStatus = cell(1,length(temp_Ld0DetectionStatus));
-Ld0DetectionStatus(temp_Ld0DetectionStatus == 0) = {'None'};
-Ld0DetectionStatus(temp_Ld0DetectionStatus == 1) = {'Low Immediate Detect'};
-Ld0DetectionStatus(temp_Ld0DetectionStatus == 2) = {'High Immediate Detect'};
-Ld0DetectionStatus(temp_Ld0DetectionStatus == 4) = {'Low Detect'};
-Ld0DetectionStatus(temp_Ld0DetectionStatus == 8) = {'High Detect'};
-Ld0DetectionStatus(temp_Ld0DetectionStatus == 16) = {'Output over Range'};
-Ld0DetectionStatus(temp_Ld0DetectionStatus == 32) = {'Blanked'};
-Ld0DetectionStatus(temp_Ld0DetectionStatus == 64) = {'Input over Range'};
-Ld0DetectionStatus(temp_Ld0DetectionStatus == 128) = {'In Hold Off'};
-data.('Ld0DetectionStatus') = Ld0DetectionStatus';
+data.('Ld0DetectionStatus') = dec2bin(temp_Ld0DetectionStatus,8);
 
 % Convert detector status
 temp_Ld1DetectionStatus = [AdaptiveUpdate.Ld1DetectionStatus]';
-Ld1DetectionStatus = cell(1,length(temp_Ld1DetectionStatus));
-Ld1DetectionStatus(temp_Ld1DetectionStatus == 0) = {'None'};
-Ld1DetectionStatus(temp_Ld1DetectionStatus == 1) = {'Low Immediate Detect'};
-Ld1DetectionStatus(temp_Ld1DetectionStatus == 2) = {'High Immediate Detect'};
-Ld1DetectionStatus(temp_Ld1DetectionStatus == 4) = {'Low Detect'};
-Ld1DetectionStatus(temp_Ld1DetectionStatus == 8) = {'High Detect'};
-Ld1DetectionStatus(temp_Ld1DetectionStatus == 16) = {'Output over Range'};
-Ld1DetectionStatus(temp_Ld1DetectionStatus == 32) = {'Blanked'};
-Ld1DetectionStatus(temp_Ld1DetectionStatus == 64) = {'Input over Range'};
-Ld1DetectionStatus(temp_Ld1DetectionStatus == 128) = {'In Hold Off'};
-data.('Ld1DetectionStatus') = Ld1DetectionStatus';
+data.('Ld1DetectionStatus') = dec2bin(temp_Ld1DetectionStatus,8);
 
 % Convert PreviousAdaptiveState
 temp_previousAdaptiveState = [AdaptiveUpdate.PreviousAdaptiveState]';
