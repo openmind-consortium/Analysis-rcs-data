@@ -98,7 +98,7 @@ Note that in each recording session, all .json files will be created and saved. 
 ### Data tables created in Matlab during processing 
 Not all of these tables are saved as output in the form shown below. [See section below for Data tables contained in output file](#data-tables-contained-in-output-file) 
 
-- **RawDataTD.json** --> **timeDomainData**:
+- **RawDataTD.json** --> **`timeDomainData`**:
   - `DerivedTime`: Computed time for each sample. [See How to Calculate DerivedTime for more information](https://github.com/openmind-consortium/Analysis-rcs-data/blob/DocumentationUpdate/README.md#how-to-calculate-derivedtime)
   - `timestamp`: INS clock driven timer that does not roll over. Highest resolution is 1 second. Total elaped time since March 1, 2000 at midnight. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
   - `systemTick`: 16-bit INS clock timer that rolls over every 2^16 values. Highest resolution is 100 microseconds. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
@@ -112,7 +112,7 @@ Not all of these tables are saved as output in the form shown below. [See sectio
   - `key2`: Channel 2; contains numerical data in millivolts
   - `key3`: Channel 3; contains numerical data in millivolts
    
-- **RawDataAccel.json** --> **AccelData**:
+- **RawDataAccel.json** --> **`AccelData`**:
   - `DerivedTime`: Same as above
   - `timestamp`: Same as above
   - `systemTick`: Same as above
@@ -125,7 +125,7 @@ Not all of these tables are saved as output in the form shown below. [See sectio
   - `YSamples`: Y-axis
   - `ZSamples`: Z-axis
 
-- **RawDataPower.json** --> **PowerData**
+- **RawDataPower.json** --> **`PowerData`**
   - `DerivedTime`: Same as above
   - `timestamp`: Same as above
   - `systemTick`: Same as above
@@ -148,7 +148,7 @@ Not all of these tables are saved as output in the form shown below. [See sectio
   - `Band7`: Power values
   - `Band8`: Power values
 
-- **RawDataFFT.json** --> **FFTData**
+- **RawDataFFT.json** --> **`FFTData`**
   - `DerivedTime`: Same as above
   - `timestamp`: Same as above
   - `systemTick`: Same as above
@@ -163,7 +163,7 @@ Not all of these tables are saved as output in the form shown below. [See sectio
   - `FftSize`: Number of points in FFT calculation
   - `TDsamplerate`: Sampling rate (in Hz) of time domain data
     
-- **AdaptiveLog.json** --> **AdaptiveData**
+- **AdaptiveLog.json** --> **`AdaptiveData`**
   - `DerivedTime`: Same as above
   - `timestamp`: Same as above
   - `systemTick`: Same as above
@@ -176,7 +176,16 @@ Not all of these tables are saved as output in the form shown below. [See sectio
   - `CurrentProgramAmplitudesInMilliamps`: The amplitude(s) of stimulation (in mA) for the current program
   - `IsInHoldOffOnStartup`: Boolean
   - `Ld0DetectionStatus`: Detection status relative to the two possible thresholds
-  - `Ld1DetectionStatus`: Detection status relative to the two possible thresholds
+    - 0000 0000: None
+    - 0000 0001: Low boundary in immediate detect
+    - 0000 0010: High boundary in immediate Detect
+    - 0000 0100: Low boundary in detect
+    - 0000 1000: High boundary in detect
+    - 0001 0000: The LD output is over range and the LD output is held at last valid computed value
+    - 0010 0000: LD is being blanked currently due to just having entered a new state
+    - 0100 0000: Power channel input to the LD is over range and the LD output is held at the last valid computed value
+    - 1000 0000: LD in a hold off state to allow for it to stabilize (LD detect output not valid)
+  - `Ld1DetectionStatus`: Detection status relative to the two possible thresholds, same coding as `Ld0DetectionStatus`
   - `PreviousAdaptiveState`: Indicates the previous adaptive state (0-8), or no state
   - `SensingStatus`: Binary string indicating which sense states are enabled:
     - 0000 0000: None
@@ -208,7 +217,7 @@ Not all of these tables are saved as output in the form shown below. [See sectio
   - `Ld1_lowThreshold`: The low threshold value
   - `Ld1_output`: The linear discriminant output
   
-- **StimLog.json** --> **stimLogSettings**
+- **StimLog.json** --> **`stimLogSettings`**
   - `HostUnixTime`
   - `activeGroup`
   - `therapyStatus`
@@ -218,7 +227,7 @@ Not all of these tables are saved as output in the form shown below. [See sectio
   - `GroupD`: Contains settings for stimulation group D (`RateInHz`, `ampInMilliamps`, `pulseWidthInMicroseconds`)
   - `updatedParameters`: Which variable(s) were updated from the prior entry in stimLogSettings
 
-- **EventLog.json** --> **eventLogTable**
+- **EventLog.json** --> **`eventLogTable`**
   - `SessionId`
   - `HostUnixTime`
   - `EventName`
@@ -229,18 +238,18 @@ Not all of these tables are saved as output in the form shown below. [See sectio
 
 - **DeviceSettings.json** 
 [examples from different files]
-  - `timeDomainSettings`
+  - **`timeDomainSettings`**
   
     ![timeDomainSettings](documentationFigures/timeDomain.PNG)
   
-  - `powerSettings`
+  - **`powerSettings`**
   
     ![powerSettings](documentationFigures/powerSettings_2.PNG)
   
-  - `fftSettings`
+  - **`fftSettings`**
     ![fftSettings](documentationFigures/fftSettings.PNG)
   
-  - `stimSettingsOut'
+  - **`stimSettingsOut'**
     ![stimSettingsOut](documentationFigures/StimSettingsOut.png)
   
   - `stimMetaData'
@@ -265,35 +274,11 @@ Not all of these tables are saved as output in the form shown below. [See sectio
     - `estimatedCapacity`
     - `batterySOC`
 
-  - `DetectorSettings` [Adaptive]
-    - `HostUnixTime`
-    - `Ld0`: contains fields `biasTerm`, `blankingDurationUponStateChange`, `detectionEnable`, `detectionInputs`, `features`, `fractionalFixedPointValue`, `holdoffTime`, `onsetDuration`, `terminationDuration`, `updateRate`
-    - `Ld1`: contains fields `biasTerm`, `blankingDurationUponStateChange`, `detectionEnable`, `detectionInputs`, `features`, `fractionalFixedPointValue`, `holdoffTime`, `onsetDuration`, `terminationDuration`, `updateRate`
-    - `DetectorStatus`
-    - `updatedParameters`
+  - **`DetectorSettings`** [Adaptive]: [More info below](#data-tables-contained-in-output-file)
   
-  - `AdaptiveStimSettings` [Table with all changes to adaptive settings]
-    - `HostUnixTime`
-    - `deltas`: contains fields for rise and fall rates, in mA/sec, for each of the four possible bands
-    - `states`: contains fields for state0-state8 indicating if that state is valid and ampInMilliamps; NaN indicates stimulation is not defined; -1 indicates hold for that state
-    - `stimRate`: In Hz
-    - `adaptiveMode`: 0 = disabled; 1 = operative; 2 = embedded
-    - `adaptiveStatus`: 0 = disabled; 1 = operative; 2 = embedded
-    - `currentState`
-    - `deltaLimitsValid`
-    - `deltasValid`
-    - `updatedParameters`
+  - **`AdaptiveStimSettings`** [Table with all changes to adaptive settings]: [More info below](#data-tables-contained-in-output-file)
   
-  - `AdaptiveRuns_StimSettings` [Table with only changes to adaptive settings when adaptive was on, or transitioning from off [0] to embedded [2]]
-    - `HostUnixTime`
-    - `deltas`: contains fields for rise and fall rates, in mA/sec, for each of the four possible bands
-    - `states`: contains fields for state0-state8 indicating if that state is valid and ampInMilliamps; NaN indicates stimulation is not defined; -1 indicates hold for that state
-    - `stimRate`: In Hz
-    - `adaptiveMode`: 0 = disabled; 1 = operative; 2 = embedded
-    - `adaptiveStatus`: 0 = disabled; 1 = operative; 2 = embedded
-    - `currentState`
-    - `deltaLimitsValid`
-    - `deltasValid`  
+  - **`AdaptiveEmbeddedRuns_StimSettings`** [Table with only changes to adaptive settings when adaptive was on, or transitioning from embedded to off]: [More info below](#data-
 
 - **ErrorLog.json**: Not currently used
 - **DiagnosticsLog.json**: Not currently used
@@ -301,6 +286,57 @@ Not all of these tables are saved as output in the form shown below. [See sectio
 
 ## Data tables contained in output file
 (UNDER DEVELOPMENT)
+
+
+
+**`DetectorSettings`**:
+- `HostUnixTime`
+- `Ld0`
+    - `biasTerm`
+    - `features`: `normalizationMultiplyVector`, `normalizationSubtractVector`, `weightVector`
+     - `fractionalFixedPointValue`
+     - `updateRate`: in seconds
+     - `blankingDurationUponStateChange`: in seconds
+     - `onsetDuration`: in seconds
+     - `holdoffTime`: in seconds
+     - `terminationDuration`: in seconds
+     - `detectionInputs_BinaryCode`: Binary string indicating which power channel(s) were used as input for the linear discriminant
+        - 0000 0000: No inputs chosen
+        - 0000 0001: Power channel 0, band 0
+        - 0000 0010: Power channel 0, band 1
+        - 0000 0100: Power channel 1, band 0
+        - 0000 1000: Power channel 1, band 1
+        - 0001 0000: Power channel 2, band 0
+        - 0010 0000: Power channel 2, band 1
+        - 0100 0000: Power channel 3, band 0
+        - 1000 0000: Power channel 3, band 1
+     - `detectionEnable_BinaryCode`: Binary string indicating setting for linear discriminant detector
+        - 0000 0000: Single threshold detect mode
+        - 0000 0001: Enable dual threshold detection (possible outcomes are high, in-range, and low). If not set, single threshold detection is used (possible outcomes are low and in-range) 
+        - 0000 0010: Blank both LDs based on a state change from this LD. The blank duration specified for each LD is used (if 0 duration is set, then no blanking will occur). If this setting is not present, only this LD is blanked
+- `Ld1`: same fields as Ld0
+- `updatedParameters`
+
+**`AdaptiveStimSettings`**
+- `HostUnixTime`
+    - `deltas`: contains fields for rise and fall rates, in mA/sec, for each of the four possible bands
+    - `states`: contains fields for state0-state8 indicating if that state is valid and ampInMilliamps; NaN indicates stimulation is not defined; -1 indicates hold for that state
+    - `stimRate`: In Hz
+    - `adaptiveMode`: Disabled; Operative; Embedded
+    - `currentState`
+    - `deltaLimitsValid`
+    - `deltasValid`
+    - `updatedParameters
+
+- **`AdaptiveEmbeddedRuns_StimSettings`** [Table with only changes to adaptive settings when adaptive was on, or transitioning from embedded to off]: [More info below](#data-tables-contained-in-output-file)
+    - `HostUnixTime`
+    - `deltas`: contains fields for rise and fall rates, in mA/sec, for each of the four possible bands
+    - `states`: contains fields for state0-state8 indicating if that state is valid and ampInMilliamps; NaN indicates stimulation is not defined; -1 indicates hold for that state
+    - `stimRate`: In Hz
+    - `adaptiveMode`: Disabled; Operative; Embedded
+    - `currentState`
+    - `deltaLimitsValid`
+    - `deltasValid`
 
 
 
