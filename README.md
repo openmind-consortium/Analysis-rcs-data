@@ -485,6 +485,7 @@ This list contains the functions that have been tested in branch and pushed to m
 - **getSampleRate**: Convert Medtronic codes to sample rates in Hz for time domain data
 - **getSampleRateAcc**: Convert Medtronic codes to sample rates in Hz for accelerometer data
 - **getStimParameters**: For a given stimulation group, update prior fields with any information present in current fields
+- **getPowerFromTimeDomain**: For a given session dataset, calculates equivalent RCS power from timedomain series based on harmonized DerivedTimes
 
 ### (Pre)Processing
 - **assignTime**: Function for creating timestamps for each sample of valid RC+S data. 
