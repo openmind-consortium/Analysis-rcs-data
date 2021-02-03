@@ -8,10 +8,8 @@ function [powerFromTimeDomain] = getPowerFromTimeDomain(folderpath)
 % 
 % input: device folder path of session
 % 
-% parameters
-%     timeDomainSettings
-%     timeDomainData
-%     powerSettings  
+% intermediate inputs/parameters
+%     harmonized combined table, fft and power settings
 %     fft settings: sampling rate, fft size, fft interval, han window gain (100%, 50% or 25%)
 %
 % output
@@ -22,14 +20,18 @@ function [powerFromTimeDomain] = getPowerFromTimeDomain(folderpath)
 % - hann window 100%
 % - no change in fft settings in data set
 
-% thic could 
+% get or read existing harmonized combined table, fft and power settings
 [combinedDataTable, debugTable, timeDomainSettings,powerSettings,...
     fftSettings,eventLogTable, metaData,stimSettingsOut,stimMetaData,stimLogSettings,...
-    DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = DEMO_ProcessRCS(folderpath,2);
+    DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = DEMO_ProcessRCS(folderpath,4);
 
-% create table with actual amplifier gains per channel
-AmpGains = createAmplifierGainsTable(folderpath); % this function still not added to repository (juan and ro'ee to coordinate with kristin)
-powerFromTimeDomain = table;
+AmpGains = createAmplifierGainsTable(folderpath); % actual amplifier gains per channel
+powerFromTimeDomain = table();
+powerFromTimeDomain.localTime= combinedDataTable.localTime;
+powerFromTimeDomain.DerivedTimes = combinedDataTable.DerivedTime;
+for inumBands = 1:8 % initialize bands
+    powerFromTimeDomain.(['PowerCh',num2str(inumBands)]) = nan(1,size(combinedDataTable,1))';
+end
 for c=1:4
     % extract input parameters
     tch = combinedDataTable.DerivedTime;
@@ -49,7 +51,6 @@ for c=1:4
     stime = 1; % sample 1 of data set where window starts
     totalTimeWindows = ceil(length(td_rcs)/L/(1-overlap)); 
     counter = 1; % initialize counter
-    power = zeros(1,length(totalTimeWindows)); % initialize power variable
     while counter <= totalTimeWindows % loop through time singal
         if stime+L <= length(t) % check at least one time window available before reach end signal
             X = fft(td_rcs(stime:stime+L-1)'.*hann_win,fftSize); % fft of the next window
@@ -61,16 +62,13 @@ for c=1:4
             binEndBand1 = binEnd(2*c-1);
             binStartBand2 = binStart(2*c);
             binEndBand2 = binEnd(2*c);
-            PowerBand1(counter) = sum(fftPower(binStartBand1:binEndBand1));
-            PowerBand2(counter) = sum(fftPower(binStartBand2:binEndBand2));
+            powerFromTimeDomain.(['PowerCh',num2str(2*c-1)])(stime+L-1) = sum(fftPower(binStartBand1:binEndBand1));
+            powerFromTimeDomain.(['PowerCh',num2str(2*c)])(stime+L-1) = sum(fftPower(binStartBand2:binEndBand2));
         end
         counter = counter + 1;
         stime = stime + (L - ceil(L*overlap));
-    end
-    powerFromTimeDomain.(['PowerCh',num2str(2*c-1)]) = PowerBand1';
-    powerFromTimeDomain.(['PowerCh',num2str(2*c)]) = PowerBand2';
+    end   
 end
-
 end
 
 function [interval,binStart,binEnd,fftSize] = readFFTsettings(powerSettings,c)
