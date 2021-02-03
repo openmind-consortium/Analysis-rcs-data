@@ -1,11 +1,8 @@
-function [powerFromTimeDomain,powerDataRCS] = getPowerFromTimeDomain(folderpath)
+function [powerFromTimeDomain] = getPowerFromTimeDomain(folderpath)
 % creates a table with both power computed signals and power data from RCS
 % the transformation from time domain to power is done using hann windowing
 % of the latest fft interval (new and old points, depending on overlapping)
 % then fft is applied and the power calculated. The magnitude of the power
-
-
-
 
 % is calculated as the sum of the power of all bins in the frequency band.
 % 
@@ -18,19 +15,17 @@ function [powerFromTimeDomain,powerDataRCS] = getPowerFromTimeDomain(folderpath)
 %     fft settings: sampling rate, fft size, fft interval, han window gain (100%, 50% or 25%)
 %
 % output
-%     powerFromTimeDomain = table(Ptd1,Ptd2,Ptd3,Ptd4)
+%     powerFromTimeDomain = table(PB1,PB2,PB3,...,PB8)
 %
 % dependencies: this function relies on the matlab library https://github.com/openmind-consortium/Analysis-rcs-data
 % Assumptions:
 % - hann window 100%
 % - no change in fft settings in data set
-% 
 
-% this wrapper function is NOT standard in the default DEMO_ProcessRCS(), https://github.com/openmind-consortium/Analysis-rcs-data
-% [timeDomainSettings,timeDomainData,AccelData,powerDataRCS, powerSettings,FFTData, metaData] = DEMO_ProcessRCS(folderpath);
+% thic could 
 [combinedDataTable, debugTable, timeDomainSettings,powerSettings,...
     fftSettings,eventLogTable, metaData,stimSettingsOut,stimMetaData,stimLogSettings,...
-    DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = DEMO_ProcessRCS(folderpath);
+    DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = DEMO_ProcessRCS(folderpath,2);
 
 % create table with actual amplifier gains per channel
 AmpGains = createAmplifierGainsTable(folderpath); % this function still not added to repository (juan and ro'ee to coordinate with kristin)
@@ -39,8 +34,8 @@ for c=1:4
     % extract input parameters
     tch = combinedDataTable.DerivedTime;
     t = seconds(tch-tch(1))/1000;
-    [interval,binStart,binEnd,fftSize,fftBinsHz] = readFFTsettings(powerSettings,c);
-    sr = timeDomainSettings.samplingRate;
+    [interval,binStart,binEnd,fftSize] = readFFTsettings(powerSettings,c);
+    sr = fftSettings.TDsampleRates;
     switch fftSize % actual fft size of device for 64, 250, 1024 fftpoints
         case 64, fftSizeActual = 62;
         case 256, fftSizeActual = 250;
@@ -62,25 +57,30 @@ for c=1:4
             SSB(2:end) = 2*SSB(2:end); % scaling step 1, multiply by 2 bins 2 to end (all except DC)
             YFFT = abs(SSB/(L/2)); % scaling step 2, dividing by fft buffer size (L/2) (to be hoest i think this should be L)
             fftPower = 2*(YFFT.^2); % this factor 2 is necessary to match power values from RCS
-            power(counter) = sum(fftPower(binStart:binEnd)); % note that it is not an average, but rather a sum of the power of the bins in the band
+            binStartBand1 = binStart(2*c-1);
+            binEndBand1 = binEnd(2*c-1);
+            binStartBand2 = binStart(2*c);
+            binEndBand2 = binEnd(2*c);
+            PowerBand1(counter) = sum(fftPower(binStartBand1:binEndBand1));
+            PowerBand2(counter) = sum(fftPower(binStartBand2:binEndBand2));
         end
         counter = counter + 1;
         stime = stime + (L - ceil(L*overlap));
     end
-    powerFromTimeDomain.(['PowerCh',num2str(c)]) = power';
+    powerFromTimeDomain.(['PowerCh',num2str(2*c-1)]) = PowerBand1';
+    powerFromTimeDomain.(['PowerCh',num2str(2*c)]) = PowerBand2';
 end
 
 end
 
-function [interval,binStart,binEnd,fftSize,fftBinsHz] = readFFTsettings(powerSettings,c)
+function [interval,binStart,binEnd,fftSize] = readFFTsettings(powerSettings,c)
     % at the moment assuming the only active Power Band is Band 0
     interval = powerSettings.fftConfig.interval; % is given in ms
-    binStart = powerSettings.powerBands{1}.band0Start; % assuming 1 power band
-    binStart(1) = binStart(1)+1; % value from Json file is zero based numbering (bin index 3 in Json is bin 4 in matlab)
-    binEnd = powerSettings.powerBands{1}.band0Stop;
-    binEnd(1) = binEnd(1)+1; % value from Json file is zero based numbering (bin index 3 in Json is bin 4 in matlab)
-    fftSize = powerSettings.powerBandsInHz.fftSize;
-    fftBinsHz = powerSettings.powerBandsInHz.fftBins;
+    for iBand = 1:size(powerSettings.powerBands.indices_BandStart_BandStop,1)
+        binStart(iBand) = powerSettings.powerBands.indices_BandStart_BandStop(iBand,1);
+        binEnd(iBand) = powerSettings.powerBands.indices_BandStart_BandStop(iBand,2);
+    end
+    fftSize = powerSettings.fftConfig.size;
 end
 
 function td_rcs = transformTDtoRCS(keych,AmpGain)
@@ -93,13 +93,12 @@ function td_rcs = transformTDtoRCS(keych,AmpGain)
     td_rcs = lfp_rcs;
 end
 
-
 function AmpGains = createAmplifierGainsTable(folderPath)
-% finds the actual gain of the amplifier (Amp channel: 1,2,3,4) and output
-% it in a table
+% gets the gain of the amplifier (Amp channel: 1,2,3,4)
 
 % Load in DeviceSettings.json file
 DeviceSettings = jsondecode(fixMalformedJson(fileread([folderPath filesep 'DeviceSettings.json']),'DeviceSettings'));
+
 %%
 % Fix format - Sometimes device settings is a struct or cell array
 if isstruct(DeviceSettings)
