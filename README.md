@@ -98,7 +98,7 @@ Note that in each recording session, all .json files will be created and saved. 
 ### Data tables created in Matlab during processing 
 Not all of these tables are saved as output in the form shown below. [See section below for Data tables contained in output file](#data-tables-contained-in-output-file) 
 
-- **RawDataTD.json** --> **`timeDomainData`**:
+- **RawDataTD.json** --> **`timeDomainData`**
   - `DerivedTime`: Computed time for each sample. [See How to Calculate DerivedTime for more information](https://github.com/openmind-consortium/Analysis-rcs-data/blob/DocumentationUpdate/README.md#how-to-calculate-derivedtime)
   - `timestamp`: INS clock driven timer that does not roll over. Highest resolution is 1 second. Total elaped time since March 1, 2000 at midnight. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
   - `systemTick`: 16-bit INS clock timer that rolls over every 2^16 values. Highest resolution is 100 microseconds. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
@@ -112,7 +112,7 @@ Not all of these tables are saved as output in the form shown below. [See sectio
   - `key2`: Channel 2; contains numerical data in millivolts
   - `key3`: Channel 3; contains numerical data in millivolts
    
-- **RawDataAccel.json** --> **`AccelData`**:
+- **RawDataAccel.json** --> **`AccelData`**
   - `DerivedTime`: Same as above
   - `timestamp`: Same as above
   - `systemTick`: Same as above
@@ -329,8 +329,8 @@ Not all of these tables are saved as output in the form shown below. [See sectio
     - `deltaLimitsValid`: Boolean
     - `deltasValid`: Boolean
 
-**`AdaptiveStimSettings`**
-- `HostUnixTime`
+- **`AdaptiveStimSettings`**
+    - `HostUnixTime`
     - `deltas`: contains fields for rise and fall rates, in mA/sec, for each of the four possible bands
     - `states`: contains fields for state0-state8 indicating if that state is valid and ampInMilliamps; NaN indicates stimulation is not defined; -1 indicates hold for that state
     - `stimRate`: In Hz
@@ -338,46 +338,46 @@ Not all of these tables are saved as output in the form shown below. [See sectio
     - `currentState`: Current adaptive state
     - `deltaLimitsValid`: Boolean
     - `deltasValid`: Boolean
-    - `updatedParameters
+    - `updatedParameters`
 
-**`DetectorSettings`**:
-- `HostUnixTime`
-- `Ld0`
-    - `biasTerm`
-    - `features`: `normalizationMultiplyVector`, `normalizationSubtractVector`, `weightVector`
-     - `fractionalFixedPointValue`
-     - `updateRate`: in seconds
-     - `blankingDurationUponStateChange`: in seconds
-     - `onsetDuration`: in seconds
-     - `holdoffTime`: in seconds
-     - `terminationDuration`: in seconds
-     - `detectionInputs_BinaryCode`: Binary string indicating which power channel(s) were used as input for the linear discriminant
-        - 0000 0000: No inputs chosen
-        - 0000 0001: Power channel 0, band 0
-        - 0000 0010: Power channel 0, band 1
-        - 0000 0100: Power channel 1, band 0
-        - 0000 1000: Power channel 1, band 1
-        - 0001 0000: Power channel 2, band 0
-        - 0010 0000: Power channel 2, band 1
-        - 0100 0000: Power channel 3, band 0
-        - 1000 0000: Power channel 3, band 1
-     - `detectionEnable_BinaryCode`: Binary string indicating setting for linear discriminant detector
-        - 0000 0000: Single threshold detect mode
-        - 0000 0001: Enable dual threshold detection (possible outcomes are high, in-range, and low). If not set, single threshold detection is used (possible outcomes are low and in-range) 
-        - 0000 0010: Blank both LDs based on a state change from this LD. The blank duration specified for each LD is used (if 0 duration is set, then no blanking will occur). If this setting is not present, only this LD is blanked
-- `Ld1`: same fields as Ld0
-- `updatedParameters`
+- **`DetectorSettings`**:
+    - `HostUnixTime`    
+    - `Ld0`
+        - `biasTerm`
+        - `features`: `normalizationMultiplyVector`, `normalizationSubtractVector`, `weightVector`
+        - `fractionalFixedPointValue`
+        - `updateRate`: in seconds
+        - `blankingDurationUponStateChange`: in seconds
+        - `onsetDuration`: in seconds
+        - `holdoffTime`: in seconds
+        - `terminationDuration`: in seconds
+        - `detectionInputs_BinaryCode`: Binary string indicating which power channel(s) were used as input for the linear discriminant
+            - 0000 0000: No inputs chosen
+            - 0000 0001: Power channel 0, band 0
+            - 0000 0010: Power channel 0, band 1
+            - 0000 0100: Power channel 1, band 0
+            - 0000 1000: Power channel 1, band 1
+            - 0001 0000: Power channel 2, band 0
+            - 0010 0000: Power channel 2, band 1
+            - 0100 0000: Power channel 3, band 0
+            - 1000 0000: Power channel 3, band 1
+        - `detectionEnable_BinaryCode`: Binary string indicating setting for linear discriminant detector
+            - 0000 0000: Single threshold detect mode
+            - 0000 0001: Enable dual threshold detection (possible outcomes are high, in-range, and low). If not set, single threshold detection is used (possible outcomes are low and in-range) 
+            - 0000 0010: Blank both LDs based on a state change from this LD. The blank duration specified for each LD is used (if 0 duration is set, then no blanking will occur). If this setting is not present, only this LD is blanked
+    - `Ld1`: same fields as Ld0
+    - `updatedParameters`
 
-**`eventLogTable`**
-  - `SessionId`
-  - `HostUnixTime`
-  - `EventName`
-  - `EventType`
-  - `EventSubType`
-  - `UnixOnsetTime`
-  - `UnixOffsetTime'
+- **`eventLogTable`**
+    - `SessionId`
+    - `HostUnixTime`
+    - `EventName`
+    - `EventType`
+    - `EventSubType`
+    - `UnixOnsetTime`
+    - `UnixOffsetTime'
   
-**`fftSettings`**
+- **`fftSettings`**
     - `recNumber`
     - `duration`
     - `timeStart`
@@ -386,9 +386,23 @@ Not all of these tables are saved as output in the form shown below. [See sectio
     - `TDsampleRates`: In Hz
     - `fftParameters`: `numBins`, `binwidth`, `fftBins`, `lower`, `upper`, `fftSize`
 
-**`metaData`** `subjectID`, `patientGender`, `handedness`, `implantedLeads`, `extensions`, `leadLocations`, `leadTargets`, `INSimplantLocation`, `stimProgramNames`, `UTCoffset`, `batteryLevelPercent`, `batteryVoltage`, `estimatedCapacity`, `batterySOC`
+- **`metaData`** 
+    - `subjectID`
+    - `patientGender`
+    - `handedness`
+    - `implantedLeads`
+    - `extensions`
+    - `leadLocations`
+    - `leadTargets`
+    - `INSimplantLocation`
+    - `stimProgramNames`
+    - `UTCoffset`
+    - `batteryLevelPercent`
+    - `batteryVoltage`
+    - `estimatedCapacity`
+    - `batterySOC`
 
-**`powerSettings`**
+- **`powerSettings`**
     - `recNumber`
     - `duration`
     - `timeStart`
@@ -397,7 +411,7 @@ Not all of these tables are saved as output in the form shown below. [See sectio
     - `TDsampleRates`
     - `fftConfig`: `bandFormationConfig`, `config`, `interval`, `size`, `streamOffsetBins`, `streamSizeBins`, `windowLoad`
  
-**`stimLogSettings`**
+- **`stimLogSettings`**
     - `HostUnixTime`
     - `activeGroup`
     - `therapyStatus`
@@ -408,19 +422,19 @@ Not all of these tables are saved as output in the form shown below. [See sectio
     - `GroupD`
     - `updatedParameters`
 
-**`stimMetaData`**
+- **`stimMetaData`**
     - `validPrograms`
     - `validProgramNames`
     - `anodes`
     - `cathodes`
 
-**`stimSettingsOut`**
+- **`stimSettingsOut`**
     - `HostUnixTime`
     - `activeGroup`
     - `therapyStatus`
     - `therapyStatusDescription`
 
-**`timeDomainSettings`**
+- **`timeDomainSettings`**
     - `recNum`
     - `duration`
     - `timeStart`
