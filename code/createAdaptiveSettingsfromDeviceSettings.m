@@ -1,4 +1,4 @@
-function [DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = createAdaptiveSettingsfromDeviceSettings(folderPath)
+function [DetectorSettings,AdaptiveStimSettings,AdaptiveEmbeddedRuns_StimSettings] = createAdaptiveSettingsfromDeviceSettings(folderPath)
 %%
 % Extract information from DeviceSettings.json relevant to adaptive
 % detector and stimulation settings
@@ -20,7 +20,7 @@ DetectorSettings = table;
 AdaptiveStimSettings = table;
 %%
 addEntry = 0;
-adaptiveFields = {'adaptiveMode','adaptiveStatus','currentState',...
+adaptiveFields = {'adaptiveMode','currentState',...
     'deltaLimitsValid','deltasValid'};
 tempStateTable = table();
 allStates = {'state0','state1','state2','state3','state4','state5',...
@@ -215,19 +215,7 @@ for iRecord = 1:length(DeviceSettings)
                     currentAdaptiveMode = 'Unexpected';
             end
             newEntry.adaptiveMode = currentAdaptiveMode;
-            
-            switch updatedAdaptive.adaptiveStatus
-                case 0
-                    currentAdaptiveStatus = 'Inactive';
-                case 1
-                    currentAdaptiveStatus = 'Operative Active';
-                case 2
-                    currentAdaptiveStatus = 'Embedded Active';
-                otherwise
-                    currentAdaptiveStatus = 'Unexpected';
-            end
-            newEntry.adaptiveStatus = currentAdaptiveStatus;
-            
+                
             switch updatedAdaptive.currentState
                 case 0
                     currentState = 'State 0';
@@ -264,22 +252,21 @@ for iRecord = 1:length(DeviceSettings)
     end
 end
 
-% KS NEED TO UPDATE HERE
-
 % Create a 'cleaned' version of the AdaptiveStimSettings table, only
-% reporting values when adaptive status was 2, or switch from 2->0
+% reporting values when adaptive mode was embedded, or switch from embedded
+% to off
 
-% indices_AdaptiveOn = find(AdaptiveStimSettings.adaptiveStatus == 2);
-% allIndices = sort([indices_AdaptiveOn; indices_AdaptiveOn + 1]);
+indices_AdaptiveOn = find(strcmp(AdaptiveStimSettings.adaptiveMode,'Embedded'));
+allIndices = sort(unique([indices_AdaptiveOn; indices_AdaptiveOn + 1]));
 
-AdaptiveRuns_StimSettings = table;
-% if ~isempty(indices_AdaptiveOn)
-%     % Check that we haven't exceeded the number of entries in the table
-%     if allIndices(end) > size(AdaptiveStimSettings,1)
-%         allIndices(end) = [];
-%     end
-%     AdaptiveRuns_StimSettings = AdaptiveStimSettings(allIndices,:);
-%     AdaptiveRuns_StimSettings = removevars(AdaptiveRuns_StimSettings,'updatedParameters');
-% end
+AdaptiveEmbeddedRuns_StimSettings = table;
+if ~isempty(indices_AdaptiveOn)
+    % Check that we haven't exceeded the number of entries in the table
+    if allIndices(end) > size(AdaptiveStimSettings,1)
+        allIndices(end) = [];
+    end
+    AdaptiveEmbeddedRuns_StimSettings = AdaptiveStimSettings(allIndices,:);
+    AdaptiveEmbeddedRuns_StimSettings = removevars(AdaptiveEmbeddedRuns_StimSettings,'updatedParameters');
+end
 
 end
