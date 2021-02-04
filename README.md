@@ -12,7 +12,7 @@ Selection of Matlab functions to extract .json raw data from Summit RC+S device,
 ## Table of Contents
 - [Installation Instructions](#installation-instructions)
 - [Usage](#usage)
-- [Structure of Repository:](#structure-of-repository)
+- [Structure of Repository](#structure-of-repository)
 - [What is the RC+S native data format?](#what-is-the-rcs-native-data-format)
 - [Data parsing overview](#data-parsing-overview)
 - [RC+S raw data structures](#rcs-raw-data-structures)
@@ -81,7 +81,7 @@ Each of the .json files has packets which were streamed from the RC+S using a UD
 ![Data Structure](documentationFigures/RCS_DataStructure.png)
 
 ### JSON data files 
-- **RawDataTD.json**: Contains continuous raw time domain data in packet form. Each packet has timing information (and packet sizes are not consistent). Data can be streamed from up to 4 time domain channels (2 on each bore; bore = connector in INS for one physical depth/strip, which has multiple contacts) at 250Hz and 500Hz or up to 2 time domain channels at 1000Hz. Bridging can be used to record all 4 time domain channels from one bore (this version of acquisition is untested in this code repo). A `timestamp` and `systemTick` are only available for the last element of each data packet and timing information for each sample must be deduced. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
+- **RawDataTD.json**: Contains continuous raw time domain data in packet form. Each packet has timing information (and packet sizes are not consistent). Data can be streamed from up to 4 time domain channels (2 on each bore; bore = connector in INS for one physical depth/strip, which has multiple contacts) at 250Hz and 500Hz or up to 2 time domain channels at 1000Hz. Bridging can be used to record all 4 time domain channels from one bore (this version of acquisition is untested in this code repo). A `timestamp` and `systemTick` are only available for the last element of each data packet and timing information for each sample must be deduced. [See section below on timestamp and systemTick](#systemtick-and-timestamp)
 - **RawDataAccel.json**: Contains continuous raw onboard 3-axis accelerometry data as well as timing information. The structure and timing information is similar to the time domain files.
 - **DeviceSettings.json**: Contains information about which datastreams were enabled, start and stop times of streaming, stimulation settings, adaptive settings, and device parameters (e.g. sampling rate, montage configuration [which electrodes are being recorded from], power bands limits, etc). Many of these settings can be changed within a given recording; each time such a change is made, another record is written to DeviceSettings.json file. 
 - **RawDataFFT.json** - Contains continuous information streamed from the onboard (on-chip) FFT engine. The structure and timing information is similar to the time domain files.
@@ -89,7 +89,7 @@ Each of the .json files has packets which were streamed from the RC+S using a UD
 - **AdaptiveLog.json** - Contains any information from the embedded adaptive detector. The structure and timing information is similar to the time domain files.
 - **StimLog.json** - Contains information about the stimulation setup (e.g. which group, program, rate and amplitude the device is currently using for stimulation). The structure and timing information is similar to the time domain files. Much of this information is duplicated in DeviceSettings.json and it is preferable to extract this information from DeviceSettings.json, as it tends to be more complete.
 - **ErrorLog.json**- Contains information about errors. Not currently used.
-- **EventLog.json** - Contains discrete annotations of user Events that can be segregated as 'EventType' and 'EventSubtype'. These can be experimental timings or patient report if streaming at home. Note that this information only contains timing information in computer time, whereas all other .json files have timing relative to (on-board) INS time. When used in its entirety, the processing pipeline transforms the times to a common time so they are comparable [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
+- **EventLog.json** - Contains discrete annotations of user Events that can be segregated as 'EventType' and 'EventSubtype'. These can be experimental timings or patient report if streaming at home. Note that this information only contains timing information in computer time, whereas all other .json files have timing relative to (on-board) INS time. When used in its entirety, the processing pipeline transforms the times to a common time so they are comparable [See section below on timestamp and systemTick](#systemtick-and-timestamp)
 - **DiagnosticsLog.json** - Contains discrete information that can be used for error checking.
 - **TimeSync.json**: Not currently used
 
@@ -98,10 +98,10 @@ Note that in each recording session, all .json files will be created and saved. 
 ### Data tables created in Matlab during processing 
 Not all of these tables are saved as output in the form shown below. [See section below for Data tables contained in output file](#data-tables-contained-in-output-file) 
 
-- **RawDataTD.json** --> **timeDomainData**:
-  - `DerivedTime`: Computed time for each sample. [See How to Calculate DerivedTime for more information](https://github.com/openmind-consortium/Analysis-rcs-data/blob/DocumentationUpdate/README.md#how-to-calculate-derivedtime)
-  - `timestamp`: INS clock driven timer that does not roll over. Highest resolution is 1 second. Total elaped time since March 1, 2000 at midnight. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
-  - `systemTick`: 16-bit INS clock timer that rolls over every 2^16 values. Highest resolution is 100 microseconds. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](https://github.com/openmind-consortium/Analysis-rcs-data/tree/DocumentationUpdate#systemtick-and-timestamp)
+- **RawDataTD.json** --> **`timeDomainData`**
+  - `DerivedTime`: Computed time for each sample. [See How to Calculate DerivedTime for more information](#how-to-calculate-derivedtime)
+  - `timestamp`: INS clock driven timer that does not roll over. Highest resolution is 1 second. Total elaped time since March 1, 2000 at midnight. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](#systemtick-and-timestamp)
+  - `systemTick`: 16-bit INS clock timer that rolls over every 2^16 values. Highest resolution is 100 microseconds. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](#systemtick-and-timestamp)
   - `PacketGenTime`: API estimate of when the packet was created on the INS within the PC clock domain. Estimate created by using results of latest latency check (one is done at system initialization, but can re-perform whenever you want) and time sync streaming. Only accurate within ~50ms.
   - `PacketRxUnixTime`: PC clock-driven time when the packet was received. Highly inaccurate after packet drops.
   - `dataTypeSequence`: 8-bit packet number counter that rolls over, ranging from 0 to 255; can be used to help identify if packets are in order or are missing. Should run continuously, but instances of resetting have been observed.
@@ -112,7 +112,7 @@ Not all of these tables are saved as output in the form shown below. [See sectio
   - `key2`: Channel 2; contains numerical data in millivolts
   - `key3`: Channel 3; contains numerical data in millivolts
    
-- **RawDataAccel.json** --> **AccelData**:
+- **RawDataAccel.json** --> **`AccelData`**
   - `DerivedTime`: Same as above
   - `timestamp`: Same as above
   - `systemTick`: Same as above
@@ -120,12 +120,12 @@ Not all of these tables are saved as output in the form shown below. [See sectio
   - `PacketRxUnixTime`: Same as above
   - `dataTypeSequence`: Same as above
   - `samplerate`: Same as above
-  - `packetsizes`: Samve as above
+  - `packetsizes`: Same as above
   - `XSamples`: X-axis
   - `YSamples`: Y-axis
   - `ZSamples`: Z-axis
 
-- **RawDataPower.json** --> **PowerData**
+- **RawDataPower.json** --> **`PowerData`**
   - `DerivedTime`: Same as above
   - `timestamp`: Same as above
   - `systemTick`: Same as above
@@ -148,7 +148,7 @@ Not all of these tables are saved as output in the form shown below. [See sectio
   - `Band7`: Power values
   - `Band8`: Power values
 
-- **RawDataFFT.json** --> **FFTData**
+- **RawDataFFT.json** --> **`FFTData`**
   - `DerivedTime`: Same as above
   - `timestamp`: Same as above
   - `systemTick`: Same as above
@@ -163,7 +163,7 @@ Not all of these tables are saved as output in the form shown below. [See sectio
   - `FftSize`: Number of points in FFT calculation
   - `TDsamplerate`: Sampling rate (in Hz) of time domain data
     
-- **AdaptiveLog.json** --> **AdaptiveData**
+- **AdaptiveLog.json** --> **`AdaptiveData`**
   - `DerivedTime`: Same as above
   - `timestamp`: Same as above
   - `systemTick`: Same as above
@@ -176,7 +176,16 @@ Not all of these tables are saved as output in the form shown below. [See sectio
   - `CurrentProgramAmplitudesInMilliamps`: The amplitude(s) of stimulation (in mA) for the current program
   - `IsInHoldOffOnStartup`: Boolean
   - `Ld0DetectionStatus`: Detection status relative to the two possible thresholds
-  - `Ld1DetectionStatus`: Detection status relative to the two possible thresholds
+    - 0000 0000: None
+    - 0000 0001: Low boundary in immediate detect
+    - 0000 0010: High boundary in immediate Detect
+    - 0000 0100: Low boundary in detect
+    - 0000 1000: High boundary in detect
+    - 0001 0000: The LD output is over range and the LD output is held at last valid computed value
+    - 0010 0000: LD is being blanked currently due to just having entered a new state
+    - 0100 0000: Power channel input to the LD is over range and the LD output is held at the last valid computed value
+    - 1000 0000: LD in a hold off state to allow for it to stabilize (LD detect output not valid)
+  - `Ld1DetectionStatus`: Detection status relative to the two possible thresholds, same coding as `Ld0DetectionStatus`
   - `PreviousAdaptiveState`: Indicates the previous adaptive state (0-8), or no state
   - `SensingStatus`: Binary string indicating which sense states are enabled:
     - 0000 0000: None
@@ -188,7 +197,7 @@ Not all of these tables are saved as output in the form shown below. [See sectio
     - 0010 0000: Detection - Ld1
     - 0100 0000: Loop Recording
     - 1000 0000: Adaptive Stim    
-  - `StateEntryCount`: Number of times current state has been entered since last Ld diagnostic mirror reset
+  - `StateEntryCount`: Number of times current state has been entered since last LD diagnostic mirror reset
   - `StateTime`: Time spent in this state since the last time the state times were cleared (in seconds)
   - `StimFlags`: Indicates status flags for adaptive therapy operation (if any amplitude is currently ramping)
     - 0000 0000: None
@@ -197,18 +206,18 @@ Not all of these tables are saved as output in the form shown below. [See sectio
     - 0000 0100: Program 2 amp ramping
     - 0000 1000: Program 3 amp ramping
   - `StimRateInHz`: Stimulation rate in Hz
-  - `Ld0_featureInputs`
-  - `Ld0_fixedDecimalPoint`
+  - `Ld0_featureInputs`: The average power feature inputs
+  - `Ld0_fixedDecimalPoint`: The fixed decimal point used in calculations
   - `Ld0_highThreshold`: The high threshold value
   - `Ld0_lowThreshold`: The low threshold value
   - `Ld0_output`: The linear discriminant output
-  - `Ld1_featureInputs`
-  - `Ld1_fixedDecimalPoint`
+  - `Ld1_featureInputs`: The average power feature inputs
+  - `Ld1_fixedDecimalPoint`: The fixed decimal point used in calculations
   - `Ld1_highThreshold`: The high threshold value
   - `Ld1_lowThreshold`: The low threshold value
   - `Ld1_output`: The linear discriminant output
   
-- **StimLog.json** --> **stimLogSettings**
+- **StimLog.json** --> **`stimLogSettings`**
   - `HostUnixTime`
   - `activeGroup`
   - `therapyStatus`
@@ -218,38 +227,166 @@ Not all of these tables are saved as output in the form shown below. [See sectio
   - `GroupD`: Contains settings for stimulation group D (`RateInHz`, `ampInMilliamps`, `pulseWidthInMicroseconds`)
   - `updatedParameters`: Which variable(s) were updated from the prior entry in stimLogSettings
 
-- **EventLog.json** --> **eventLogTable**
-  - `SessionId`
-  - `HostUnixTime`
-  - `EventName`
-  - `EventType`
-  - `EventSubType`
-  - `UnixOnsetTime`
-  - `UnixOffsetTime'
+- **EventLog.json** --> **`eventLogTable`** [More info below](#data-tables-contained-in-output-file)
 
 - **DeviceSettings.json** 
-[examples from different files]
-  - `timeDomainSettings`
+  - **`timeDomainSettings`** [More info below](#data-tables-contained-in-output-file)
+  - **`powerSettings`** [More info below](#data-tables-contained-in-output-file)
+  - **`fftSettings`** [More info below](#data-tables-contained-in-output-file)
+  - **`stimSettingsOut`** [More info below](#data-tables-contained-in-output-file)
+  - **`stimMetaData`** [More info below](#data-tables-contained-in-output-file)
+  - **`metaData`** [More info below](#data-tables-contained-in-output-file)
+  - **`DetectorSettings`** [More info below](#data-tables-contained-in-output-file)
+  - **`AdaptiveStimSettings`** [More info below](#data-tables-contained-in-output-file)
+  - **`AdaptiveEmbeddedRuns_StimSettings`** [More info below](#data-tables-contained-in-output-file)
+
+- **ErrorLog.json**: Not currently used
+- **DiagnosticsLog.json**: Not currently used
+- **TimeSync.json**: Not currently used
+
+## Data tables contained in output file
+
+- **`combinedDataTable`**: Contains the following fields, if data present in this recording
+   - `localTime`: Human-readable local time
+   - `DerivedTime`: Unix time
+   - `TD_key0`: Channel 0; contains numerical data in millivolts
+   - `TD_key1`: Channel 1; contains numerical data in millivolts
+   - `TD_key2`: Channel 2; contains numerical data in millivolts
+   - `TD_key3`: Channel 3; contains numerical data in millivolts
+   - `TD_samplerate`: Sampling rate in Hz; only written in rows corresponding to last sample of each packet
+   - `Accel_XSamples`: X-axis
+   - `Accel_YSamples`: Y-axis
+   - `Accel_ZSamples`: Z-axis
+   - `Accel_samplerate`: Sampling rate in Hz; only written in rows corresponding to last sample of each packet
+   - `Power_ExternalValuesMask`: Binary string representing if external test values are being used instead of internal power data for each power channel (e.g. 00000000 indicates that all Bands are providing internal power data)
+   - `Power_FftSize`: Number of points in FFT calculation
+   - `Power_IsPowerChannelOverrange`: Boolean
+   - `Power_ValidDataMask`: Binary string representing if data valid for each power channel (e.g. 00000011 indicates that Band1 and Band2 are valid)
+   - `Power_Band1`: Power values
+   - `Power_Band2`: Power values
+   - `Power_Band3`: Power values
+   - `Power_Band4`: Power values
+   - `Power_Band5`: Power values
+   - `Power_Band6`: Power values
+   - `Power_Band7`: Power values
+   - `Power_Band8`: Power values
+   - `FFT_Channel`: Byte indicating which FFT channel is being streamed, 0-3
+   - `FFT_FftSize`: Number of points in FFT calculation
+   - `FFT_FftOutput`: The FFT output bins from the INS
+   - `FFT_Units`: Units of the bins data points
+   - `Adaptive_CurrentAdaptiveState`: Indicates the current adaptive state (0-8), or no state
+   - `Adaptive_CurrentProgramAmplitudesInMilliamps`: The amplitude(s) of stimulation (in mA) for the current program
+   - `Adaptive_IsInHoldOffOnStartup`: Boolean
+   - `Adaptive_Ld0DetectionStatus`: Detection status relative to the two possible thresholds
+      - 0000 0000: None
+      - 0000 0001: Low boundary in immediate detect
+      - 0000 0010: High boundary in immediate Detect
+      - 0000 0100: Low boundary in detect
+      - 0000 1000: High boundary in detect
+      - 0001 0000: The LD output is over range and the LD output is held at last valid computed value
+      - 0010 0000: LD is being blanked currently due to just having entered a new state
+      - 0100 0000: Power channel input to the LD is over range and the LD output is held at the last valid computed value
+      - 1000 0000: LD in a hold off state to allow for it to stabilize (LD detect output not valid)
+   - `Adaptive_Ld1DetectionStatus`: Detection status relative to the two possible thresholds, same coding as `Ld0DetectionStatus`
+   - `Adaptive_PreviousAdaptiveState`: Indicates the previous adaptive state (0-8), or no state
+   - `Adaptive_SensingStatus`: Binary string indicating which sense states are enabled:
+     - 0000 0000: None
+     - 0000 0001: LFP Sensing
+     - 0000 0010: FFT
+     - 0000 0100: Power
+     - 0000 1000: Unused
+     - 0001 0000: Detection - Ld0
+     - 0010 0000: Detection - Ld1
+     - 0100 0000: Loop Recording
+     - 1000 0000: Adaptive Stim  
+   - `Adaptive_StateEntryCount`: Number of times current state has been entered since last LD diagnostic mirror reset
+   - `Adaptive_StateTime`: Time spent in this state since the last time the state times were cleared (in seconds)
+   - `Adaptive_StimFlags`: Indicates status flags for adaptive therapy operation (if any amplitude is currently ramping)
+     - 0000 0000: None
+     - 0000 0001: Program 0 amp ramping
+     - 0000 0010: Program 1 amp ramping
+     - 0000 0100: Program 2 amp ramping
+     - 0000 1000: Program 3 amp ramping
+   - `Adaptive_StimRateInHz`: Stimulation rate in Hz
+   - `Adaptive_Ld0_featureInputs`: The average power feature inputs
+   - `Adaptive_Ld0_fixedDecimalPoint`: The fixed decimal point used in calculations
+   - `Adaptive_Ld0_highThreshold`: The high threshold value
+   - `Adaptive_Ld0_lowThreshold`: The low threshold value
+   - `Adaptive_Ld0_output`: The linear discriminant output
+   - `Adaptive_Ld1_featureInputs`: The average power feature inputs
+   - `Adaptive_Ld1_fixedDecimalPoint`: The fixed decimal point used in calculations
+   - `Adaptive_Ld1_highThreshold`: The high threshold value
+   - `Adaptive_Ld1_lowThreshold`: The low threshold value
+   - `Adaptive_Ld1_output`: The linear discriminant output
+
+- **`AdaptiveEmbeddedRuns_StimSettings`**: Table with only changes to adaptive settings when adaptive was embedded, or transitioning from embedded to off 
+    - `HostUnixTime`
+    - `deltas`: contains fields for rise and fall rates, in mA/sec, for each of the four possible bands
+    - `states`: contains fields for state0-state8 indicating if that state is valid and ampInMilliamps; NaN indicates stimulation is not defined; -1 indicates hold for that state
+    - `stimRate`: In Hz
+    - `adaptiveMode`: Disabled; Operative; Embedded
+    - `currentState`: Current adaptive state
+    - `deltaLimitsValid`: Boolean
+    - `deltasValid`: Boolean
+
+- **`AdaptiveStimSettings`**
+    - `HostUnixTime`
+    - `deltas`: contains fields for rise and fall rates, in mA/sec, for each of the four possible bands
+    - `states`: contains fields for state0-state8 indicating if that state is valid and ampInMilliamps; NaN indicates stimulation is not defined; -1 indicates hold for that state
+    - `stimRate`: In Hz
+    - `adaptiveMode`: Disabled; Operative; Embedded
+    - `currentState`: Current adaptive state
+    - `deltaLimitsValid`: Boolean
+    - `deltasValid`: Boolean
+    - `updatedParameters`
+
+- **`DetectorSettings`**:
+    - `HostUnixTime`    
+    - `Ld0`
+        - `biasTerm`
+        - `features`: `normalizationMultiplyVector`, `normalizationSubtractVector`, `weightVector`
+        - `fractionalFixedPointValue`
+        - `updateRate`: in seconds
+        - `blankingDurationUponStateChange`: in seconds
+        - `onsetDuration`: in seconds
+        - `holdoffTime`: in seconds
+        - `terminationDuration`: in seconds
+        - `detectionInputs_BinaryCode`: Binary string indicating which power channel(s) were used as input for the linear discriminant
+            - 0000 0000: No inputs chosen
+            - 0000 0001: Power channel 0, band 0
+            - 0000 0010: Power channel 0, band 1
+            - 0000 0100: Power channel 1, band 0
+            - 0000 1000: Power channel 1, band 1
+            - 0001 0000: Power channel 2, band 0
+            - 0010 0000: Power channel 2, band 1
+            - 0100 0000: Power channel 3, band 0
+            - 1000 0000: Power channel 3, band 1
+        - `detectionEnable_BinaryCode`: Binary string indicating setting for linear discriminant detector
+            - 0000 0000: Single threshold detect mode
+            - 0000 0001: Enable dual threshold detection (possible outcomes are high, in-range, and low). If not set, single threshold detection is used (possible outcomes are low and in-range) 
+            - 0000 0010: Blank both LDs based on a state change from this LD. The blank duration specified for each LD is used (if 0 duration is set, then no blanking will occur). If this setting is not present, only this LD is blanked
+    - `Ld1`: same fields as Ld0
+    - `updatedParameters`
+
+- **`eventLogTable`**
+    - `SessionId`
+    - `HostUnixTime`
+    - `EventName`
+    - `EventType`
+    - `EventSubType`
+    - `UnixOnsetTime`
+    - `UnixOffsetTime'
   
-    ![timeDomainSettings](documentationFigures/timeDomain.PNG)
-  
-  - `powerSettings`
-  
-    ![powerSettings](documentationFigures/powerSettings_2.PNG)
-  
-  - `fftSettings`
-    ![fftSettings](documentationFigures/fftSettings.PNG)
-  
-  - `stimSettingsOut'
-    ![stimSettingsOut](documentationFigures/StimSettingsOut.png)
-  
-  - `stimMetaData'
-    - `validPrograms`
-    - `validProgramNames`
-    - `anodes`
-    - `cathodes`
-  
-  - `metaData`
+- **`fftSettings`**
+    - `recNumber`
+    - `duration`
+    - `timeStart`
+    - `timeStop`
+    - `fftConfig`: `bandFormationConfig`, `config`, `interval`, `size`, `streamOffsetBins`, `streamSizeBins`, `windowLoad`
+    - `TDsampleRates`: In Hz
+    - `fftParameters`: `numBins`, `binwidth`, `fftBins`, `lower`, `upper`, `fftSize`
+
+- **`metaData`** 
     - `subjectID`
     - `patientGender`
     - `handedness`
@@ -265,45 +402,49 @@ Not all of these tables are saved as output in the form shown below. [See sectio
     - `estimatedCapacity`
     - `batterySOC`
 
-  - `DetectorSettings` [Adaptive]
+- **`powerSettings`**
+    - `recNumber`
+    - `duration`
+    - `timeStart`
+    - `timeStop`
+    - `powerBands`: `powerBandsInHz`, `powerBinsInHz`, `lowerBound`, `upperBound`, `fftSize`, `fftBins`, `indices_BandStart_BandStop`, `binWidth`, `TDsampleRate`
+    - `TDsampleRates`
+    - `fftConfig`: `bandFormationConfig`, `config`, `interval`, `size`, `streamOffsetBins`, `streamSizeBins`, `windowLoad`
+ 
+- **`stimLogSettings`**
     - `HostUnixTime`
-    - `Ld0`: contains fields `biasTerm`, `blankingDurationUponStateChange`, `detectionEnable`, `detectionInputs`, `features`, `fractionalFixedPointValue`, `holdoffTime`, `onsetDuration`, `terminationDuration`, `updateRate`
-    - `Ld1`: contains fields `biasTerm`, `blankingDurationUponStateChange`, `detectionEnable`, `detectionInputs`, `features`, `fractionalFixedPointValue`, `holdoffTime`, `onsetDuration`, `terminationDuration`, `updateRate`
-    - `DetectorStatus`
+    - `activeGroup`
+    - `therapyStatus`
+    - `therapyStatusDescription`
+    - `GroupA`
+    - `GroupB`
+    - `GroupC`
+    - `GroupD`
     - `updatedParameters`
-  
-  - `AdaptiveStimSettings` [Table with all changes to adaptive settings]
+
+- **`stimMetaData`**
+    - `validPrograms`
+    - `validProgramNames`
+    - `anodes`
+    - `cathodes`
+
+- **`stimSettingsOut`**
     - `HostUnixTime`
-    - `deltas`: contains fields for rise and fall rates, in mA/sec, for each of the four possible bands
-    - `states`: contains fields for state0-state8 indicating if that state is valid and ampInMilliamps; NaN indicates stimulation is not defined; -1 indicates hold for that state
-    - `stimRate`: In Hz
-    - `adaptiveMode`: 0 = disabled; 1 = operative; 2 = embedded
-    - `adaptiveStatus`: 0 = disabled; 1 = operative; 2 = embedded
-    - `currentState`
-    - `deltaLimitsValid`
-    - `deltasValid`
-    - `updatedParameters`
-  
-  - `AdaptiveRuns_StimSettings` [Table with only changes to adaptive settings when adaptive was on, or transitioning from off [0] to embedded [2]]
-    - `HostUnixTime`
-    - `deltas`: contains fields for rise and fall rates, in mA/sec, for each of the four possible bands
-    - `states`: contains fields for state0-state8 indicating if that state is valid and ampInMilliamps; NaN indicates stimulation is not defined; -1 indicates hold for that state
-    - `stimRate`: In Hz
-    - `adaptiveMode`: 0 = disabled; 1 = operative; 2 = embedded
-    - `adaptiveStatus`: 0 = disabled; 1 = operative; 2 = embedded
-    - `currentState`
-    - `deltaLimitsValid`
-    - `deltasValid`  
+    - `activeGroup`
+    - `therapyStatus`
+    - `therapyStatusDescription`
 
-- **ErrorLog.json**: Not currently used
-- **DiagnosticsLog.json**: Not currently used
-- **TimeSync.json**: Not currently used
-
-## Data tables contained in output file
-(UNDER DEVELOPMENT)
-
-
-
+- **`timeDomainSettings`**
+    - `recNum`
+    - `duration`
+    - `timeStart`
+    - `timeStop`
+    - `samplingRate`
+    - `chan1`
+    - `chan2`
+    - `chan3`
+    - `chan4`
+    - `TDsettings`: `currentMode`, `evokedMode`, `gain`, `hpf`, `lpf1`, `lpf2`, `minusInput`, `outputMode`, `plusInput`, `sampleRate`, `chanOut`, `chanFullStr`
 
 ## Functions
 This list contains the functions that have been tested in branch and pushed to master (brief description of function input output next to each function name)
@@ -344,6 +485,7 @@ This list contains the functions that have been tested in branch and pushed to m
 - **getSampleRate**: Convert Medtronic codes to sample rates in Hz for time domain data
 - **getSampleRateAcc**: Convert Medtronic codes to sample rates in Hz for accelerometer data
 - **getStimParameters**: For a given stimulation group, update prior fields with any information present in current fields
+- **getPowerFromTimeDomain**: For a given session dataset, calculates equivalent RCS power from timedomain series based on harmonized DerivedTimes
 
 ### (Pre)Processing
 - **assignTime**: Function for creating timestamps for each sample of valid RC+S data. 

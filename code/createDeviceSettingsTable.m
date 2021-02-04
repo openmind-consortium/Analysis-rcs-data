@@ -45,7 +45,6 @@ inStream_TD = 0; % Initalize as streaming off
 inStream_Power = 0; % Initalize as streaming off
 inStream_FFT = 0; % Initalize as streaming off
 
-changeToInStream = 0;
 streamStartCounter_TD = 1; % Initalize counter for streaming starts
 streamStopCounter_TD = 1; % Initalize counter for streaming stops
 streamStartCounter_Power = 1; % Initalize counter for streaming starts
