@@ -15,15 +15,18 @@ PATIENTID = 'RCS02R'
 
 rootdir = ['/Volumes/Prasad_X5/' PATIENTID(1:end-1)];
 loaddir = [rootdir '/SummitData/SummitContinuousBilateralStreaming/' PATIENTID];
+aDBSdir = [rootdir '/SummitData/StarrLab/' PATIENTID];
 github_dir = '/Users/pshirvalkar/Documents/GitHub/UCSF-rcs-data-analysis';
 
 cd(github_dir)
 addpath(genpath(github_dir))
 
 %% make database of all files
+D = makeDataBaseRCSdata(loaddir,aDBSdir);
 
-T= makeDataBaseRCSdata(loaddir);
-
+%%  LOAD Database
+load(fullfile(loaddir,[PATIENTID 'database_summary.mat'])) 
+D = database_out;
 
 %% Process and load all data - skip if mat already exists
 
@@ -52,9 +55,31 @@ for d = 1:length(dirsdata)
     end
 end
 
-%%  Check if mat file exists, if not, load raw data and save to new matfile
+    disp('DONE!')
+%%  Get files from DB load raw data and concatenate 
+load(fullfile(loaddir,[PATIENTID 'database_summary.mat'])) 
+D = database_out;
+
+% find the rec # to load 
+% recs_to_load = (381:392);
+recs_to_load=381:435;
 
 
+
+
+for r = recs_to_load
+
+DT = load(fullfile(database_out.path{r},'combinedDataTable.mat'))
+    
+    
+end
+  
+%%  plot power bands
+
+% get rid of nans
+% ~isnan(DT.combinedDataTable.Power_Band1)
+
+plot(DT.combinedDataTable.localTime(~isnan(DT.combinedDataTable.Power_Band1)), DT.combinedDataTable.Power_Band1(~isnan(DT.combinedDataTable.Power_Band1)))
 
 
 %%   Kurtosis find periods of stim

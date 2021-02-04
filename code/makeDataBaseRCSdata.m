@@ -1,4 +1,4 @@
-function database_out = makeDataBaseRCSdata(dirname)
+function database_out = makeDataBaseRCSdata(dirname,varargin)
 % function database_out = makeDataBaseRCSdata(dirname)
 %
 %
@@ -13,51 +13,90 @@ function database_out = makeDataBaseRCSdata(dirname)
 %
 %
 %          Included fields are:
-%    [{'time'}; {'sessname'  };  {'duration'  }; ...
+%    [{'rec'}; {'time'}; {'sessname'  };  {'duration'  }; ...
 %     {'battery'   };{'TDfs'      };{'TDSettings'};{'fft'};
 %     {'power'     };{'stim'    };   {'stimName'  }; ...
 %     {'stimparams'};   {'matExist'  };  {'path'};  {'powerbands'}];
 %
 %
+% 
+%  USING CELL DATA IN THE TABLE:
+%       to concatenate all cell variables in the table (such as duration)
+%       use:
+%           alldurations =cat(1,database_out.duration{:})
 %
-%  Depedencies:
+% 
+% 
+% 
+% 
+% Depedencies:
 % https://github.com/JimHokanson/turtle_json
 % in the a folder called "toolboxes" in the same directory as the processing scripts
 %
 %
 % Prasad Shirvalkar Jan2021
+% For OpenMind
 
-
-
+if nargin == 2
+    
+dirsdata1 = findFilesBVQX(dirname,'Sess*',struct('dirs',1,'depth',1));
+dirsdata2 =  findFilesBVQX(varargin{1},'Sess*',struct('dirs',1,'depth',1));
+dirsdata = [dirsdata1;dirsdata2];
+else
 dirsdata = findFilesBVQX(dirname,'Sess*',struct('dirs',1,'depth',1));
 
+end
 
-dbout = [];
+dbout = struct('rec',[],...
+    'time',[],...
+    'sessname',[],...
+    'duration',[],...
+    'battery',[],...
+    'TDfs',[],...
+    'TDSettings',[],...
+    'fft',[],...
+    'power',[],...
+    'stim',[],...
+    'stimName',[],...
+    'stimparams',[],...
+    'matExist',[],...
+    'path',[],...
+    'powerbands',[],...
+'aDBS',[]);
+
+
 for d = 1:length(dirsdata)
     diruse = findFilesBVQX(dirsdata{d},'Device*',struct('dirs',1,'depth',1));
     
+   if nargin==2 &&  d > numel(dirsdata1)
+       dbout(d).aDBS = 1;
+   else 
+       dbout(d).aDBS= 0;
+   end
+   
     fprintf('Reading folder %d of %d  \n',d,length(dirsdata))
     if isempty(diruse) % no data exists inside
-        
-        dbout(d).rectime = [];
+        dbout(d) = d;
+        dbout(d).time = [];
         dbout(d).matExist  = 0;
-        dbout(d).fnm     = [];
-        [pn,fn] = fileparts(dirsdata{d});
+        [~,fn] = fileparts(dirsdata{d});
         dbout(d).sessname = fn;
     else % data may exist, check for time domain ndata
-        tdfile = findFilesBVQX(dirsdata{d},'RawDataTD.json');
+        dbout(d).rec = d;
+        
+        tdfile = findFilesBVQX(dirsdata{d},'EventLog.json');
         tdir = dir(tdfile{1});
+        
+        [pn,fn] = fileparts(dirsdata{d});
+        dbout(d).sessname = fn;
+        [path,~,~] = fileparts(tdfile{1});
+        dbout(d).path = path;
         
         if isempty(tdfile) || tdir.bytes < 300 % time data file doesn't exist or no data
         else
             
             
-            [pn,fn] = fileparts(dirsdata{d});
-            %            DELETE THIS?  dbout(d).rectime = getTime(fn);
-            %            %generates date based on filename
-            dbout(d).sessname = fn;
-            [path,~,~] = fileparts(tdfile{1});
-            dbout(d).path = path;
+            
             
             
             % extract times and .mat status
@@ -154,18 +193,15 @@ for d = 1:length(dirsdata)
     end
 end
 
-% Reorder field names;
-fieldorder = [{'time'}; {'sessname'  };  {'duration'  }; ...
-    {'battery'   };{'TDfs'      };{'TDSettings'};{'fft'}; {'power'     };...
-    {'stim'    };   {'stimName'  }; ...
-    {'stimparams'};   {'matExist'  };  {'path'};  {'powerbands'}];
-dborder = orderfields(dbout,fieldorder);
-database_out = struct2table(dborder,'AsArray',true);
+database_out = struct2table(dbout,'AsArray',true);
 
 
-writetable(database_out,fullfile(dirname,'database_summary.csv'))
-save(fullfile(dirname,'database_summary.mat'),'database_out')
-fprintf('csv and mat of database saved to %s \n', dirname);
+% Rename file to include patient ID
+slashind = find((dirname=='/'),1,'last');
+PTID = dirname(slashind+1:end);
+writetable(database_out,fullfile(dirname,[PTID 'database_summary.csv']))
+save(fullfile(dirname,[PTID 'database_summary.mat']),'database_out')
+fprintf('csv and mat of database saved as %s to %s \n',[PTID 'database_summary.mat'],dirname);
 
 
 end
