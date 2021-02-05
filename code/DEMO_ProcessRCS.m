@@ -1,6 +1,6 @@
 function [combinedDataTable, debugTable, timeDomainSettings,powerSettings,...
     fftSettings,eventLogTable, metaData,stimSettingsOut,stimMetaData,stimLogSettings,...
-    DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = DEMO_ProcessRCS(varargin)
+    DetectorSettings,AdaptiveStimSettings,AdaptiveEmbeddedRuns_StimSettings] = DEMO_ProcessRCS(varargin)
 %%
 % Demo wrapper script for importing raw .JSON files from RC+S, parsing
 % into Matlab table format, and handling missing packets / harmonizing
@@ -105,7 +105,7 @@ if processFlag == 1 || processFlag == 2
     % Adaptive Settings
     disp('Collecting Adaptive Settings from Device Settings file')
     if isfile(DeviceSettings_fileToLoad)
-        [DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = createAdaptiveSettingsfromDeviceSettings(folderPath);
+        [DetectorSettings,AdaptiveStimSettings,AdaptiveEmbeddedRuns_StimSettings] = createAdaptiveSettingsfromDeviceSettings(folderPath);
     else
         error('No DeviceSettings.json file - could not extract detector and adaptive stimulation settings')
     end
@@ -271,8 +271,6 @@ if processFlag == 1 || processFlag == 2
                     AdaptiveData = assignTime(outtable_Adaptive);
                 end
             end
-            
-            
         else
             AdaptiveData = [];
         end
@@ -361,7 +359,7 @@ if processFlag == 1 || processFlag == 2
         save(outputFileName,'combinedDataTable', 'debugTable', 'timeDomainSettings',...
             'powerSettings','fftSettings','eventLogTable','metaData','stimSettingsOut',...
             'stimMetaData','stimLogSettings','DetectorSettings','AdaptiveStimSettings',...
-            'AdaptiveRuns_StimSettings','-v7.3');
+            'AdaptiveEmbeddedRuns_StimSettings','-v7.3');
     end
 end
 

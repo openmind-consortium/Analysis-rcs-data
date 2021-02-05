@@ -62,6 +62,7 @@ powerBands.lowerBound = lowerBounds';
 powerBands.upperBound = upperBounds';
 powerBands.fftSize = fftParameters.fftSize;
 powerBands.fftBins = fftParameters.fftBins;
+powerBands.indices_BandStart_BandStop = unwrapped_powerBandsToConvert;
 powerBands.binWidth = fftParameters.binWidth;
 powerBands.TDsampleRate = currentTDsampleRate;
 
