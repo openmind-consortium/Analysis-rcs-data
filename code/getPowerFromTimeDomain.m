@@ -1,4 +1,4 @@
-function [powerFromTimeDomain] = getPowerFromTimeDomain(folderpath)
+function  [calculatedPowerChannel] = getPowerFromTimeDomain(dataSource, calculationType)
 % creates a table with both power computed signals and power data from RCS
 % the transformation from time domain to power is done using hann windowing
 % of the latest fft interval (new and old points, depending on overlapping)
@@ -20,10 +20,16 @@ function [powerFromTimeDomain] = getPowerFromTimeDomain(folderpath)
 % - hann window 100%
 % - no change in fft settings in data set
 
-% get or read existing harmonized combined table, fft and power settings
+get or read existing harmonized combined table, fft and power settings
 [combinedDataTable, debugTable, timeDomainSettings,powerSettings,...
     fftSettings,eventLogTable, metaData,stimSettingsOut,stimMetaData,stimLogSettings,...
     DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = DEMO_ProcessRCS(folderpath,4);
+
+if istable(dataSource) % combined data table
+    combinedDataTable = dataSource;
+elseif isfile(dataSource) % load data table
+    load(dataSource);
+end
 
 AmpGains = createAmplifierGainsTable(folderpath); % actual amplifier gains per channel
 powerFromTimeDomain = table();
