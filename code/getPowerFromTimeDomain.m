@@ -1,9 +1,10 @@
 function  [powerFromTimeDomain] = getPowerFromTimeDomain(folderpath)
-% creates a table with both power computed signals and power data from RCS
-% the transformation from time domain to power is done using hann windowing
-% of the latest fft interval (new and old points, depending on overlapping)
-% then fft is applied and the power calculated. The magnitude of the power
-% is calculated as the sum of the power of all bins in the frequency band.
+% creates a table with power computed signals from time domain signal using
+% an equivalent process to the internal power computation in the device
+% power is computed using
+% - hann windowing of latest fft interval (new and old points, depending on overlapping)
+% - fft is applied
+% - power calculated as sum of power of all bins in the frequency band
 % 
 % input: device folder path of session
 % 
@@ -12,12 +13,12 @@ function  [powerFromTimeDomain] = getPowerFromTimeDomain(folderpath)
 %     fft settings: sampling rate, fft size, fft interval, han window gain (100%, 50% or 25%)
 %
 % output
-%     powerFromTimeDomain = table(PB1,PB2,PB3,...,PB8)
+%     powerFromTimeDomain = table(harmoinized times, derived times, PB1,PB2,PB3,...,PB8)
 %
 % dependencies: this function relies on the matlab library https://github.com/openmind-consortium/Analysis-rcs-data
 % Assumptions:
 % - hann window 100%
-% - no change in fft settings in data set
+% - no change in fft and power settings in data set
 
 [combinedDataTable, debugTable, timeDomainSettings,powerSettings,...
     fftSettings,eventLogTable, metaData,stimSettingsOut,stimMetaData,stimLogSettings,...
