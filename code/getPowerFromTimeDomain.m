@@ -23,12 +23,6 @@ function  [calculatedPowerChannel] = getPowerFromTimeDomain(folderpath)
     fftSettings,eventLogTable, metaData,stimSettingsOut,stimMetaData,stimLogSettings,...
     DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = DEMO_ProcessRCS(folderpath,4);
 
-if istable(dataSource) % combined data table
-    combinedDataTable = dataSource;
-elseif isfile(dataSource) % load data table
-    load(dataSource);
-end
-
 AmpGains = createAmplifierGainsTable(folderpath); % actual amplifier gains per channel
 powerFromTimeDomain = table();
 powerFromTimeDomain.localTime= combinedDataTable.localTime;
