@@ -1,9 +1,8 @@
-function  [calculatedPowerChannel] = getPowerFromTimeDomain(dataSource, calculationType)
+function  [calculatedPowerChannel] = getPowerFromTimeDomain(folderpath)
 % creates a table with both power computed signals and power data from RCS
 % the transformation from time domain to power is done using hann windowing
 % of the latest fft interval (new and old points, depending on overlapping)
 % then fft is applied and the power calculated. The magnitude of the power
-
 % is calculated as the sum of the power of all bins in the frequency band.
 % 
 % input: device folder path of session
@@ -20,7 +19,6 @@ function  [calculatedPowerChannel] = getPowerFromTimeDomain(dataSource, calculat
 % - hann window 100%
 % - no change in fft settings in data set
 
-get or read existing harmonized combined table, fft and power settings
 [combinedDataTable, debugTable, timeDomainSettings,powerSettings,...
     fftSettings,eventLogTable, metaData,stimSettingsOut,stimMetaData,stimLogSettings,...
     DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = DEMO_ProcessRCS(folderpath,4);
