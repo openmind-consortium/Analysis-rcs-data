@@ -1,4 +1,4 @@
-function  [calculatedPowerChannel] = getPowerFromTimeDomain(folderpath)
+function  [powerFromTimeDomain] = getPowerFromTimeDomain(folderpath)
 % creates a table with both power computed signals and power data from RCS
 % the transformation from time domain to power is done using hann windowing
 % of the latest fft interval (new and old points, depending on overlapping)
