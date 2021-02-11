@@ -44,21 +44,6 @@ packetIndices_NegGenTime = find(dataTable_original.PacketGenTime <= 0);
 duplicate_firstIndex = intersect(find(diff(dataTable_original.dataTypeSequence) == 0),...
     find(diff(dataTable_original.systemTick) == 0));
 
-% Packets with outlier PacketGenTime, as determined by differences between
-% timestamp and PacketGenTime. This does not address packets which have
-% both 'bad' timestamp and PacketGenTime. Packets with only bad timestamp
-% may also be flagged
-
-% Determine first packet with non-negative PacketGenTime -- use this packet
-% for normalizing timestamps and PacketGenTime
-firstGoodIndex = find(dataTable_original.PacketGenTime > 0,1);
-
-normedTimestamps = dataTable_original.timestamp - dataTable_original(firstGoodIndex,:).timestamp;
-normedGenTime_inSecs = (dataTable_original.PacketGenTime - dataTable_original(firstGoodIndex,:).PacketGenTime)/1000;
-
-timeDifferences = normedTimestamps - normedGenTime_inSecs;
-indices_outlierPacketGenTimes = find(abs(timeDifferences) > 1);
-
 % Identify packetGenTimes that go backwards in time; should overlap with negative PacketGenTime
 packetGenTime_diffs = diff(dataTable_original.PacketGenTime);
 diffIndices = find(packetGenTime_diffs < 0 );
@@ -95,7 +80,7 @@ end
 
 % Collect all packets to remove
 packetsToRemove = unique([badDatePackets; packetIndices_NegGenTime;...
-    duplicate_firstIndex + 1; indices_outlierPacketGenTimes; indices_backInTime']);
+    duplicate_firstIndex + 1; indices_backInTime']);
 
 % Remove packets identified above for rejection
 packetsToKeep = setdiff(1:size(dataTable_original,1),packetsToRemove);
