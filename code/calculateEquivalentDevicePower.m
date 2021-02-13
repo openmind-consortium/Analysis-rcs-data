@@ -13,8 +13,8 @@ function [newPowerFromTimeDomain, newSettings] = calculateEquivalentDevicePower(
 % 
 % First prototype focuses only on user selecting a power band
 %
-% Parse input variables, indicating dataSource and calculationType
 
+% Parse input variables
 newSettings.fftSettings = settings{1}; % fftSettings
 powerSettings = settings{2}; % powerSettings
 newSettings.metaData = settings{3}; % metaData
