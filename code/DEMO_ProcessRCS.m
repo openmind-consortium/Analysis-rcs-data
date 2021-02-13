@@ -103,7 +103,7 @@ if processFlag == 1 || processFlag == 2
     disp('Collecting Stimulation Settings from Stim Log file')
     StimLog_fileToLoad = [folderPath filesep 'StimLog.json'];
     if isfile(StimLog_fileToLoad)
-        [stimLogSettings] = createStimSettingsTable(folderPath);
+        [stimLogSettings] = createStimSettingsTable(folderPath,stimMetaData);
     else
         warning('No StimLog.json file')
     end
@@ -229,7 +229,7 @@ if processFlag == 1 || processFlag == 2
                 FFTData = createDataTableWithMultipleSamplingRates(all_fftFs,fftSettings,outtable_FFT);
             else
                 % Same sample rate for FFT data for the full file
-                FFT_sampleRate = unique(all_powerFs);
+                FFT_sampleRate = unique(all_fftFs);
                 outtable_FFT.samplerate(:) = FFT_sampleRate;
                 outtable_FFT.packetsizes(:) = 1;
                 disp('Creating derivedTimes for FFT:')
