@@ -14,6 +14,9 @@ load([pathName fileName])
 dataStreams = {timeDomainData, AccelData, PowerData, FFTData, AdaptiveData};
 [combinedDataTable] = createCombinedTable(dataStreams,unifiedDerivedTimes,metaData);
 
+%%
+% This cell creates debugTable - containing only timing information from
+% selected dataStreams for testing
 % Convert sparse matrics (with only time variables) to tables
 if ~isempty(timeDomainData_onlyTimeVariables)
     [timeDomainData_onlyTimeVariables] = createTableFromSparseMatrix(timeDomainData_onlyTimeVariables,timeDomain_timeVariableNames);
@@ -45,4 +48,4 @@ timeDataStreams = {timeDomainData_onlyTimeVariables, AccelData_onlyTimeVariables
 
 % Create debug table
 [debugTable] = createCombinedTable_debugTable(timeDataStreams,unifiedDerivedTimes,metaData);
-
+%%
