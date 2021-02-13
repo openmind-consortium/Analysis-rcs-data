@@ -18,7 +18,7 @@ Selection of Matlab functions to extract .json raw data from Summit RC+S device,
 - [RC+S raw data structures](#rcs-raw-data-structures)
     + [JSON data files](#json-data-files)
 - [Data tables contained in output file](#data-tables-contained-in-output-file)
-- [Creating combined data table]()
+- [Creating combined data table](#creating-combineddatatable)
 - [Functions](#functions)
     + [Wrappers](#wrappers)
     + [CreateTables](#createtables)
@@ -418,12 +418,14 @@ This list contains the functions that have been tested in branch and pushed to m
 
 ### Wrappers
 - **DEMO_ProcessRCS**: Demo wrapper script for importing raw .JSON files from RC+S, parsing into Matlab table format, and handling missing packets / harmonizing timestamps across data streams
+- **DEMO_LoadRCS**: Demo script for loading AllDataTables.mat (saved output from DEMO_ProcessRCS), creating combinedDataTable, and converting sparse matrics into tables and creating debugTable
 
 ### CreateTables
 - **createAccelTable**: Create Matlab table of raw data from RawDataAccel.json
 - **createAdaptiveSettingsfromDeviceSettings**: Create Matlab table of adaptive settings from DeviceSettings.json
 - **createAdaptiveTable**: Create Matlab table of adaptive time domain signals from AdaptiveLog.json
 - **createCombinedTable**: Create Matlab table of combined data, with harmonized `DerivedTime`values
+- **createCombinedTable_debugTable**: Create Matlab table of original timing data, with harmonized `DerivedTime`values
 - **createDataTableWithMultipleSamplingRates**: Create Matlab table from data with multiple sampling rates within a data stream
 - **createDeviceSettingsTable**: Extract information from DeviceSettings.json related to configuration for time domain, power domain, FFT domain, adaptive, and stimulation
 - **createEventLogTable**: Extract information from EventLog.json 
@@ -431,6 +433,7 @@ This list contains the functions that have been tested in branch and pushed to m
 - **createPowerTable**: Create Matlab table of raw data from RawDataPower.json
 - **createStimSettingsFromDeviceSettings**: Create Matlab table of stim settings data from DeviceSettings.json
 - **createStimSettingsTable**: Create Matlab table of stim data from StimLog.json
+- **createTableFromSparseMatrix**: Create table from sparse matrix and column names
 - **createTimeDomainTable**: Create Matlab table of raw data from RawDataTD.json
 
 ### Utility
