@@ -1,4 +1,4 @@
-function [combinedDataTable, debugTable] = createCombinedTable(dataStreams,unifiedDerivedTimes)
+function [combinedDataTable] = createCombinedTable(dataStreams,unifiedDerivedTimes,metaData)
 %%
 % Using the shifted derivedTimes (newDerivedTimes), determine where rows of
 % data fit in combinedDataTable.
@@ -7,21 +7,32 @@ function [combinedDataTable, debugTable] = createCombinedTable(dataStreams,unifi
 combinedDataTable = table();
 combinedDataTable.DerivedTime = unifiedDerivedTimes;
 numRows = length(unifiedDerivedTimes);
-debugTable = table();
-debugTable.DerivedTime = unifiedDerivedTimes;
 
 for iStream = 1:length(dataStreams)
     if ~isempty(dataStreams{iStream})
         currentData = dataStreams{iStream};
+        currentColumnNames = currentData.Properties.VariableNames;
+        % Determine stream type
+        if ismember('key0',currentColumnNames)
+            streamType = 1; % Time Domain
+        elseif ismember('XSamples',currentColumnNames)
+            streamType = 2; % Accelerometer
+        elseif ismember('Band1',currentColumnNames)
+            streamType = 3; % Power
+        elseif ismember('FftOutput',currentColumnNames)
+            streamType = 4; % FFT
+        elseif ismember('CurrentAdaptiveState',currentColumnNames)
+            streamType = 5; % Adaptive
+        end
         
         clear select_Indices
-        if iStream == 1 % Time Domain
+        if streamType == 1 % Time Domain
             [~, select_Indices] = ismember(currentData.DerivedTime,combinedDataTable.DerivedTime);
         else % all others
             [~, select_Indices] = ismember(currentData.newDerivedTime,combinedDataTable.DerivedTime);
         end
         
-        switch iStream
+        switch streamType
             case 1 % Time Domain
                 combinedDataTable.TD_key0 = NaN(numRows,1);
                 combinedDataTable.TD_key1 = NaN(numRows,1);
@@ -35,15 +46,6 @@ for iStream = 1:length(dataStreams)
                 combinedDataTable.TD_key3(select_Indices) = currentData.key3;
                 combinedDataTable.TD_samplerate(select_Indices) = currentData.samplerate;
                 
-                % Temp for debugging
-                debugTable.TD_systemTick = NaN(numRows,1);
-                debugTable.TD_timestamp = NaN(numRows,1);
-                debugTable.TD_PacketGenTime = NaN(numRows,1);
-                
-                debugTable.TD_systemTick(select_Indices) = currentData.systemTick;
-                debugTable.TD_timestamp(select_Indices) = currentData.timestamp;
-                debugTable.TD_PacketGenTime(select_Indices) = currentData.PacketGenTime;
-                
             case 2 % Accelerometer
                 combinedDataTable.Accel_XSamples = NaN(numRows,1);
                 combinedDataTable.Accel_YSamples = NaN(numRows,1);
@@ -54,15 +56,6 @@ for iStream = 1:length(dataStreams)
                 combinedDataTable.Accel_YSamples(select_Indices) = currentData.YSamples;
                 combinedDataTable.Accel_ZSamples(select_Indices) = currentData.ZSamples;
                 combinedDataTable.Accel_samplerate(select_Indices) = currentData.samplerate;
-                
-                % temp for debugging
-                debugTable.Accel_systemTick = NaN(numRows,1);
-                debugTable.Accel_timestamp = NaN(numRows,1);
-                debugTable.Accel_PacketGenTime = NaN(numRows,1);
-                
-                debugTable.Accel_systemTick(select_Indices) = currentData.systemTick;
-                debugTable.Accel_timestamp(select_Indices) = currentData.timestamp;
-                debugTable.Accel_PacketGenTime(select_Indices) = currentData.PacketGenTime;
                 
             case 3 % Power
                 combinedDataTable.Power_ExternalValuesMask(:) = {NaN};
@@ -91,15 +84,6 @@ for iStream = 1:length(dataStreams)
                 combinedDataTable.Power_Band7(select_Indices) = currentData.Band7;
                 combinedDataTable.Power_Band8(select_Indices) = currentData.Band8;
                 
-                % temp for debugging
-                debugTable.Power_systemTick = NaN(numRows,1);
-                debugTable.Power_timestamp = NaN(numRows,1);
-                debugTable.Power_PacketGenTime = NaN(numRows,1);
-                
-                debugTable.Power_systemTick(select_Indices) = currentData.systemTick;
-                debugTable.Power_timestamp(select_Indices) = currentData.timestamp;
-                debugTable.Power_PacketGenTime(select_Indices) = currentData.PacketGenTime;
-                
             case 4 % FFT
                 combinedDataTable.FFT_Channel = NaN(numRows,1);
                 combinedDataTable.FFT_FftSize = NaN(numRows,1);
@@ -110,15 +94,6 @@ for iStream = 1:length(dataStreams)
                 combinedDataTable.FFT_FftSize(select_Indices) = currentData.FftSize;
                 combinedDataTable.FFT_FftOutput(select_Indices) = currentData.FftOutput;
                 combinedDataTable.FFT_Units(select_Indices) = currentData.Units;
-                
-                % temp for debugging
-                debugTable.FFT_systemTick = NaN(numRows,1);
-                debugTable.FFT_timestamp = NaN(numRows,1);
-                debugTable.FFT_PacketGenTime = NaN(numRows,1);
-                
-                debugTable.FFT_systemTick(select_Indices) = currentData.systemTick;
-                debugTable.FFT_timestamp(select_Indices) = currentData.timestamp;
-                debugTable.FFT_PacketGenTime(select_Indices) = currentData.PacketGenTime;
                 
             case 5 % Adaptive
                 combinedDataTable.Adaptive_CurrentAdaptiveState(:) = {NaN};
@@ -171,17 +146,14 @@ for iStream = 1:length(dataStreams)
                 combinedDataTable.Adaptive_Ld1_highThreshold(select_Indices) = currentData.Ld1_highThreshold;
                 combinedDataTable.Adaptive_Ld1_lowThreshold(select_Indices) = currentData.Ld1_lowThreshold;
                 combinedDataTable.Adaptive_Ld1_output(select_Indices) = currentData.Ld1_output;
-                
-                % temp for debugging
-                debugTable.Adaptive_systemTick = NaN(numRows,1);
-                debugTable.Adaptive_timestamp = NaN(numRows,1);
-                debugTable.Adaptive_PacketGenTime = NaN(numRows,1);
-                
-                debugTable.Adaptive_systemTick(select_Indices) = currentData.systemTick;
-                debugTable.Adaptive_timestamp(select_Indices) = currentData.timestamp;
-                debugTable.Adaptive_PacketGenTime(select_Indices) = currentData.PacketGenTime;    
         end
     end
 end
+
+% Add column with human readable time to combinedDataTable
+timeFormat = sprintf('%+03.0f:00',metaData.UTCoffset);
+localTime = datetime(combinedDataTable.DerivedTime/1000,...
+    'ConvertFrom','posixTime','TimeZone',timeFormat,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+combinedDataTable = addvars(combinedDataTable,localTime,'Before',1);
 
 end
