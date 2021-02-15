@@ -4,6 +4,26 @@ function [combinedDataTable] = createCombinedTable(dataStreams,unifiedDerivedTim
 % data fit in combinedDataTable.
 %
 %%
+% Find first and last unifiedDerivedTime given choice of dataStreams
+firstTime = [];
+lastTime = [];
+for iStream = 1:length(dataStreams)
+    if ~isempty(dataStreams{iStream})
+        if ismember('DerivedTime',dataStreams{iStream}.Properties.VariableNames)
+            firstTime = [firstTime dataStreams{iStream}.DerivedTime(1)];
+            lastTime = [lastTime dataStreams{iStream}.DerivedTime(end)];
+        elseif ismember('newDerivedTime',dataStreams{iStream}.Properties.VariableNames)
+            firstTime = [firstTime dataStreams{iStream}.newDerivedTime(1)];
+            lastTime = [lastTime dataStreams{iStream}.newDerivedTime(end)];
+        end
+    end
+end
+
+% Reduce unifiedDerivedTimes to whatever subset needed for selected
+% % dataStreams
+unifiedDerivedTimes = unifiedDerivedTimes(unifiedDerivedTimes >= min(firstTime));
+unifiedDerivedTimes = unifiedDerivedTimes(unifiedDerivedTimes <= max(lastTime));
+
 combinedDataTable = table();
 combinedDataTable.DerivedTime = unifiedDerivedTimes;
 numRows = length(unifiedDerivedTimes);
