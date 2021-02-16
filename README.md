@@ -11,12 +11,14 @@ Matlab functions and scripts to facilitate raw data extraction and subsequent vi
 
 ## Table of Contents
 - [Installation Instructions](#installation-instructions)
-- [Usage](#usage)
 - [Structure of Repository](#structure-of-repository)
+- [Overview of tools provided in this repo](#overview-of-tools-provided-in-this-repo)
+- [Usage](#usage)
+
 - [What is the RC+S native data format?](#what-is-the-rcs-native-data-format)
 - [RC+S raw data structures](#rcs-raw-data-structures)
     + [JSON data files](#json-data-files)
-- [Tools provided in this repo](#tools-provided-in-this-repo)
+
 - [Data parsing overview](#data-parsing-overview)       
 - [Data tables contained in output file](#data-tables-contained-in-output-file)
 - [Creating combined data table](#creating-combineddatatable)
@@ -31,12 +33,27 @@ Matlab functions and scripts to facilitate raw data extraction and subsequent vi
     + [Other Factors which impact streaming performance:](#other-factors-which-impact-streaming-performance)
 - [Overview of Adaptive Stimulation](#overview-of-adaptive-stimulation)
 
-
 ## Installation Instructions:
 - Compatibility - Mac or PC (Linux test pending). We rely on a toolbox (https://github.com/JimHokanson/turtle_json) to open .json files - many thanks to Jim Hokanson for additional development, now permitting functionality with all versions of Matlab.
 - Clone this repository and add to Matlab path. 
 
+## Structure of Repository
+- **code**
+  - functions: code for specific needs
+  - toolboxes: turtle_json, etc...
+- **documentationFigures**
+- **testDataSets**: benchtop generated test data sets for validation of code; often generated signals are simultaneously recorded with DAQ to allow for verification of timing across data streams. 
+
+## Overview of tools provided in this repo
+- **(Part 1) ProcessRCS:** Function for importing raw .JSON files from RC+S, parsing into Matlab table format, and handling missing packets / harmonizing timestamps across data streams
+- **(Part 2) DEMO_LoadRCS / DEMO_LoadDebugTable:** Example scripts for reading in saved output from ProcessRCS to create **combinedDataTable** / **debugTable**
+- **(Part 3) rcsPlotter**
+- **(Part 4) Analysis functions** which rely on the data structure output from (Part 1) and (Part 2)
+    - e.g. getPowerfromTimeDomain
+
 ## Usage
+**Part 1**
+
 ```[unifiedDerivedTimes, timeDomainData, timeDomainData_onlyTimeVariables, timeDomain_timeVariableNames, AccelData, AccelData_onlyTimeVariables, Accel_timeVariableNames,  PowerData, PowerData_onlyTimeVariables, Power_timeVariableNames, FFTData, FFTData_onlyTimeVariables, FFT_timeVariableNames, AdaptiveData, AdaptiveData_onlyTimeVariables, Adaptive_timeVariableNames, timeDomainSettings, powerSettings, fftSettings, eventLogTable, metaData, stimSettingsOut, stimMetaData, stimLogSettings, DetectorSettings, AdaptiveStimSettings, AdaptiveEmbeddedRuns_StimSettings] = ProcessRCS(pathName, processFlag)```
 
 Optional input argument(s):<br/>
@@ -52,6 +69,8 @@ Optional input argument(s):<br/>
 
 If applicable, data are saved in the same 'Device' directory where raw JSON were selected
 
+**Part 2**
+
 With the output of ProcessRCS still loaded into the workspace (or after loading AllDataTables.mat, the output of ProcessRCS) - can create combinedDataTable with the selected data streams:
 
 ```dataStreams = {timeDomainData, AccelData, PowerData, FFTData, AdaptiveData};```
@@ -60,12 +79,15 @@ With the output of ProcessRCS still loaded into the workspace (or after loading 
 
 Currently, time domain data are REQUIRED for processing to work. Other time series data streams are optional.
 
-## Structure of Repository
-- **code**
-  - functions: code for specific needs
-  - toolboxes: turtle_json, etc...
-- **documentationFigures**
-- **testDataSets**: benchtop generated test data sets for validation of code; often generated signals are simultaneously recorded with DAQ to allow for verification of timing across data streams. 
+See example scripts DEMO_LoadRCS.m and DEMO_LoadDebugTable.m
+
+**Part 3**
+
+Coming soon
+
+**Part 4**
+
+Coming soon
 
 ## What is the RC+S native data format?
 The Medtronic API saves data into a session directory. There are 11 .json files which are created for each session, which contain both meta-data and numerical data. Out of the box, the size/duration of these files is limited by the battery powering the CTM. Unmodified, this battery lasts for 4-5 hours. The CTM can be modified to be powered with an external battery, leading to recording duration being limited by the INS (implanted neurostimulator) battery. The INS battery can stream for up to ~30 hours. 
@@ -92,21 +114,13 @@ Each of the .json files has packets which were streamed from the RC+S using a UD
 
 Note that in each recording session, all .json files will be created and saved. If a particular datastream (e.g. FFT) is not enabled to stream, that .json file will be mostly empty, containing only minimal metadata.
 
-## Tools provided in this repo
-- **(a) ProcessRCS:** Function for importing raw .JSON files from RC+S, parsing into Matlab table format, and handling missing packets / harmonizing timestamps across data streams
-- **(b) DEMO_LoadRCS / DEMO_LoadDebugTable:** Example scripts for reading in saved output from ProcessRCS to create combinedDataTable / debugTable
-- **(c) rcsPlotter**
-- **(d) Analysis functions** which rely on the data structure output from (a) and (b)
-    - e.g. getPowerfromTimeDomain
-
 ## Data parsing overview
 
 To facilitate most standard analyses of time-series data, we would optimally like the data formatted in a matrix with samples in rows, data features in columns, and a timestamp assigned to each row. The difference in time between the rows is either 1/Fs or 1/Fs\*x, where x is any whole number multiple. (In the latter case, missing values could be filled with NaNs, if desired). There are many challenges in transforming RC+S data into such a matrix. Here, we provide an overview of the overall approach. More detailed information on specific steps can be found below.
 
 ![DataFlow](documentationFigures/RCS_DataFlow_Overview.png)
 
-
-## Data tables contained in output file
+## Data tables contained in AllDataTables.mat output file
 ProcessRCS creates output files `AllDataTables.mat`. The following data tables are saved in this output file. Users may first choose to run `createCombinedTable.m` in order to create the combinedDataTable, which produces a table with DerivedTimes with steps of 1/Fs (time domain Fs), and NaNs filling entries where there are not new data samples.
 
 - **`timeDomainData`**
@@ -533,16 +547,3 @@ A number of factors impact the fidelity with which the RC+S streams data to the 
 
 ## Overview of Adaptive Stimulation
 The RC+S system is designed to deliver Adaptive Stimulation based on neural biomarker(s) band(s) fluctuations. The device has 2 detectors (Ld0 and Ld1) and the adaptive therapy can be set based on one or the combination of both detectors. Each detector can be configured with one up to four power bands (input features). A detector state is defined as a function of the detector output signal relative to a predefined threshold (single or dual treshold). In the case of dual theshold, the detector output may transition among 3 states, 'below' lower threshold, 'in between' lower and upper threshold, and 'above' upper threshold; in the case of a single threshold, the detector output fluctuates between 2 states ('below' and 'above' threshold). Each Therapy Status State is mapped to 1 of 9 possible states, depending on whether one or two detectors are used and whether single or dual threshold is used for each detector.
-
-The two main functions of the code base specific to the adaptive therapy engine are (see CreateTables section above):
-1) createAdaptiveSettingsfromDeviceSettings
-2) createAdpativeData
-
-From the first table we get the adaptive metadata and adaptive settings which can be changed by the user, eg. one recording session containing a series of detector and adaptive settings changes. From the second table we get the adaptive detector time series data.
-
-createAdaptiveSettingsfromDeviceSettings gives the following outputs
-- DetectorSettings: contains any changes in the detectors settings
-- AdaptiveStimSettings: contains any changes in adpative settings (metadata, deltas, states).
-- AdaptiveRuns_StimSettings: contains Adaptive Settings for each new Adaptive run  
-
- As with the other data streams, the output adaptive time series are harmonized with the rest of data streams using harmonizeTimeAcrossDataStreams (using unifiedDerivedTimes and srates_TD).
