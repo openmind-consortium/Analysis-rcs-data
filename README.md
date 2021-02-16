@@ -82,7 +82,53 @@ See example scripts DEMO_LoadRCS.m and DEMO_LoadDebugTable.m
 
 **Part 3**
 
-Coming soon
+Plotting helper for RC+S files<br/>
+   
+Background: 
+  
+This class is built as as a utility function to make plotting RC+S data easier. It wraps other functions in this repo and handles loading multiple folders and plotting specific data streams such as time domain, acitgraphy, power bands, adaptive etc. 
+ 
+There are 2 main "type" of methods in this function:<br/>
+
+- 1: "plotXX" methods: will help plot specific streams 
+- 2: "reportXX" methods: report some aspect of the data 
+  
+  
+Usage / Philosophy:<br/>
+  
+This function creats an object of type "rcsPlotter" with several associated methods. Each type of data stream can be plotted without arguments in a new figure. However, the main utilty of the function is in stringing together several folders of RC+S data (for example recorded throughout a day) and easily plotting requested data streams (such as time domain, power and adaptive) in subplots. This is acheived by passing the subplot hanlde to the function.<br/>
+        
+ Some usage examples: 
+ 
+- 1. Plot time domain data: 
+
+```
+               rc = rcsPlotter()
+               rc.addFolder('path to rc+s folder'); 
+               rc.loadData()
+               rc.plotTdChannel(1)
+```  
+   
+- 2. Plot 2 time domain channels, 1 actigraphy channel 
+
+```
+               rc = rcsPlotter()
+               rc.addFolder('\some\path\to\rcs-folder\with\raw\jsons\'); 
+               rc.loadData()
+               
+               % create figure
+               hfig = figure('Color','w');
+               hsb = gobjects();
+               nplots = 3; 
+               for i = 1:nplots; hsb(i,1) = subplot(nplots,1,i); end;
+               rc.plotTdChannel(1,hsb(1,1));
+               rc.plotTdChannel(2,hsb(2,1));
+               rc.plotActigraphyChannel('X',hsb(3,1));
+               % link axes since time domain and others streams have diff sample rates
+               linkaxes(hsb,'x');
+```
+
+Using the `rc.addFolder` method multiple folders can be added and plotted. 
 
 **Part 4**
 
