@@ -1,8 +1,10 @@
 # JSON to Data notes #
 
-These are largely notes to self on functions that are available in "json_info_to_data.c"
+These are largely notes to self on functions that are available in "json\_info\_to_data.c"
 
-json_info_to_data converts the tokenized JSON information into a Matlab data structure. Additionally it can be used return other information about the parsing.
+json\_info\_to\_data converts the tokenized JSON information into a Matlab data structure. Additionally it can be used return other information about the parsing.
+
+Importantly, the "parsing" consists of two steps, a tokenization step consisting of the "turtle_json" code and a second step that takes that information and creates MATLAB objects. Normally these two are done in one call but sometimes it is desirable to do this in two steps. This allows for example, partial processing of a file, rather than creating MATLAB objects for the entire file.
 
 The general form is:
 
@@ -27,6 +29,12 @@ Function 0 runs a full parse starting at a particular location.
 This option uses default rules for parsing. TODO: Document this more fully (it is sort of evident from the other functions)
 
 ```
+s = struct;
+s.a = 1:10;
+s.b = rand(10,3);
+
+json_string = jsonencode(s);
+
 
 ```
 

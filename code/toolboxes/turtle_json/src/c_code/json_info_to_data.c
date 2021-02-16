@@ -12,6 +12,7 @@ mwSize *dims_file_scope[MAX_DEPTH_ARRAY_LENGTH_BYTES]; //= mxMalloc(MAX_DEPTH_AR
 
 Data populate_data(const mxArray *s){
     
+    //Definition in json_info_to_data.h
     Data data;
     
     //Main Data -----------------------------------------------------------
@@ -47,6 +48,17 @@ Data populate_data(const mxArray *s){
     
     //Numeric Data -------------------------
     data.numeric_data = (double *)mxGetData(mxGetField(s,0,"numeric_p"));
+    
+    //Constants ------------------------
+    data.mxfalse = mxCreateLogicalMatrix(1,1);
+    
+    mxArray *temp_true_mxArray = mxCreateLogicalMatrix(1,1);
+    bool *ldata = mxGetData(temp_true_mxArray);
+    *ldata = 1;
+    data.mxtrue = temp_true_mxArray;
+            
+    data.mxnan = mxCreateDoubleScalar(mxGetNaN());
+    
     
     return data;
     
