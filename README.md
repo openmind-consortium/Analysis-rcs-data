@@ -14,15 +14,12 @@ Matlab functions and scripts to facilitate raw data extraction and subsequent vi
 - [Structure of Repository](#structure-of-repository)
 - [Overview of tools provided in this repo](#overview-of-tools-provided-in-this-repo)
 - [Usage](#usage)
-
 - [What is the RC+S native data format?](#what-is-the-rcs-native-data-format)
 - [RC+S raw data structures](#rcs-raw-data-structures)
     + [JSON data files](#json-data-files)
-
 - [Data parsing overview](#data-parsing-overview)       
 - [Data tables contained in output file](#data-tables-contained-in-output-file)
 - [Creating combined data table](#creating-combineddatatable)
-- [Key functions and demo scripts](#key-functions-and-demo-scripts)
 - [How to get a time value for each sample of data](#how-to-get-a-time-value-for-each-sample-of-data)
 - [`SystemTick` and `Timestamp`](#systemtick-and-timestamp)
 - [How to calculate `DerivedTime`](#how-to-calculate-derivedtime)
@@ -45,11 +42,13 @@ Matlab functions and scripts to facilitate raw data extraction and subsequent vi
 - **testDataSets**: benchtop generated test data sets for validation of code; often generated signals are simultaneously recorded with DAQ to allow for verification of timing across data streams. 
 
 ## Overview of tools provided in this repo
+
 - **(Part 1) ProcessRCS:** Function for importing raw .JSON files from RC+S, parsing into Matlab table format, and handling missing packets / harmonizing timestamps across data streams
-- **(Part 2) DEMO_LoadRCS / DEMO_LoadDebugTable:** Example scripts for reading in saved output from ProcessRCS to create **combinedDataTable** / **debugTable**
+- **(Part 2) DEMO_LoadRCS**: Demo script for loading `AllDataTables.mat` (saved output from `ProcessRCS`) and creating `combinedDataTable`<br>
+**DEMO_LoadDebugTable:** Demo script for loading `AllDataTables.mat` (saved output from `ProcessRCS`), converting sparse matrics into tables, and creating `debugTable`
 - **(Part 3) rcsPlotter**
 - **(Part 4) Analysis functions** which rely on the data structure output from (Part 1) and (Part 2)
-    - e.g. getPowerfromTimeDomain
+    - e.g. `getPowerfromTimeDomain`
 
 ## Usage
 **Part 1**
@@ -431,11 +430,6 @@ Each time series data stream has the following original timing information. Thes
    - `Adaptive_Ld1_highThreshold`: The high threshold value
    - `Adaptive_Ld1_lowThreshold`: The low threshold value
    - `Adaptive_Ld1_output`: The linear discriminant output
-
-## Key functions and demo scripts
-- **ProcessRCS**: Wrapper script for importing raw .JSON files from RC+S, parsing into Matlab table format, and handling missing packets / harmonizing timestamps across data streams
-- **DEMO_LoadRCS**: Demo script for loading AllDataTables.mat (saved output from ProcessRCS) and creating combinedDataTable, and converting sparse matrics into tables and creating debugTable
-- **DEMO_LoadDebugTable**: Demo script for loading AllDataTables.mat (saved output from ProcessRCS), converting sparse matrics into tables, and creating debugTable
 
 ## How to get a time value for each sample of data
 Ideally, there would be a value reported with each packet from which we could easily re-create unix time for each sample. Nominally, this would be `PacketGenTime`. However, upon inspection we see that: 
