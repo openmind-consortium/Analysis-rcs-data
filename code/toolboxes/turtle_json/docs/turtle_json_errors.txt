@@ -1,1 +1,5 @@
+Error ID	Description
+turtle_json:n_inputs	Invalid # of inputs
+turtle_json:n_outputs	Invalid # of outputs
 turtle_json:file_open	Error when trying to open file for reading
+turtle_json:char_parsing	"Generic error, needs to be flushed out"

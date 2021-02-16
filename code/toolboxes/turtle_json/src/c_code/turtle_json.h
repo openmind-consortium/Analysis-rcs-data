@@ -8,6 +8,8 @@
 #include <time.h>       //clock()
 #include <sys/time.h>   //for gettimeofday
 
+//Name: turtle_json.h
+
 #ifdef _WIN32
 #include <windows.h> //QPC
 #endif
@@ -186,16 +188,21 @@ typedef struct {
 } Options;
 
 //TODO: Who uses this and why ...
-//http://stackoverflow.com/questions/18847833/is-it-possible-return-cell-array-that-contains-one-instance-in-several-cells
-struct mxArray_Tag_Partial {
-    void *name_or_CrossLinkReverse;
-    mxClassID ClassID;
-    int VariableType;
-    mxArray *CrossLink;
-    size_t ndim;
-    unsigned int RefCount; /* Number of sub-elements identical to this one */
-};
 
+//This used to make copies of cells or structures.
+//
+//  e.g. in Matlab code:
+//  a = struct('b',2);
+//  c.b = a.b %b is copied from a to c, so only 1 version exists
+//  This would change on rewrite ...
+//
+//  Used by:
+//  mxCreateReference -> json_info_to_data__utils.c
+//  mxCreateReference -> turtle_json_mex_helpers.c
+
+
+
+//Pretty sure this is not used, implementation doesn't exist
 extern mxArray *mxCreateSharedDataCopy(const mxArray *pr);
 
 //Created using prepStructs.m
@@ -342,6 +349,8 @@ void parse_json(unsigned char *js, size_t len, mxArray *plhs[], Options *options
 //Helpers
 //-------------------------------------------------------------------------
 mxArray *mxCreateReference(const mxArray *mx);
+
+//http://stackoverflow.com/questions/18847833/is-it-possible-return-cell-array-that-contains-one-instance-in-several-cells
 
 void setIntScalar(mxArray *s, const char *fieldname, int value);    
     
