@@ -1,15 +1,18 @@
 #include "turtle_json.h"
 
+//Name : turtle_json_mex_helpers.c
+
 //http://stackoverflow.com/questions/19813718/mex-files-how-to-return-an-already-allocated-matlab-array
 
-
+//see partial def in turtle_json.h
 //http://stackoverflow.com/questions/18847833/is-it-possible-return-cell-array-that-contains-one-instance-in-several-cells
+/*
 mxArray *mxCreateReference(const mxArray *mx)
 {
     struct mxArray_Tag_Partial *my = (struct mxArray_Tag_Partial *) mx;
     ++my->RefCount;
     return (mxArray *) mx;
-}
+}*/
 
 //TODO: Rename this ...
 void *get_field(mxArray *plhs[],const char *fieldname){

@@ -2,6 +2,8 @@ classdef time_averager < handle
     %
     %   Class:
     %   json.utils.time_averager
+    %
+    %   Can be used to summarize performance across multiple runs
     
     properties
         I = 0;
@@ -52,9 +54,13 @@ classdef time_averager < handle
             end
         end
         function add(obj,data)
+            %
+            %   data:
+            %       - mex structure result from turtle_json NOT the final 
+            %         data structure from json_info_to_data
             obj.I = obj.I + 1;
             I2 = obj.I;
-            temp = json.utils.getMexC(data,true);
+            temp = json.utils.getPerformanceLog(data,true);
             for i = 1:length(obj.fieldnames)
                 cur_name = obj.fieldnames{i};
                 cur_name2 = ['time__' cur_name];

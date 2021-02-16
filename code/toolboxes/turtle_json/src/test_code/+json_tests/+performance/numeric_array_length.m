@@ -19,7 +19,7 @@ for i = 100:100:N
    for j = 1:1000
        data = turtle_json_mex(str2,'raw_string',true);
        %data = turtle_json_mex(str,'raw_string',true);
-       temp = json.utils.getMexC(data,true);
+       temp = json.utils.getPerformanceLog(data,true);
        t = t + temp.time__number_parsing_time;
        t2 = t2 + temp.time__total_elapsed_time_mex;
    end
