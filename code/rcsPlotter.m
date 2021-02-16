@@ -64,6 +64,7 @@ classdef rcsPlotter < handle
         NumberOfSessions
         NumberOfFolders
         Data
+        SessionTable
     end
     
     %%%%%%
@@ -81,6 +82,7 @@ classdef rcsPlotter < handle
             obj.Dates = NaT;
             obj.NumberOfSessions = 0; % these are valid session with data
             obj.NumberOfFolders = 0; % these are just fodlers that may or may not have data
+            obj.SessionTable = table();
         end
         
         %%%%%%
@@ -175,6 +177,14 @@ classdef rcsPlotter < handle
                         obj.Data(nSession).AdaptiveEmbeddedRuns_StimSettings = AdaptiveEmbeddedRuns_StimSettings;
                         
                         obj.NumberOfSessions = nSession;
+                        
+                        % create session table 
+                        obj.SessionTable.subjectID{nSession} = metaData.subjectID;
+                        obj.SessionTable.target{nSession} = [metaData.leadTargets{:}];
+                        obj.SessionTable.startTime(nSession) = combinedDataTable.localTime(1);
+                        obj.SessionTable.endTime(nSession) = combinedDataTable.localTime(end);
+                        obj.SessionTable.duration(nSession) = combinedDataTable.localTime(end) - combinedDataTable.localTime(1);
+
                     end
                 end
                 
