@@ -100,7 +100,7 @@ This function creats an object of type "rcsPlotter" with several associated meth
         
  Some usage examples: 
  
-- 1. Plot time domain data: 
+- 1: Plot time domain data: 
 
 ```
                rc = rcsPlotter()
@@ -109,7 +109,7 @@ This function creats an object of type "rcsPlotter" with several associated meth
                rc.plotTdChannel(1)
 ```  
    
-- 2. Plot 2 time domain channels, 1 actigraphy channel 
+- 2: Plot 2 time domain channels, 1 actigraphy channel 
 
 ```
                rc = rcsPlotter()
