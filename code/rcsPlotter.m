@@ -81,8 +81,6 @@ classdef rcsPlotter < handle
             obj.Dates = NaT;
             obj.NumberOfSessions = 0; % these are valid session with data
             obj.NumberOfFolders = 0; % these are just fodlers that may or may not have data
-            %% add some paths
-            addpath(genpath('/Users/roee/Starr_Lab_Folder/Data_Analysis/Analysis-rcs-data/code'));
         end
         
         %%%%%%
