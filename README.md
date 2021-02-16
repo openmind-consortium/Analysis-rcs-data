@@ -18,7 +18,7 @@ Matlab functions and scripts to facilitate raw data extraction and subsequent vi
 - [RC+S raw data structures](#rcs-raw-data-structures)
     + [JSON data files](#json-data-files)
 - [Data parsing overview](#data-parsing-overview)       
-- [Data tables contained in output file](#data-tables-contained-in-output-file)
+- [Data tables contained in AllDatatables.mat output file](#data-tables-contained-in-alldatatablesmat-output-file)
 - [Creating combined data table](#creating-combineddatatable)
 - [How to get a time value for each sample of data](#how-to-get-a-time-value-for-each-sample-of-data)
 - [`SystemTick` and `Timestamp`](#systemtick-and-timestamp)
