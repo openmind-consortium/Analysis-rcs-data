@@ -1633,12 +1633,115 @@ classdef rcsPlotter < handle
         end
         
         
-        
-        
-
-        
-        
-        
+        %%%%%%
+        %
+        % plot time domain data psds
+        %
+        %%%%%%
+        function repotrDataQualityAndGaps(obj,varargin)
+            %% report data quality for time domain data as well as gaps
+            %
+            % provide information about the quality of the data 
+            % as well as longest stretches without gaps etc 
+            %
+            %% input:
+            %       1. channel (int, 1-4)  (required)
+            %
+            %% usage:
+            %
+            % % rc.repotrDataQualityAndGaps(1);
+            %
+            % can also specifiy timing algo duration.
+            %
+            %
+            
+            if nargin < 1
+                error('select at least one channel and band pass range (int)');
+            end
+            if nargin == 2
+                chan = varargin{1};
+            end
+            % validate input
+            if ~isnumeric(chan)
+                error('channel input must be integer between 1-4');
+            end
+            if ~ismember(chan,[1 : 1 : 4])
+                error('channel input must be integer between 1-4');
+            end
+            
+            for i = 1:obj.NumberOfSessions
+                if ~isempty(obj.Data(i))
+                    
+                    chanfn = sprintf('TD_key%d',chan-1);
+                    dt = obj.Data(i).combinedDataTable;
+                    x = datenum(dt.localTime);
+                    y = dt.(chanfn);
+                    y = y.*1e3; % so data is in microvolt
+                    yRaw = y;
+                    
+                    % verify that you have time domain data
+                    if sum(isnan(y)) == length(y)
+                        warningMessage = sprintf('no time domain data exists for: %s\n',...
+                            obj.Data(i).folder);
+                        warning(warningMessage);
+                    else
+                        idxnan = isnan(y);
+                        
+                        idxnanSampleRate = isnan(dt.TD_samplerate);
+                        uniqueSampleRate = unique(dt.TD_samplerate(~idxnanSampleRate));
+                        if length(uniqueSampleRate) >1
+                            error('can only perform psd anlaysis on data in which sample rate is the same');
+                        else
+                            sr = uniqueSampleRate;
+                        end
+                        
+                        fprintf('[%0.2d] gap repot:\n',i);
+                        fprintf('\t%s\n',obj.FolderNames{i});
+                        
+                        % find data with no gaps -
+                        % then for each continous section of data without
+                        % gaps
+                        % reshape data according to psd duration size
+                        % then concatenate all for psd computation
+                        % also save (for later) the time index for PSD
+                        % (middle of window)
+                        diffNans = diff(idxnan);
+                        idxgapEnd = find(diffNans == 1) + 1;
+                        idxgapStart = find(diffNans == -1) + 1;
+                        if idxnan(1) == 0 % if data start with no gap
+                            idxgapStart = [1; idxgapStart ];
+                        end
+                        if idxnan(end) == 0 % if data ends with gap
+                            idxgapEnd = [idxgapEnd; length(idxnan) ];
+                        end
+                        localTime = dt.localTime;
+                        gaps = localTime(idxgapEnd) - localTime(idxgapStart);
+                        gaps.Format = 'hh:mm:ss.SSSS';
+                        
+                        totalRecLenth = (localTime(end) - localTime(1));
+                        totalRecLenth.Format = 'hh:mm:ss.SSSS';
+                        totalData     = sum(gaps);
+                        totalData.Format = 'hh:mm:ss.SSSS';
+                        % report how what % of data was capturd
+                        fprintf('\t\t%.2f of data of data recorded (%s / %s)\n', totalData/totalRecLenth,...
+                            totalRecLenth,totalData);
+                        
+                        
+                        % report some stats on data 
+                        fprintf('\t\tcont. data wo gaps mode:\t %s\n', mode(gaps));
+                        fprintf('\t\tcont. data wo gaps median:\t %s\n', mean(gaps));
+                        fprintf('\t\tcont. data wo gaps mean:\t %s\n', median(gaps));
+                        
+                        % 10 larges cont data segments 
+                        sortedGaps = sort(gaps,'descend');
+                        fprintf('\n\ntop ten data segments no gaps:\n');
+                        for gg = 1:10
+                            fprintf('\t\t[%0.2d] %s\n',gg,sortedGaps(gg));
+                        end
+                    end
+                end
+            end
+        end
     end
 
 
