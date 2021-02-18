@@ -1638,7 +1638,7 @@ classdef rcsPlotter < handle
         % plot time domain data psds
         %
         %%%%%%
-        function repotrDataQualityAndGaps(obj,varargin)
+        function reportDataQualityAndGaps(obj,varargin)
             %% report data quality for time domain data as well as gaps
             %
             % provide information about the quality of the data 
