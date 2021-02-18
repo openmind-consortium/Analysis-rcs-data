@@ -1743,6 +1743,46 @@ classdef rcsPlotter < handle
                         for gg = 1:maxidx;
                             fprintf('\t\t[%0.2d] %s\n',gg,sortedGaps(gg));
                         end
+                        
+                        % now repot some stuff on the gaps
+                        diffNans = diff(idxnan);
+                        idxgapEnd = find(diffNans == -1) + 1;
+                        idxgapStart = find(diffNans == 1) + 1;
+                        if idxnan(1) == 1 % if data start with gap
+                            idxgapStart = [1; idxgapStart ];
+                        end
+                        if idxnan(end) == 1 % if data ends with gap
+                            idxgapEnd = [idxgapEnd; length(idxnan) ];
+                        end
+                        localTime = dt.localTime;
+                        gaps = localTime(idxgapEnd) - localTime(idxgapStart);
+                        gaps.Format = 'hh:mm:ss.SSSS';
+                        % report some stats on data
+                        fprintf('\t\tcont. gap mode:\t\t %s\n', mode(gaps));
+                        fprintf('\t\tcont. gap median:\t\t %s\n', mean(gaps));
+                        fprintf('\t\tcont. gap mean:\t\t %s\n', median(gaps));
+                        fprintf('\t\tcont. gap max:\t\t %s\n', max(gaps));
+                        
+                        % 10 larges gaps oin data 
+                        idxgapsLarge = gaps > seconds(6); 
+                        gapsLarge = gaps(idxgapsLarge);
+                        sortedGaps = sort(gapsLarge,'descend');
+                        gapStartLarge = idxgapStart(idxgapsLarge);
+                        gapendLarge = idxgapEnd(idxgapsLarge);
+                        
+                        fprintf('\n\nnumber of gaps larger than 6 seconds in data: (capped at 10)\n');
+                        if length(sortedGaps) > 10
+                            maxidx = 10;
+                        else
+                            maxidx = length(sortedGaps);
+                        end
+                        for gg = 1:maxidx;
+                            fprintf('\t\t[%0.2d] %s (%s - %s)\n',gg,sortedGaps(gg),...
+                               localTime(gapStartLarge(gg)),localTime(gapendLarge(gg)));
+                        end
+
+
+
                     end
                 end
             end
