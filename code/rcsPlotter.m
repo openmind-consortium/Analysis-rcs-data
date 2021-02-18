@@ -796,20 +796,28 @@ classdef rcsPlotter < handle
                     imAlpha=ones(size(ppp'));
                     imAlpha(isnan(ppp'))=0;
                     
-                    IblurY2 = imgaussfilt(ppp(:,~isnan(ppp(1,:))),[1 20],'Padding','symmetric');
-%                     hImg = imagesc(hAxes, log10(ppp),'AlphaData',imAlpha','XData',datenum(spectTimes));
+                    IblurY2 = imgaussfilt(ppp(:,~isnan(ppp(1,:))),[1 10],...
+                        'Padding','circular',...
+                        'FilterDomain','spatial');
+                    pppPlot = ppp;
+                    pppPlot(:,~isnan(ppp(1,:))) = IblurY2;
+                    hImg = imagesc(hAxes, log10(pppPlot),'AlphaData',imAlpha','XData',datenum(spectTimes));
                     size(isnan(ppp(:,1)))
-                    hImg = imagesc(hAxes, log10(IblurY2));
+                    
+                    allPCS = ppp(:,~isnan(ppp(1,:)));
+                    
+%                     hImg = imagesc(hAxes, log10(IblurY2));
+%                     caxis(hAxes,log10([min(allPCS(:)) max(allPCS(:))]));
                     % add a datatip 
-                    hfig = get(hAxes,'Parent');
-                    h = datacursormode(hfig);
-                    set(h, 'Enable', 'on')
+%                     hfig = get(hAxes,'Parent');
+%                     h = datacursormode(hfig);
+%                     set(h, 'Enable', 'on')
                     
                     % Here I have to pass the `clims` because I can't fetch them inside
-                    h.UpdateFcn = @addDataTipSpectral;
+%                     h.UpdateFcn = @addDataTipSpectral;
 
                     
-                    shading(hAxes,'interp');
+%                     shading(hAxes,'interp');
                     % get settings
                     tdSettings = obj.Data(i).timeDomainSettings;
                     chanfn = sprintf('chan%d',chan);
@@ -837,6 +845,7 @@ classdef rcsPlotter < handle
                     ylabel(hAxes,'Frequency (Hz)');
                     [~,idx] = min(abs(yticks(end)-fff));
                     ylim(hAxes,[0 idx]);
+                    caxis(hAxes,[-1 1]);
 
                 end
             end
