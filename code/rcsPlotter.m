@@ -1738,9 +1738,9 @@ classdef rcsPlotter < handle
                         if length(sortedGaps) > 10
                             maxidx = 10;
                         else
-                            maxidx = length(sortedGaps)
+                            maxidx = length(sortedGaps);
                         end
-                        for gg = 1:10
+                        for gg = 1:maxidx;
                             fprintf('\t\t[%0.2d] %s\n',gg,sortedGaps(gg));
                         end
                     end
