@@ -1,4 +1,4 @@
-function database_out = makeDataBaseRCSdata(dirname,varargin)
+function sorted_database = makeDataBaseRCSdata(dirname,varargin)
 % function database_out = makeDataBaseRCSdata(dirname)
 %
 %
