@@ -724,24 +724,119 @@ classdef rcsPlotter < handle
             for i = 1:obj.NumberOfSessions
                 if ~isempty(obj.Data(i))
                     dt = obj.Data(i).combinedDataTable;
+                    idxnanSampleRate = isnan(dt.TD_samplerate);
+                    uniqueSampleRate = unique(dt.TD_samplerate(~idxnanSampleRate));
+                    if length(uniqueSampleRate) >1
+                        error('can only perform psd anlaysis on data in which sample rate is the same');
+                    else
+                        sr = uniqueSampleRate;
+                    end
+
+                    dt = obj.Data(i).combinedDataTable;
                     x = datenum(dt.localTime);
                     chanfn = sprintf('TD_key%d',chan-1);
                     y = dt.(chanfn);
                     y = y - nanmean(y);
                     y = y.*1e3;
-                    hplt = plot(x,y,'Parent',hAxes);
-                    hplt.LineWidth = 0.5;
-                    hplt.Color = [0 0 0.8 0.5];
+                    
+                    
+                    
+                    yFilled = fillmissing(y,'constant',0);
+
+                    % set params.
+                    params.windowSize     = sr;  % spect window size
+                    params.windowOverlap  = ceil(params.windowSize*0.875);   % spect window overalp (points)
+                    params.paddingGap     = seconds(1); % padding to add to window spec
+                    params.windowUse       = 'kaiser'; % blackmanharris \ kaiser \ hann
+
+                    
+                    % blank should be bigger than window on each side
+                    windowInSec = seconds(256/sr);
+                    switch params.windowUse
+                        case 'kaiser'
+                            windowUse = kaiser(params.windowSize,2);
+                        case 'blackmanharris'
+                            windowUse = blackmanharris(params.windowSize);
+                        case 'hann'
+                            L = params.windowSize;
+                            windowUse = 0.5*(1-cos(2*pi*(0:L-1)/(L-1)));
+                            %             hann(params.windowSize);
+                    end
+                    
+                    [sss,fff,ttt,ppp] = spectrogram(yFilled,...
+                        windowUse,...
+                        params.windowOverlap,...
+                        256,sr,'yaxis');
+                    
+                    % put nan's in gaps for spectral data - to avoid
+                    % plotting artifacts from gaps 
+                    idxnan = isnan(y);
+                    
+                    % report gaps
+                    diffNans = diff(idxnan);
+                    idxgapEnd = find(diffNans == -1) + 1;
+                    idxgapStart = find(diffNans == 1) + 1;
+                    if idxnan(1) == 1 % if data start with gap
+                        idxgapStart = [1; idxgapStart ];
+                    end
+                    if idxnan(end) == 1 % if data ends with gap
+                        idxgapEnd = [idxgapEnd; length(idxnan) ];
+                    end
+
+                    spectTimes = dt.localTime(1) + seconds(ttt);
+                    
+                    localTime = dt.localTime;
+                    for te = 1:size(idxgapStart,1)
+                        timeGap(te,1) = localTime(idxgapStart(te)) - (windowInSec + params.paddingGap);
+                        timeGap(te,2) = localTime(idxgapEnd(te))   + (windowInSec + params.paddingGap);
+                        idxBlank = spectTimes >= timeGap(te,1) & spectTimes <= timeGap(te,2);
+                        ppp(:,idxBlank) = NaN;
+                    end
+                    
+                    imAlpha=ones(size(ppp'));
+                    imAlpha(isnan(ppp'))=0;
+                    
+                    IblurY2 = imgaussfilt(ppp(:,~isnan(ppp(1,:))),[1 20],'Padding','symmetric');
+%                     hImg = imagesc(hAxes, log10(ppp),'AlphaData',imAlpha','XData',datenum(spectTimes));
+                    size(isnan(ppp(:,1)))
+                    hImg = imagesc(hAxes, log10(IblurY2));
+                    % add a datatip 
+                    hfig = get(hAxes,'Parent');
+                    h = datacursormode(hfig);
+                    set(h, 'Enable', 'on')
+                    
+                    % Here I have to pass the `clims` because I can't fetch them inside
+                    h.UpdateFcn = @addDataTipSpectral;
+
+                    
+                    shading(hAxes,'interp');
                     % get settings
                     tdSettings = obj.Data(i).timeDomainSettings;
                     chanfn = sprintf('chan%d',chan);
                     title(tdSettings.(chanfn){1},'Parent',hAxes);
-                    % add data tip for human readable time if matlab
-                    % version allows this: 
-                    % 
                     
-                    row = dataTipTextRow('State',statelabel);
-                    hplt.DataTipTemplate.DataTipRows(end+1) = row;
+                    set(hAxes,'YDir','normal')
+                    yticks = [4 12 30 50 60 65 70 75 80 100];
+                    tickLabels = {};
+                    ticksuse = [];
+                    for yy = 1:length(yticks)
+                        [~,idx] = min(abs(yticks(yy)-fff));
+                        ticksuse(yy) = idx;
+                        tickLabels{yy} = sprintf('%d',yticks(yy));
+                    end
+                    
+                    hAxes.YTick = ticksuse;
+                    hAxes.YTickLabel = tickLabels;
+                    % get time labels for x tick
+                    colormap(hAxes,'jet');
+                    
+                    grid('on')
+                    hAxes.GridAlpha = 0.8;
+                    hAxes.Layer = 'top';
+                    axis(hAxes,'tight');
+                    ylabel(hAxes,'Frequency (Hz)');
+                    [~,idx] = min(abs(yticks(end)-fff));
+                    ylim(hAxes,[0 idx]);
 
                 end
             end
@@ -1432,9 +1527,15 @@ classdef rcsPlotter < handle
             end
         end
         
+        
+        
+        
 
         
+        
+        
     end
+
 
     
     
@@ -1446,33 +1547,40 @@ classdef rcsPlotter < handle
     %
     %%%%%%
 
-      methods (Access = private)
-                  
+    methods (Access = private)
+        
         %%%%%%
         %
-        % utility function add local time to data tip of local time 
+        % utility function add local time to data tip of local time
         %
-        %%%%%%                
-        % 
-        % all of the plotting function use datenum as the x axis 
+        %%%%%%
+        %
+        % all of the plotting function use datenum as the x axis
         % reason is that for plotting spectral data using imagesc (fastest
         % performance, compared to pcolor etc. which is slow in
-        % largedatasets) you need a numeric axee. 
+        % largedatasets) you need a numeric axee.
         % This utility function allows one to see a human readable time on
-        % mouseover 
+        % mouseover
         function addLocalTimeDataTip(obj,hplt,xTime)
             % add data tip for human readable time if matlab
             % version allows this:
             %
-            if ~verLessThan('matlab','9.6') % it only work on 9.6 and above... 
+            if ~verLessThan('matlab','9.8') % it only work on 9.6 and above...
                 row = dataTipTextRow('local time',xTime);
                 hplt.DataTipTemplate.DataTipRows(end+1) = row;
             end
         end
-      end
+        
+
+        
+        
+
+        
+    end
+end
+
       
 
       
     
     
-end
