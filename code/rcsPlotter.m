@@ -204,6 +204,102 @@ classdef rcsPlotter < handle
         end
         
         
+        
+        
+        
+        %%%%%%
+        %
+        % export data using saved to target dir
+        %
+        %%%%%%        
+        function exportData(obj,varargin)
+            %% export data table to target dir using functions in repo 
+            % 
+            %% input: 
+            %      1. dirname to export data table (.mat) to 
+            % 
+            %% Usage: 
+            %       rc.exportData('\path\to\export\datatable\');
+            %  
+            if nargin == 1
+                error('select a directoy to export data to'); 
+            end
+            if nargin == 2
+                exportDir = varargin{1};
+            end
+            
+            if ~exist(exportDir,'dir')
+                error('cant save /access directory %s',exportDir);
+            end
+
+           
+            
+            for i = 1:size(obj.FolderNames,1)
+                fprintf('\t[%0.2d]\t%s\n',i,obj.FolderNames{i});
+                clear combinedDataTable
+                try
+                    fileNameToCopy = fullfile(obj.FolderNames{i},'AllDataTables.mat');
+                    if exist(fileNameToCopy,'file')
+                        % putting each file in sep dir so that 
+                        % rcs plotter can keep working to load and plot
+                        % data 
+                        % as RC+S plotter relies on only one file existing
+                        % within each dir 
+                        % I know it's not as efficient.... 
+                        patient = obj.Data(i).metaData.subjectID; 
+                        recstart = obj.Data(i).combinedDataTable.localTime(1);
+                        recend = obj.Data(i).combinedDataTable.localTime(end);
+                        recstart.Format = 'yyyy_MM-dd__HH-mm';
+                        recend.Format = 'yyyy_MM-dd__HH-mm';
+                        dirnameMake = sprintf('%s__%s---%s',patient,recstart,recend); 
+                        targetDir = fullfile(exportDir,dirnameMake);
+                        if ~exist(targetDir,'dir')
+                            mkdir(targetDir); 
+                        end
+                        exportFullFilename = fullfile(targetDir,'AllDataTables.mat'); 
+                        copyfile(fileNameToCopy,exportFullFilename);
+                    end
+                    %%
+                catch
+                    fnreport = fullfile(obj.FolderNames{i},'error_open_report.txt');
+                    fid = fopen(fnreport,'w+');
+                    fprintf(fid,'file error\n');
+                    fclose(fid);
+                end
+                if exist('combinedDataTable','var')
+                    if size(combinedDataTable,1) > 100 % this is had coded to avoid files that are really short - prob. bogus, consider changing 
+                        nSession = obj.NumberOfSessions + 1;
+                        % place all data in to object structure 
+                        obj.Data(nSession).folder                            = obj.FolderNames{i};
+                        obj.Data(nSession).combinedDataTable                 = combinedDataTable;
+                        obj.Data(nSession).timeDomainSettings                = timeDomainSettings;
+                        obj.Data(nSession).powerSettings                     = powerSettings;
+                        obj.Data(nSession).fftSettings                       = fftSettings;
+                        obj.Data(nSession).eventLogTable                     = eventLogTable;
+                        obj.Data(nSession).metaData                          = metaData;
+                        obj.Data(nSession).stimSettingsOut                   = stimSettingsOut;
+                        obj.Data(nSession).stimMetaData                      = stimMetaData;
+                        obj.Data(nSession).stimLogSettings                   = stimLogSettings;
+                        obj.Data(nSession).DetectorSettings                  = DetectorSettings;
+                        obj.Data(nSession).AdaptiveStimSettings              = AdaptiveStimSettings;
+                        obj.Data(nSession).AdaptiveEmbeddedRuns_StimSettings = AdaptiveEmbeddedRuns_StimSettings;
+                        
+                        obj.NumberOfSessions = nSession;
+                        
+                        % create session table 
+                        obj.SessionTable.subjectID{nSession} = metaData.subjectID;
+                        obj.SessionTable.target{nSession} = [metaData.leadTargets{:}];
+                        obj.SessionTable.startTime(nSession) = combinedDataTable.localTime(1);
+                        obj.SessionTable.endTime(nSession) = combinedDataTable.localTime(end);
+                        obj.SessionTable.duration(nSession) = combinedDataTable.localTime(end) - combinedDataTable.localTime(1);
+
+                    end
+                end
+                
+            end
+        end
+        
+        
         %%%%%%
         %
         % erase data 
@@ -397,7 +493,7 @@ classdef rcsPlotter < handle
                         [b,a]        = butter(3,[bandsUsed(1) bandsUsed(end)] / (sr/2),'bandpass'); % user 3rd order butter filter
                         y_filt       = filtfilt(b,a,yFilled); %filter all
                         y_filt_hilbert       = abs(hilbert(y_filt));
-                        hplt = plot(hAxes,timeUseNoNans,y_filt,'LineWidth',0.5,'Color',[0 0 0.8 0.2]);
+                        hplt = plot(hAxes,timeUseNoNans,y_filt,'LineWidth',0.5,'Color',[0.8 0 0 0.1]);
                         obj.addLocalTimeDataTip(hplt,dt.localTime);
                         hplt = plot(hAxes,timeUseNoNans,y_filt_hilbert,'LineWidth',3,'Color',[0.8 0 0 0.6]);
                         obj.addLocalTimeDataTip(hplt,dt.localTime);
@@ -1581,8 +1677,6 @@ classdef rcsPlotter < handle
         end
         
 
-        
-        
 
         
     end
