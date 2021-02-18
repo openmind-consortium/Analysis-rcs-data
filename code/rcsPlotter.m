@@ -1672,7 +1672,7 @@ classdef rcsPlotter < handle
             for i = 1:obj.NumberOfSessions
                 if ~isempty(obj.Data(i))
                     
-                    chanfn = sprintf('TD_key%d',chan-1);
+                    chanfn = sprintf('TD_key%d',charcs1);
                     dt = obj.Data(i).combinedDataTable;
                     x = datenum(dt.localTime);
                     y = dt.(chanfn);
@@ -1758,10 +1758,10 @@ classdef rcsPlotter < handle
                         gaps = localTime(idxgapEnd) - localTime(idxgapStart);
                         gaps.Format = 'hh:mm:ss.SSSS';
                         % report some stats on data
-                        fprintf('\t\tcont. gap mode:\t\t %s\n', mode(gaps));
-                        fprintf('\t\tcont. gap median:\t\t %s\n', mean(gaps));
-                        fprintf('\t\tcont. gap mean:\t\t %s\n', median(gaps));
-                        fprintf('\t\tcont. gap max:\t\t %s\n', max(gaps));
+                        fprintf('\t\tgap mode:\t\t %s\n', mode(gaps));
+                        fprintf('\t\tgap median:\t\t %s\n', mean(gaps));
+                        fprintf('\t\tgap mean:\t\t %s\n', median(gaps));
+                        fprintf('\t\tgap max:\t\t %s\n', max(gaps));
                         
                         % 10 larges gaps oin data 
                         idxgapsLarge = gaps > seconds(6); 
