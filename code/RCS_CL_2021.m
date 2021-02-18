@@ -20,11 +20,12 @@ clear
 
 clc
 
-PATIENTID = 'RCS02R'
+PATIENTID = 'CPRCS01';
+% RCS02R'
 % 'CPRCS01';
 
 
-rootdir = ['/Volumes/Prasad_X5/' PATIENTID(1:end-1)];
+rootdir = ['/Volumes/Prasad_X5/' cell2str(regexp(PATIENTID,'\w*\d\d','match'))]; %take PATIENTID up until last 2 digits
 loaddir = [rootdir '/SummitData/SummitContinuousBilateralStreaming/' PATIENTID];
 aDBSdir = [rootdir '/SummitData/StarrLab/' PATIENTID];
 github_dir = '/Users/pshirvalkar/Documents/GitHub/UCSF-rcs-data-analysis';
@@ -45,7 +46,7 @@ D = database_out;
 
 % find the rec # to load
 % recs_to_load = (381:392);
-recs_to_load= 447:464
+recs_to_load= 336:341
 
 %% Process and load all data 
 
@@ -213,7 +214,7 @@ tilefigs()
 close all
 
 % ### DEFINE Threshold
-Threshold = 8000; %  Default weight ector (stim channel should have weight 1, all others -1)
+Threshold = 8000; %  Default weight vector (stim channel should have weight 1, all others -1)
 
 % % ### Constants for LDA equation
 weights = [1, -1];
@@ -236,26 +237,26 @@ time = catPWR.time;
 
 h=figure;
 s1 = subplot(4,1,1);
-% % stairs(catLD0time,catLD0)
+stairs(catLD0time,catLD0)
 title('embedded RC+S LD0 and state')
 hold on
 % stairs(detect)
-% plot([catLD0time(1) catLD0time(end)],[Threshold Threshold],'r')
-% xlim([0 numel(actualLD)/SampleRate])
-% ylimvals = s1.YLim;
+plot([catLD0time(1) catLD0time(end)],[Threshold Threshold],'r')
+xlim([0 numel(actualLD)/SampleRate])
+ylimvals = s1.YLim;
 
 subplot 412
 stairs(time,calcLDA)
 title('offline computed LDA')
 hold on
-% % plot([catLD0time(1) catLD0time(end)],[Threshold Threshold],'r')
-% xlim([0 numel(calcLDA)/SampleRate]);
+plot([catLD0time(1) catLD0time(end)],[Threshold Threshold],'r')
+xlim([0 numel(calcLDA)/SampleRate]);
 ylim(s1.YLim)
 
 subplot 413
 area(time,input1(:,1),'FaceColor','red')
 title('Stimulation Channel Power')
-% xlim([0 numel(calcLDA)/SampleRate]);
+xlim([0 numel(calcLDA)/SampleRate]);
 
 subplot 414
 plot(time,input1(:,2))
@@ -317,7 +318,7 @@ clear belowT aboveT samples_*
 
 % get non-overlapping mean of windows of length UpdateRate
 pwrhold1 = mean(reshape(usedata(1:UpdateRate * floor(numel(usedata) / UpdateRate)), [], UpdateRate), 2);
-pwrhold2 =  (repmat(pwrholdZ',1,UpdateRate))';
+pwrhold2 =  (repmat(pwrhold1',1,UpdateRate))';
 pwrhold(1:numel(pwrhold2)) = pwrhold2(:);
 
 %  find samples where pwr < threshold

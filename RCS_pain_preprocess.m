@@ -9,11 +9,13 @@
 clear
 clc
 
-PATIENTID = 'RCS02R'
+PATIENTID = 'CPRCS01'
+% 'RCS02R'
 % 'CPRCS01';
+ 
+ 
 
-
-rootdir = ['/Volumes/Prasad_X5/' PATIENTID(1:end-1)];
+rootdir = ['/Volumes/Prasad_X5/' cell2str(regexp(PATIENTID,'\w*\d\d','match'))]; %match the PATIENTID up to 2 digits: ie RCS02
 loaddir = [rootdir '/SummitData/SummitContinuousBilateralStreaming/' PATIENTID];
 aDBSdir = [rootdir '/SummitData/StarrLab/' PATIENTID];
 github_dir = '/Users/pshirvalkar/Documents/GitHub/UCSF-rcs-data-analysis';
@@ -35,15 +37,15 @@ dirsdata = findFilesBVQX(loaddir,'Sess*',struct('dirs',1,'depth',1));
 % find out if a mat file was already created in this folder
 % if so, just an update is needed and will not recreate mat file
 dbout = [];
-for d = 1:length(dirsdata)
+for d = 266
     diruse = findFilesBVQX(dirsdata{d},'Device*',struct('dirs',1,'depth',1));
     
     fprintf('\n \n Reading Session Folder %d of %d  \n',d,length(dirsdata))
     if isempty(diruse) % no data exists inside
         fprintf('No data...\n');
-        
-    elseif exist(fullfile(diruse{1},'combinedDataTable.mat')) == 2
-        fprintf('combinedDataTable mat file already exists... skipping \n');
+%         
+%     elseif exist(fullfile(diruse{1},'combinedDataTable.mat')) == 2
+%         fprintf('combinedDataTable mat file already exists... skipping \n');
         
     else % process the data
         try
@@ -62,7 +64,7 @@ D = database_out;
 
 % find the rec # to load 
 % recs_to_load = (381:392);
-recs_to_load=381:435;
+recs_to_load= 401
 
 
 
