@@ -201,8 +201,8 @@ sorted_database.rec = (1:size(database_out))';
 % Rename file to include patient ID
 slashind = find((dirname=='/'),1,'last');
 PTID = dirname(slashind+1:end);
-writetable(database_out,fullfile(dirname,[PTID 'database_summary.csv']))
-save(fullfile(dirname,[PTID 'database_summary.mat']),'database_out')
+writetable(sorted_database,fullfile(dirname,[PTID 'database_summary.csv']))
+save(fullfile(dirname,[PTID 'database_summary.mat']),'sorted_database')
 fprintf('csv and mat of database saved as %s to %s \n',[PTID 'database_summary.mat'],dirname);
 
 
