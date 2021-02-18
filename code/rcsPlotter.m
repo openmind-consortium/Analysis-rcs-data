@@ -1735,6 +1735,11 @@ classdef rcsPlotter < handle
                         % 10 larges cont data segments 
                         sortedGaps = sort(gaps,'descend');
                         fprintf('\n\ntop ten data segments no gaps:\n');
+                        if length(sortedGaps) > 10
+                            maxidx = 10;
+                        else
+                            maxidx = length(sortedGaps)
+                        end
                         for gg = 1:10
                             fprintf('\t\t[%0.2d] %s\n',gg,sortedGaps(gg));
                         end
