@@ -194,6 +194,8 @@ for d = 1:length(dirsdata)
 end
 
 database_out = struct2table(dbout,'AsArray',true);
+sorted_database = sortrows(database_out,3); %sorting by session name
+sorted_database.rec = (1:size(database_out))';
 
 
 % Rename file to include patient ID
