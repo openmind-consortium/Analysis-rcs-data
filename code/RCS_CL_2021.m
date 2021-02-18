@@ -42,11 +42,11 @@ D = makeDataBaseRCSdata(loaddir,aDBSdir);
 
 %% LOAD data of interest
 load(fullfile(loaddir,[PATIENTID 'database_summary.mat']))
-D = database_out;
+D = sorted_database;
 
 % find the rec # to load
 % recs_to_load = (381:392);
-recs_to_load= 336:341
+recs_to_load= 385:390
 
 %% Process and load all data 
 
@@ -191,7 +191,7 @@ for s=1:2
             holdpwr(~stimidx)=nan; %only stim data
             stim.(channels{f}) = holdpwr;
         end
-        ss= subplot(numel(channels),2,idx ); idx=idx+1;
+        ss= subplot(numel(channels),2,idx); idx=idx+1;
         h=histogram(ss,holdpwr,100,'Normalization','probability');
         hold on
         plot([nanmedian(holdpwr) nanmedian(holdpwr)],[0,max(h.Values)],'LineWidth',2,'LineStyle','--')   %plot the median value
