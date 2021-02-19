@@ -7,8 +7,8 @@ function [newPowerFromTimeDomain, newSettings] = calculateEquivalentDevicePower(
 %       1 = fftSettings (type = output from DEMO_Process)
 %       2 = powerSettings (type = output from DEMO_Process)
 %       3 = metaData (type = output from DEMO_Process)
-%       4 = channel (type = integer (1..4), eg usage, channel = 1)
-%       5 = freqBand (type = integer array, eg usage, freqBand = [20 25])
+% (3) channel (type = integer (1..4), eg usage, channel = 1)
+% (4) freqBand (type = integer array, eg usage, freqBand = [20 25])
 % 
 % First prototype focuses only on user selecting a new power band given
 % default fft settings of recording session
