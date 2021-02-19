@@ -1,4 +1,4 @@
-function  [powerFromTimeDomain] = getPowerFromTimeDomain(folderpath)
+function  [powerFromTimeDomain] = getPowerFromTimeDomain(combinedDataTable,settings)
 % creates a table with power computed signals from time domain signal using
 % an equivalent process to the internal power computation in the device
 % power is computed using
@@ -6,31 +6,36 @@ function  [powerFromTimeDomain] = getPowerFromTimeDomain(folderpath)
 % - fft is applied
 % - power calculated as sum of power of all bins in the frequency band
 % 
-% input: device folder path of session
-% 
-% intermediate inputs/parameters
-%     harmonized combined table, fft and power settings
-%     fft settings: sampling rate, fft size, fft interval, han window gain (100%, 50% or 25%)
+% Input = 
+% (1) combinedDataTable
+% (2) settings: cell with following structures {fftSettings, powerSettings, metaData}
+%       1 = fftSettings (type = output from DEMO_Process)
+%       2 = powerSettings (type = output from DEMO_Process)
+%       3 = metaData (type = output from DEMO_Process)
 %
 % output
 %     powerFromTimeDomain = table(harmoinized times, derived times, PB1,PB2,PB3,...,PB8)
 %
-% dependencies: this function relies on the matlab library https://github.com/openmind-consortium/Analysis-rcs-data
 % Assumptions:
 % - hann window 100%
 % - no change in fft and power settings in data set
+%
 
-[combinedDataTable, debugTable, timeDomainSettings,powerSettings,...
-    fftSettings,eventLogTable, metaData,stimSettingsOut,stimMetaData,stimLogSettings,...
-    DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = DEMO_ProcessRCS(folderpath,4);
+% Parse input variables
+fftSettings = settings{1}; % fftSettings
+powerSettings = settings{2}; % powerSettings
+metaData = settings{3}; % metaData
+ampGains = metaData.ampGains; % actual amplifier gains per channel
 
-AmpGains = createAmplifierGainsTable(folderpath); % actual amplifier gains per channel
+% initialize output power 
 powerFromTimeDomain = table();
 powerFromTimeDomain.localTime= combinedDataTable.localTime;
 powerFromTimeDomain.DerivedTimes = combinedDataTable.DerivedTime;
 for inumBands = 1:8 % initialize bands
     powerFromTimeDomain.(['PowerCh',num2str(inumBands)]) = nan(1,size(combinedDataTable,1))';
 end
+
+% loop for each time domain channel
 for c=1:4
     % extract input parameters
     tch = combinedDataTable.DerivedTime;
@@ -43,7 +48,7 @@ for c=1:4
         case 1024, fftSizeActual = 1000;
     end
     keych = combinedDataTable.(['TD_key',num2str(c-1)]); % next channel
-    td_rcs = transformTDtoRCS(keych,AmpGains.(['Amp',num2str(c)])); % transform TD signal to rcs internal values
+    td_rcs = transformTDtoRCS(keych,ampGains.(['Amp',num2str(c)])); % transform TD signal to rcs internal values
     overlap = 1-(sr*interval/1e3/fftSizeActual); % time window parameters
     L = fftSize; % timeWin is now named L, number of time window points
     hann_win = 0.5*(1-cos(2*pi*(0:L-1)/(L-1))); % create hann taper function, equivalent to the Hann 100% 
