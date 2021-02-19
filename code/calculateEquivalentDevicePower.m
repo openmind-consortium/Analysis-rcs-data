@@ -1,4 +1,4 @@
-function [newPowerFromTimeDomain, newSettings] = calculateEquivalentDevicePower(combinedDataTable, settings)
+function [newPowerFromTimeDomain, newSettings] = calculateEquivalentDevicePower(combinedDataTable, settings, channel, freqBand)
 % calculates equivalent device power as a function of chosen power bands
 % this function assumest to have in the workspace the output from DEMO_ProcessRCS.m
 % Input = 
@@ -7,17 +7,19 @@ function [newPowerFromTimeDomain, newSettings] = calculateEquivalentDevicePower(
 %       1 = fftSettings (type = output from DEMO_Process)
 %       2 = powerSettings (type = output from DEMO_Process)
 %       3 = metaData (type = output from DEMO_Process)
-%
-% intermediate: the function will ask the user to define new power band
-%       lower and upper frequencies within limits defined samplingRate/2
+%       4 = channel (type = integer (1..4), eg usage, channel = 1)
+%       5 = freqBand (type = integer array, eg usage, freqBand = [20 25])
 % 
-% First prototype focuses only on user selecting a power band
+% First prototype focuses only on user selecting a new power band given
+% default fft settings of recording session
 %
 
 % Parse input variables
 newSettings.fftSettings = settings{1}; % fftSettings
 powerSettings = settings{2}; % powerSettings
 newSettings.metaData = settings{3}; % metaData
+newSettings.tdChannel = channel;
+newSettings.bandLimits = freqBand;
 
 % initialize with the default sesttings to have access to default settings
 newSettings.powerSettings = powerSettings;
@@ -35,13 +37,6 @@ newSettings.powerSettings.powerBands.powerBandsInHz = [];
 newSettings.powerSettings.powerBands.lowerBound = [];
 newSettings.powerSettings.powerBands.upperBound = [];
 newSettings.powerSettings.powerBands.powerBinsInHz = [];
-
-% visualize current frequency band
-figure, stem(powerSettings.powerBands.fftBins,ones(1,length(powerSettings.powerBands.fftBins)))
-
-% ask user for time domain channel and new power band limits
-newSettings.tdChannel = input('time domain channel to apply power transformaiton (enter ch number 1, 2, 3 or 4)?: ');
-newSettings.bandLimits = input('define lower and upper freuqncies (enter integer number in Hz, eg. [20 25])?');
 
 % claculate new frequeny bins within band
 tempIndecesBinsA = find(powerSettings.powerBands.fftBins>newSettings.bandLimits(1));
@@ -91,6 +86,7 @@ end
 
 end
 
+%% local functions used
 function [interval,binStart,binEnd,fftSize] = readFFTsettings(powerSettings)
     interval = powerSettings.fftConfig.interval; % is given in ms
     binStart = powerSettings.powerBands.indices_BandStart_BandStop(1,1);
