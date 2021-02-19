@@ -94,12 +94,13 @@ function [interval,binStart,binEnd,fftSize] = readFFTsettings(powerSettings)
     fftSize = powerSettings.fftConfig.size;
 end
 
+% transform to rcs units (equation from manufacturer - hardware specific - same in all RC+S devices)
 function td_rcs = transformTDtoRCS(keych,AmpGain)
-    FP_READ_UNITS_VALUE = 48644.8683623726;    % predefined value from hardware 
+    FP_READ_UNITS_VALUE = 48644.8683623726;    % constant
     lfp_mv = nan(1,length(keych))';
     lfp_mv(~isnan(keych)) = keych(~isnan(keych))-mean(keych(~isnan(keych))); % remove mean
-    config_trim_ch = AmpGain; % read from device settins (see above) 
-    lfpGain_ch = 250*(config_trim_ch/255);  % actual gain amplifier ch
-    lfp_rcs = lfp_mv * (lfpGain_ch*FP_READ_UNITS_VALUE) / (1000*1.2); % transform to rcs units
+    config_trim_ch = AmpGain; % read from device settins
+    lfpGain_ch = 250*(config_trim_ch/255);  % actual amplifier gain ch
+    lfp_rcs = lfp_mv * (lfpGain_ch*FP_READ_UNITS_VALUE) / (1000*1.2); 
     td_rcs = lfp_rcs;
 end
