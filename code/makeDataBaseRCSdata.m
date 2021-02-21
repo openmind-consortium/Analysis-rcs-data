@@ -76,7 +76,7 @@ for d = 1:length(dirsdata)
    
     fprintf('Reading folder %d of %d  \n',d,length(dirsdata))
     if isempty(diruse) % no data exists inside
-        dbout(d) = d;
+        dbout(d).rec = d;
         dbout(d).time = [];
         dbout(d).matExist  = 0;
         [~,fn] = fileparts(dirsdata{d});

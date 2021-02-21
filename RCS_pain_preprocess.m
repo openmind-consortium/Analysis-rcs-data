@@ -12,32 +12,33 @@ clc
 PATIENTID = 'CPRCS01'
 % 'RCS02R'
 % 'CPRCS01';
- 
- 
-
-rootdir = ['/Volumes/Prasad_X5/' cell2str(regexp(PATIENTID,'\w*\d\d','match'))]; %match the PATIENTID up to 2 digits: ie RCS02
-loaddir = [rootdir '/SummitData/SummitContinuousBilateralStreaming/' PATIENTID];
-aDBSdir = [rootdir '/SummitData/StarrLab/' PATIENTID];
+rootdir = '/Volumes/Prasad_X5/' ;
 github_dir = '/Users/pshirvalkar/Documents/GitHub/UCSF-rcs-data-analysis';
+
+
+%%
+localrootdir = fullfile(rootdir,char(regexp(PATIENTID,'\w*\d\d','match'))); %match the PATIENTID up to 2 digits: ie RCS02
+scbsdir = fullfile(localrootdir,'/SummitData/SummitContinuousBilateralStreaming/', PATIENTID);
+aDBSdir = fullfile(localrootdir, '/SummitData/StarrLab/', PATIENTID);
 
 cd(github_dir)
 addpath(genpath(github_dir))
 
 %% make database of all files
-D = makeDataBaseRCSdata(loaddir,aDBSdir);
+D = makeDataBaseRCSdata(scbsdir,aDBSdir);
 
 %%  LOAD Database
-load(fullfile(loaddir,[PATIENTID 'database_summary.mat'])) 
-D = database_out;
+load(fullfile(scbsdir,[PATIENTID 'database_summary.mat'])) 
+D = sorted_database;
 
 %% Process and load all data - skip if mat already exists
 
-dirsdata = findFilesBVQX(loaddir,'Sess*',struct('dirs',1,'depth',1));
+dirsdata = findFilesBVQX(scbsdir,'Sess*',struct('dirs',1,'depth',1));
 
 % find out if a mat file was already created in this folder
 % if so, just an update is needed and will not recreate mat file
 dbout = [];
-for d = 266
+for d = 1:numel(dirdata)
     diruse = findFilesBVQX(dirsdata{d},'Device*',struct('dirs',1,'depth',1));
     
     fprintf('\n \n Reading Session Folder %d of %d  \n',d,length(dirsdata))
@@ -59,7 +60,7 @@ end
 
     disp('DONE!')
 %%  Get files from DB load raw data and concatenate 
-load(fullfile(loaddir,[PATIENTID 'database_summary.mat'])) 
+load(fullfile(scbsdir,[PATIENTID 'database_summary.mat'])) 
 D = database_out;
 
 % find the rec # to load 

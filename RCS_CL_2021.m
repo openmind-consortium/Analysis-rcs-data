@@ -13,40 +13,37 @@
 % spent ABOVE and BELOW threshold are (to help determine ONSET and OFFSET
 % times)
 %
-% Prasad Jan 2021
-%
+% Prasad FEB 2021
+% 
 
+% DECLARE YOUR PERSONAL PATHS HERE YO!
 clear
-
 clc
 
-PATIENTID = 'CPRCS01';
-% RCS02R'
+PATIENTID = 'CPRCS01'
+% 'RCS02R'
 % 'CPRCS01';
-
-
-rootdir = ['/Volumes/Prasad_X5/' cell2str(regexp(PATIENTID,'\w*\d\d','match'))]; %take PATIENTID up until last 2 digits
-loaddir = [rootdir '/SummitData/SummitContinuousBilateralStreaming/' PATIENTID];
-aDBSdir = [rootdir '/SummitData/StarrLab/' PATIENTID];
+rootdir = '/Volumes/Prasad_X5/' ;
 github_dir = '/Users/pshirvalkar/Documents/GitHub/UCSF-rcs-data-analysis';
+
+%%
+localrootdir = fullfile(rootdir,char(regexp(PATIENTID,'\w*\d\d','match'))); %match the PATIENTID up to 2 digits: ie RCS02
+scbsdir = fullfile(localrootdir,'/SummitData/SummitContinuousBilateralStreaming/', PATIENTID);
+aDBSdir = fullfile(localrootdir, '/SummitData/StarrLab/', PATIENTID);
 
 cd(github_dir)
 addpath(genpath(github_dir))
 
-
-
-
-
 %% make database of all files
-D = makeDataBaseRCSdata(loaddir,aDBSdir);
+D = makeDataBaseRCSdata(scbsdir,aDBSdir);
 
-%% LOAD data of interest
-load(fullfile(loaddir,[PATIENTID 'database_summary.mat']))
+%%  LOAD Database
+load(fullfile(scbsdir,[PATIENTID 'database_summary.mat'])) 
 D = sorted_database;
 
 % find the rec # to load
 % recs_to_load = (381:392);
-recs_to_load= 385:390
+recs_to_load= 385:389
 
 %% Process and load all data 
 
