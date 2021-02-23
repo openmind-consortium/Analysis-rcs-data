@@ -1,4 +1,4 @@
-function [newPowerFromTimeDomain, newSettings] = calculateEquivalentDevicePower(combinedDataTable, settings, channel, freqBand)
+function [newPowerFromTimeDomain, newSettings] = calculateEquivalentDevicePower(combinedDataTable, fftSettings, powerSettings, metaData, channel, freqBand)
 % calculates equivalent device power as a function of chosen power bands
 % this function assumest to have in the workspace the output from DEMO_ProcessRCS.m
 % Input = 
@@ -15,9 +15,8 @@ function [newPowerFromTimeDomain, newSettings] = calculateEquivalentDevicePower(
 %
 
 % Parse input variables
-newSettings.fftSettings = settings{1}; % fftSettings
-powerSettings = settings{2}; % powerSettings
-newSettings.metaData = settings{3}; % metaData
+newSettings.fftSettings = fftSettings;
+newSettings.metaData = metaData;
 newSettings.tdChannel = channel;
 newSettings.bandLimits = freqBand;
 
@@ -67,7 +66,7 @@ keych = combinedDataTable.(['TD_key',num2str(newSettings.tdChannel-1)]); % next 
 td_rcs = transformTDtoRCS(keych,ampGains.(['Amp',num2str(newSettings.tdChannel)])); % transform TD signal to rcs internal values
 overlap = 1-(sr*interval/1e3/fftSizeActual); % time window parameters
 L = fftSize; % timeWin is now named L, number of time window points
-hann_win = 0.5*(1-cos(2*pi*(0:L-1)/(L-1))); % create hann taper function, equivalent to the Hann 100% 
+hann_win = hannWindow(L,fftSettings.fftConfig.windowLoad);
 stime = 1; % sample 1 of data set where window starts
 totalTimeWindows = ceil(length(td_rcs)/L/(1-overlap)); 
 counter = 1; % initialize counter

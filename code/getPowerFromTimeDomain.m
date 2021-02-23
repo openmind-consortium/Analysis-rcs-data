@@ -1,4 +1,4 @@
-function  [powerFromTimeDomain] = getPowerFromTimeDomain(combinedDataTable,settings)
+function  [powerFromTimeDomain] = getPowerFromTimeDomain(combinedDataTable,fftSettings, powerSettings, metaData)
 % creates a table with power computed signals from time domain signal using
 % an equivalent process to the internal power computation in the device
 % power is computed using
@@ -6,26 +6,19 @@ function  [powerFromTimeDomain] = getPowerFromTimeDomain(combinedDataTable,setti
 % - fft is applied
 % - power calculated as sum of power of all bins in the frequency band
 % 
-% Input = 
-% (1) combinedDataTable
-% (2) settings: cell with following structures {fftSettings, powerSettings, metaData}
-%       1 = fftSettings (type = output from DEMO_Process)
-%       2 = powerSettings (type = output from DEMO_Process)
-%       3 = metaData (type = output from DEMO_Process)
+% Inputs:
+%   (1) combinedDataTable
+%   (2) fftSettings
+%   (3) powerSettings
+%   (4) metaData
 %
 % output
-%     powerFromTimeDomain = table(harmoinized times, derived times, PB1,PB2,PB3,...,PB8)
+%   powerFromTimeDomain = table(harmoinized times, derived times, PB1,PB2,PB3,...,PB8)
 %
 % Assumptions:
 % - hann window 100%
 % - no change in fft and power settings in data set
 %
-
-% Parse input variables
-fftSettings = settings{1}; % fftSettings
-powerSettings = settings{2}; % powerSettings
-metaData = settings{3}; % metaData
-ampGains = metaData.ampGains; % actual amplifier gains per channel
 
 % initialize output power 
 powerFromTimeDomain = table();
@@ -48,10 +41,10 @@ for c=1:4
         case 1024, fftSizeActual = 1000;
     end
     keych = combinedDataTable.(['TD_key',num2str(c-1)]); % next channel
-    td_rcs = transformTDtoRCS(keych,ampGains.(['Amp',num2str(c)])); % transform TD signal to rcs internal values
+    td_rcs = transformTDtoRCS(keych,metaData.ampGains.(['Amp',num2str(c)])); % transform TD signal to rcs internal values
     overlap = 1-(sr*interval/1e3/fftSizeActual); % time window parameters
     L = fftSize; % timeWin is now named L, number of time window points
-    hann_win = 0.5*(1-cos(2*pi*(0:L-1)/(L-1))); % create hann taper function, equivalent to the Hann 100% 
+    hann_win = hannWindow(L,fftSettings.fftConfig.windowLoad);
     stime = 1; % sample 1 of data set where window starts
     totalTimeWindows = ceil(length(td_rcs)/L/(1-overlap)); 
     counter = 1; % initialize counter
@@ -85,49 +78,15 @@ function [interval,binStart,binEnd,fftSize] = readFFTsettings(powerSettings,c)
     fftSize = powerSettings.fftConfig.size;
 end
 
+% transform to rcs units (equation from manufacturer - hardware specific - same in all RC+S devices)
 function td_rcs = transformTDtoRCS(keych,AmpGain)
-    FP_READ_UNITS_VALUE = 48644.8683623726;    % predefined value from hardware 
+    FP_READ_UNITS_VALUE = 48644.8683623726;    % constant
     lfp_mv = nan(1,length(keych))';
     lfp_mv(~isnan(keych)) = keych(~isnan(keych))-mean(keych(~isnan(keych))); % remove mean
-    config_trim_ch = AmpGain; % read from device settins (see above) 
+    config_trim_ch = AmpGain; % read from device settins
     lfpGain_ch = 250*(config_trim_ch/255);  % actual gain amplifier ch
-    lfp_rcs = lfp_mv * (lfpGain_ch*FP_READ_UNITS_VALUE) / (1000*1.2); % transform to rcs units
+    lfp_rcs = lfp_mv * (lfpGain_ch*FP_READ_UNITS_VALUE) / (1000*1.2);
     td_rcs = lfp_rcs;
-end
-
-function AmpGains = createAmplifierGainsTable(folderPath)
-% gets the gain of the amplifier (Amp channel: 1,2,3,4)
-
-% Load in DeviceSettings.json file
-DeviceSettings = jsondecode(fixMalformedJson(fileread([folderPath filesep 'DeviceSettings.json']),'DeviceSettings'));
-
-%%
-% Fix format - Sometimes device settings is a struct or cell array
-if isstruct(DeviceSettings)
-    DeviceSettings = {DeviceSettings};
-end
-%%
-recordCounter = 1; % Initalize counter for records in DeviceSetting
-while recordCounter <= length(DeviceSettings)
-    currentSettings = DeviceSettings{recordCounter};
-    % Check until Factory Settings are found
-    if isfield(currentSettings,'FactorySettings')
-         if isfield(currentSettings.FactorySettings,'name')
-            for ii=1:size(currentSettings.FactorySettings,1)
-                nextName = currentSettings.FactorySettings(ii).name; 
-                if strcmp(nextName,'cfg_config_data.dev.HT_sns_amp1_gain250_trim')
-                    AmpGains.Amp1 = currentSettings.FactorySettings(ii).actualValue;
-                elseif strcmp(nextName,'cfg_config_data.dev.HT_sns_amp2_gain250_trim')
-                    AmpGains.Amp2 = currentSettings.FactorySettings(ii).actualValue;
-                elseif strcmp(nextName,'cfg_config_data.dev.HT_sns_amp3_gain250_trim')
-                    AmpGains.Amp3 = currentSettings.FactorySettings(ii).actualValue;
-                elseif strcmp(nextName,'cfg_config_data.dev.HT_sns_amp4_gain250_trim')
-                    AmpGains.Amp4 = currentSettings.FactorySettings(ii).actualValue;
-                end
-            end    
-         end
-    end
-    recordCounter = recordCounter+1;
 end
 
 end
