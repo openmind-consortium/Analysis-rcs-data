@@ -1,29 +1,25 @@
 # Analysis-rcs-data
-Selection of Matlab functions to extract .json raw data from Summit RC+S device, transform it to .mat format and manipulate it for initial stages of data analysis. More detail of processing flow below. 
+Matlab functions and scripts to facilitate raw data extraction and subsequent visualizations and computations on data from Summit RC+S device. Initial processing includes extraction of .json raw data, transformation to .mat format, and combining multiple data streams and meta-data sources. This repo also contains plotting functionality which relies on this combined data structure, and additional processing modules (e.g. calculate power domain data from time domain). 
 
 **Background**: UCSF teams are working with Summit RC+S (RCS) devices for adaptive neurostimulation and need a validated data analysis framework to further the research. 
 
-**Aim**: To consolidate a set of matlab functions for accessing RCS data from .json files and transforming it into data formats that enables further data analyses.
+**Aim**: To consolidate a set of matlab functions and scripts for accessing RCS data from .json files, transform it to a data format that enables further data analyses, and provide plotting and visualization tools.
 
-**Collaborators**: Simon.Little@ucsf.edu, Prasad.Shirvalkar@ucsf.edu, Roee.Gilron@ucsf.edu, Kristin.Sellers@ucsf.edu, Juan.AnsoRomeo@ucsf.edu, Kenneth.Louie@ucsf.edu (open for more colleagues to join...)
+**Collaborators**: Roee.Gilron@ucsf.edu, Kristin.Sellers@ucsf.edu, Juan.AnsoRomeo@ucsf.edu, Kenneth.Louie@ucsf.edu, Simon.Little@ucsf.edu, Prasad.Shirvalkar@ucsf.edu (open for more colleagues to join...)
 
 **Policy**: Master will contain functions that have been tested in branch and pushed after pull request reviewers have approved. The collaborator doing the initial development and testing of a function in a testing branch (e.g. in 'importRawData') will make a pull request and assign 1-2 reviewers of the group who will review the code structure and the output of each function.
 
 ## Table of Contents
 - [Installation Instructions](#installation-instructions)
-- [Usage](#usage)
 - [Structure of Repository](#structure-of-repository)
+- [Overview of tools provided in this repo](#overview-of-tools-provided-in-this-repo)
+- [Usage](#usage)
 - [What is the RC+S native data format?](#what-is-the-rcs-native-data-format)
-- [Data parsing overview](#data-parsing-overview)
 - [RC+S raw data structures](#rcs-raw-data-structures)
     + [JSON data files](#json-data-files)
-    + [Data tables created in Matlab during processing](#data-tables-created-in-matlab-during-processing)
-- [Data tables contained in output file](#data-tables-contained-in-output-file)
-- [Functions](#functions)
-    + [Wrappers](#wrappers)
-    + [CreateTables](#createtables)
-    + [Utility](#utility)
-    + [(Pre)Processing](#preprocessing)
+- [Data parsing overview](#data-parsing-overview)       
+- [Data tables contained in AllDatatables.mat output file](#data-tables-contained-in-alldatatablesmat-output-file)
+- [Creating combined data table](#creating-combineddatatable)
 - [How to get a time value for each sample of data](#how-to-get-a-time-value-for-each-sample-of-data)
 - [`SystemTick` and `Timestamp`](#systemtick-and-timestamp)
 - [How to calculate `DerivedTime`](#how-to-calculate-derivedtime)
@@ -34,13 +30,30 @@ Selection of Matlab functions to extract .json raw data from Summit RC+S device,
     + [Other Factors which impact streaming performance:](#other-factors-which-impact-streaming-performance)
 - [Overview of Adaptive Stimulation](#overview-of-adaptive-stimulation)
 
-
 ## Installation Instructions:
-- Compatibility - Mac or PC. We rely on a toolbox to open .json files which does not work on Linux. Requires **Matlab R2019a or prior**. The toolbox we rely on to open .json files is not compatible with Matlab R2019b
+- Compatibility - Mac or PC (Linux test pending). We rely on a toolbox (https://github.com/JimHokanson/turtle_json) to open .json files - many thanks to Jim Hokanson for additional development, now permitting functionality with all versions of Matlab.
 - Clone this repository and add to Matlab path. 
 
+## Structure of Repository
+- **code**
+  - functions: code for specific needs
+  - toolboxes: turtle_json, etc...
+- **documentationFigures**
+- **testDataSets**: benchtop generated test data sets for validation of code; often generated signals are simultaneously recorded with DAQ to allow for verification of timing across data streams. 
+
+## Overview of tools provided in this repo
+
+- **Part 1 - ProcessRCS:** Function for importing raw .JSON files from RC+S, parsing into Matlab table format, and handling missing packets / harmonizing timestamps across data streams
+- **Part 2 - DEMO_LoadRCS**: Demo script for loading `AllDataTables.mat` (saved output from `ProcessRCS`) and creating `combinedDataTable`<br>
+**DEMO_LoadDebugTable:** Demo script for loading `AllDataTables.mat` (saved output from `ProcessRCS`), converting sparse matrics into tables, and creating `debugTable`
+- **Part 3 - rcsPlotter**
+- **Part 4 - Analysis functions** which rely on the data structure output from (Part 1) and (Part 2)
+    - e.g. `getPowerfromTimeDomain`
+
 ## Usage
-```[combinedDataTable, debugTable, timeDomainSettings, powerSettings, fftSettings, eventLogTable, metaData, stimSettingsOut, stimMetaData, stimLogSettings, DetectorSettings, AdaptiveStimSettings, AdaptiveRuns_StimSettings] = DEMO_ProcessRCS(pathName, processFlag)```
+**Part 1**
+
+```[unifiedDerivedTimes, timeDomainData, timeDomainData_onlyTimeVariables, timeDomain_timeVariableNames, AccelData, AccelData_onlyTimeVariables, Accel_timeVariableNames,  PowerData, PowerData_onlyTimeVariables, Power_timeVariableNames, FFTData, FFTData_onlyTimeVariables, FFT_timeVariableNames, AdaptiveData, AdaptiveData_onlyTimeVariables, Adaptive_timeVariableNames, timeDomainSettings, powerSettings, fftSettings, eventLogTable, metaData, stimSettingsOut, stimMetaData, stimLogSettings, DetectorSettings, AdaptiveStimSettings, AdaptiveEmbeddedRuns_StimSettings] = ProcessRCS(pathName, processFlag)```
 
 Optional input argument(s):<br/>
 \[If no `pathName` is selected, a folder selection dialog box will open at the start of processing\]
@@ -55,25 +68,76 @@ Optional input argument(s):<br/>
 
 If applicable, data are saved in the same 'Device' directory where raw JSON were selected
 
+**Part 2**
+
+With the output of ProcessRCS still loaded into the workspace (or after loading AllDataTables.mat, the output of ProcessRCS) - can create combinedDataTable with the selected data streams:
+
+```dataStreams = {timeDomainData, AccelData, PowerData, FFTData, AdaptiveData};```
+
+```[combinedDataTable] = createCombinedTable(dataStreams,unifiedDerivedTimes,metaData);```
+
 Currently, time domain data are REQUIRED for processing to work. Other time series data streams are optional.
 
-## Structure of Repository
-- **code**
-  - functions: code for specific needs
-  - toolboxes: turtle_son, etc...
-- **documentationFigures**
-- **testDataSets**: benchtop generated test data sets for validation of code; often generated signals are simultaneously recorded with DAQ to allow for verification of timing across data streams. 
+See example scripts DEMO_LoadRCS.m and DEMO_LoadDebugTable.m
+
+**Part 3**
+
+Plotting helper for RC+S files<br/>
+   
+Background: 
+  
+This class is built as as a utility function to make plotting RC+S data easier. It wraps other functions in this repo and handles loading multiple folders and plotting specific data streams such as time domain, acitgraphy, power bands, adaptive etc. 
+ 
+There are 2 main "type" of methods in this function:<br/>
+
+- 1: "plotXX" methods: will help plot specific streams 
+- 2: "reportXX" methods: report some aspect of the data 
+  
+  
+Usage / Philosophy:<br/>
+  
+This function creats an object of type "rcsPlotter" with several associated methods. Each type of data stream can be plotted without arguments in a new figure. However, the main utilty of the function is in stringing together several folders of RC+S data (for example recorded throughout a day) and easily plotting requested data streams (such as time domain, power and adaptive) in subplots. This is acheived by passing the subplot hanlde to the function.<br/>
+        
+ Some usage examples: 
+ 
+- 1: Plot time domain data: 
+
+```
+               rc = rcsPlotter()
+               rc.addFolder('path to rc+s folder'); 
+               rc.loadData()
+               rc.plotTdChannel(1)
+```  
+   
+- 2: Plot 2 time domain channels, 1 actigraphy channel 
+
+```
+               rc = rcsPlotter()
+               rc.addFolder('\some\path\to\rcs-folder\with\raw\jsons\'); 
+               rc.loadData()
+               
+               % create figure
+               hfig = figure('Color','w');
+               hsb = gobjects();
+               nplots = 3; 
+               for i = 1:nplots; hsb(i,1) = subplot(nplots,1,i); end;
+               rc.plotTdChannel(1,hsb(1,1));
+               rc.plotTdChannel(2,hsb(2,1));
+               rc.plotActigraphyChannel('X',hsb(3,1));
+               % link axes since time domain and others streams have diff sample rates
+               linkaxes(hsb,'x');
+```
+
+Using the `rc.addFolder` method multiple folders can be added and plotted. 
+
+**Part 4**
+
+Coming soon
 
 ## What is the RC+S native data format?
 The Medtronic API saves data into a session directory. There are 11 .json files which are created for each session, which contain both meta-data and numerical data. Out of the box, the size/duration of these files is limited by the battery powering the CTM. Unmodified, this battery lasts for 4-5 hours. The CTM can be modified to be powered with an external battery, leading to recording duration being limited by the INS (implanted neurostimulator) battery. The INS battery can stream for up to ~30 hours. 
 
 There are multiple challenges associated with these .json files and analyzing them: Interpreting metadata within and across the files, handling invalid / missing / misordered packets, creating a timestamp value for each sample, aligning timestamps (and samples) across data streams, and parsing the data streams when there was a change in recording or stimulation parameters. See below for the current approach for how to tackle these challenges.
-
-## Data parsing overview
-
-To facilitate most standard analyses of time-series data, we would optimally like the data formatted in a matrix with samples in rows, data features in columns, and a timestamp assigned to each row. The difference in time between the rows is either 1/Fs or 1/Fs\*x, where x is any whole number multiple. (In the latter case, missing values could be filled with NaNs, if desired). There are many challenges in transforming RC+S data into such a matrix. Here, we provide an overview of the overall approach. More detailed information on specific steps can be found below.
-
-![DataFlow](documentationFigures/RCS_DataFlow_Overview.png)
 
 ## RC+S raw data structures
 Each of the .json files has packets which were streamed from the RC+S using a UDP protocol. This means that some packets may have been lost in transmission (e.g. if patient walks out of range) and/or they may be received out of order. Each of the packets contains a variable number of samples. There are metadata associated with the last sample of the packet. Below is a non-comprehensive guide regarding the main datatypes that exists within each .json file and their organization when imported into Matlab table format. In the Matlab tables, samples are in rows and data features are in columns. Note: much of the original metadata contained in the .json files is not human readable -- sample rates are stored in binary format or coded values that must be converted to Hz. Where applicable, we have completed such conversions and the human-readable values are reflected in Matlab tables.
@@ -95,45 +159,36 @@ Each of the .json files has packets which were streamed from the RC+S using a UD
 
 Note that in each recording session, all .json files will be created and saved. If a particular datastream (e.g. FFT) is not enabled to stream, that .json file will be mostly empty, containing only minimal metadata.
 
-### Data tables created in Matlab during processing 
-Not all of these tables are saved as output in the form shown below. [See section below for Data tables contained in output file](#data-tables-contained-in-output-file) 
+## Data parsing overview
 
-- **RawDataTD.json** --> **`timeDomainData`**
+To facilitate most standard analyses of time-series data, we would optimally like the data formatted in a matrix with samples in rows, data features in columns, and a timestamp assigned to each row. The difference in time between the rows is either 1/Fs or 1/Fs\*x, where x is any whole number multiple. (In the latter case, missing values could be filled with NaNs, if desired). There are many challenges in transforming RC+S data into such a matrix. Here, we provide an overview of the overall approach. More detailed information on specific steps can be found below.
+
+![DataFlow](documentationFigures/RCS_DataFlow_Overview.png)
+
+## Data tables contained in AllDataTables.mat output file
+ProcessRCS creates output files `AllDataTables.mat`. The following data tables are saved in this output file. Users may first choose to run `createCombinedTable.m` in order to create the combinedDataTable, which produces a table with DerivedTimes with steps of 1/Fs (time domain Fs), and NaNs filling entries where there are not new data samples.
+
+- **`timeDomainData`**
+  - `localTime`: DerivedTime shown in human-readable format, accounting for UTC offset
   - `DerivedTime`: Computed time for each sample. [See How to Calculate DerivedTime for more information](#how-to-calculate-derivedtime)
-  - `timestamp`: INS clock driven timer that does not roll over. Highest resolution is 1 second. Total elaped time since March 1, 2000 at midnight. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](#systemtick-and-timestamp)
-  - `systemTick`: 16-bit INS clock timer that rolls over every 2^16 values. Highest resolution is 100 microseconds. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](#systemtick-and-timestamp)
-  - `PacketGenTime`: API estimate of when the packet was created on the INS within the PC clock domain. Estimate created by using results of latest latency check (one is done at system initialization, but can re-perform whenever you want) and time sync streaming. Only accurate within ~50ms.
-  - `PacketRxUnixTime`: PC clock-driven time when the packet was received. Highly inaccurate after packet drops.
-  - `dataTypeSequence`: 8-bit packet number counter that rolls over, ranging from 0 to 255; can be used to help identify if packets are in order or are missing. Should run continuously, but instances of resetting have been observed.
   - `samplerate`: Sampling rate in Hz; only written in rows corresponding to last sample of each packet.
-  - `packetsizes`: Number of samples per packet. Written in rows corresponding to the last sample of each packet.
   - `key0`: Channel 0; contains numerical data in millivolts
   - `key1`: Channel 1; contains numerical data in millivolts
   - `key2`: Channel 2; contains numerical data in millivolts
   - `key3`: Channel 3; contains numerical data in millivolts
    
-- **RawDataAccel.json** --> **`AccelData`**
-  - `DerivedTime`: Same as above
-  - `timestamp`: Same as above
-  - `systemTick`: Same as above
-  - `PacketGenTime`: Same as above
-  - `PacketRxUnixTime`: Same as above
-  - `dataTypeSequence`: Same as above
+- **`AccelData`**
+  - `localTime`: newDerivedTime shown in human-readable format, accounting for UTC offset
+  - `newDerivedTime`: DerivedTime calculated for AccelData shifted to nearest DerivedTime from timeDomainData
   - `samplerate`: Same as above
-  - `packetsizes`: Same as above
   - `XSamples`: X-axis
   - `YSamples`: Y-axis
   - `ZSamples`: Z-axis
 
-- **RawDataPower.json** --> **`PowerData`**
-  - `DerivedTime`: Same as above
-  - `timestamp`: Same as above
-  - `systemTick`: Same as above
-  - `PacketGenTime`: Same as above
-  - `PacketRxUnixTime`: Same as above
-  - `dataTypeSequence`: Same as above
+- **`PowerData`**
+  - `localTime`: newDerivedTime shown in human-readable format, accounting for UTC offset
+  - `newDerivedTime`: DerivedTime calculated for PowerData shifted to nearest DerivedTime from timeDomainData
   - `samplerate`: Same as above
-  - `packetsizes`: Same as above
   - `TDsamplerate`: Sampling rate (in Hz) of time domain data
   - `IsPowerChannelOverrange`: Boolean 
   - `FftSize`: Number of points in FFT calculation
@@ -148,30 +203,20 @@ Not all of these tables are saved as output in the form shown below. [See sectio
   - `Band7`: Power values
   - `Band8`: Power values
 
-- **RawDataFFT.json** --> **`FFTData`**
-  - `DerivedTime`: Same as above
-  - `timestamp`: Same as above
-  - `systemTick`: Same as above
-  - `PacketGenTime`: Same as above
-  - `PacketRxUnixTime`: Same as above
-  - `dataTypeSequence`: Same as above
+- **`FFTData`**
+  - `localTime`: newDerivedTime shown in human-readable format, accounting for UTC offset
+  - `newDerivedTime`: DerivedTime calculated for FFTData shifted to nearest DerivedTime from timeDomainData
   - `samplerate`: Same as above
-  - `packetsizes`: Same as above
   - `Channel`: Byte indicating which FFT channel is being streamed, 0-3
   - `FftOutput`: The FFT output bins from the INS
   - `Units`: Units of the bins data points
   - `FftSize`: Number of points in FFT calculation
   - `TDsamplerate`: Sampling rate (in Hz) of time domain data
     
-- **AdaptiveLog.json** --> **`AdaptiveData`**
-  - `DerivedTime`: Same as above
-  - `timestamp`: Same as above
-  - `systemTick`: Same as above
-  - `PacketGenTime`: Same as above
-  - `PacketRxUnixTime`: Same as above
-  - `dataTypeSequence`: Same as above
+- **`AdaptiveData`**
+  - `localTime`: newDerivedTime shown in human-readable format, accounting for UTC offset
+  - `newDerivedTime`: DerivedTime calculated for AdaptiveData shifted to nearest DerivedTime from timeDomainData
   - `samplerate`: Same as above
-  - `packetsizes`: Same as above
   - `CurrentAdaptiveState`: Indicates the current adaptive state (0-8), or no state
   - `CurrentProgramAmplitudesInMilliamps`: The amplitude(s) of stimulation (in mA) for the current program
   - `IsInHoldOffOnStartup`: Boolean
@@ -217,34 +262,147 @@ Not all of these tables are saved as output in the form shown below. [See sectio
   - `Ld1_lowThreshold`: The low threshold value
   - `Ld1_output`: The linear discriminant output
   
-- **StimLog.json** --> **`stimLogSettings`**
+- **`metaData`** 
+    - `subjectID`
+    - `patientGender`
+    - `handedness`
+    - `implantedLeads`
+    - `extensions`
+    - `leadLocations`
+    - `leadTargets`
+    - `INSimplantLocation`
+    - `stimProgramNames`
+    - `UTCoffset`
+    - `batteryLevelPercent`
+    - `batteryVoltage`
+    - `estimatedCapacity`
+    - `batterySOC`  
+
+- **`timeDomainSettings`**
+    - `recNum`
+    - `duration`
+    - `timeStart`
+    - `timeStop`
+    - `samplingRate`
+    - `chan1`
+    - `chan2`
+    - `chan3`
+    - `chan4`
+    - `TDsettings`: `currentMode`, `evokedMode`, `gain`, `hpf`, `lpf1`, `lpf2`, `minusInput`, `outputMode`, `plusInput`, `sampleRate`, `chanOut`, `chanFullStr
+
+- **`powerSettings`**
+    - `recNumber`
+    - `duration`
+    - `timeStart`
+    - `timeStop`
+    - `powerBands`: `powerBandsInHz`, `powerBinsInHz`, `lowerBound`, `upperBound`, `fftSize`, `fftBins`, `indices_BandStart_BandStop`, `binWidth`, `TDsampleRate`
+    - `TDsampleRates`
+    - `fftConfig`: `bandFormationConfig`, `config`, `interval`, `size`, `streamOffsetBins`, `streamSizeBins`, `windowLoad`
+ 
+- **`fftSettings`**
+    - `recNumber`
+    - `duration`
+    - `timeStart`
+    - `timeStop`
+    - `fftConfig`: `bandFormationConfig`, `config`, `interval`, `size`, `streamOffsetBins`, `streamSizeBins`, `windowLoad`
+    - `TDsampleRates`: In Hz
+    - `fftParameters`: `numBins`, `binwidth`, `fftBins`, `lower`, `upper`, `fftSize`
+
+- **`stimLogSettings`**
   - `HostUnixTime`
   - `activeGroup`
   - `therapyStatus`
+  - `therapyStatusDescription`
   - `GroupA`: Contains settings for stimulation group A (`RateInHz`, `ampInMilliamps`, `pulseWidthInMicroseconds`)
   - `GroupB`: Contains settings for stimulation group B (`RateInHz`, `ampInMilliamps`, `pulseWidthInMicroseconds`)
   - `GroupC`: Contains settings for stimulation group C (`RateInHz`, `ampInMilliamps`, `pulseWidthInMicroseconds`)
   - `GroupD`: Contains settings for stimulation group D (`RateInHz`, `ampInMilliamps`, `pulseWidthInMicroseconds`)
+  - `stimParams_prog1`: String with settings for program 1 of the currently active Group
+  - `stimParams_prog2`: String with settings for program 2 of the currently active Group
+  - `stimParams_prog3`: String with settings for program 3 of the currently active Group
+  - `stimParams_prog4`: String with settings for program 4 of the currently active Group
   - `updatedParameters`: Which variable(s) were updated from the prior entry in stimLogSettings
 
-- **EventLog.json** --> **`eventLogTable`** [More info below](#data-tables-contained-in-output-file)
+- **`stimSettingsOut`**
+    - `HostUnixTime`
+    - `activeGroup`
+    - `therapyStatus`
+    - `therapyStatusDescription`
+    
+- **`stimMetaData`**
+    - `validPrograms`
+    - `validProgramNames`
+    - `anodes`
+    - `cathodes`
+    
+- **`eventLogTable`**
+    - `SessionId`
+    - `HostUnixTime`
+    - `EventName`
+    - `EventType`
+    - `EventSubType`
+    - `UnixOnsetTime`
+    - `UnixOffsetTime'
 
-- **DeviceSettings.json** 
-  - **`timeDomainSettings`** [More info below](#data-tables-contained-in-output-file)
-  - **`powerSettings`** [More info below](#data-tables-contained-in-output-file)
-  - **`fftSettings`** [More info below](#data-tables-contained-in-output-file)
-  - **`stimSettingsOut`** [More info below](#data-tables-contained-in-output-file)
-  - **`stimMetaData`** [More info below](#data-tables-contained-in-output-file)
-  - **`metaData`** [More info below](#data-tables-contained-in-output-file)
-  - **`DetectorSettings`** [More info below](#data-tables-contained-in-output-file)
-  - **`AdaptiveStimSettings`** [More info below](#data-tables-contained-in-output-file)
-  - **`AdaptiveEmbeddedRuns_StimSettings`** [More info below](#data-tables-contained-in-output-file)
+- **`DetectorSettings`**
+    - `HostUnixTime`    
+    - `Ld0`
+        - `biasTerm`
+        - `features`: `normalizationMultiplyVector`, `normalizationSubtractVector`, `weightVector`
+        - `fractionalFixedPointValue`
+        - `updateRate`: in seconds
+        - `blankingDurationUponStateChange`: in seconds
+        - `onsetDuration`: in seconds
+        - `holdoffTime`: in seconds
+        - `terminationDuration`: in seconds
+        - `detectionInputs_BinaryCode`: Binary string indicating which power channel(s) were used as input for the linear discriminant
+            - 0000 0000: No inputs chosen
+            - 0000 0001: Power channel 0, band 0
+            - 0000 0010: Power channel 0, band 1
+            - 0000 0100: Power channel 1, band 0
+            - 0000 1000: Power channel 1, band 1
+            - 0001 0000: Power channel 2, band 0
+            - 0010 0000: Power channel 2, band 1
+            - 0100 0000: Power channel 3, band 0
+            - 1000 0000: Power channel 3, band 1
+        - `detectionEnable_BinaryCode`: Binary string indicating setting for linear discriminant detector
+            - 0000 0000: Single threshold detect mode
+            - 0000 0001: Enable dual threshold detection (possible outcomes are high, in-range, and low). If not set, single threshold detection is used (possible outcomes are low and in-range) 
+            - 0000 0010: Blank both LDs based on a state change from this LD. The blank duration specified for each LD is used (if 0 duration is set, then no blanking will occur). If this setting is not present, only this LD is blanked
+    - `Ld1`: same fields as Ld0
+    - `updatedParameters`
+    
+- **`AdaptiveStimSettings`**
+    - `HostUnixTime`
+    - `deltas`: contains fields for rise and fall rates, in mA/sec, for each of the four possible bands
+    - `states`: contains fields for state0-state8 indicating if that state is valid and ampInMilliamps; NaN indicates stimulation is not defined; -1 indicates hold for that state
+    - `stimRate`: In Hz
+    - `adaptiveMode`: Disabled; Operative; Embedded
+    - `currentState`: Current adaptive state
+    - `deltaLimitsValid`: Boolean
+    - `deltasValid`: Boolean
+    - `updatedParameters`
+    
+- **`AdaptiveEmbeddedRuns_StimSettings`**: Table with only changes to adaptive settings when adaptive was embedded, or transitioning from embedded to off 
+    - `HostUnixTime`
+    - `deltas`: contains fields for rise and fall rates, in mA/sec, for each of the four possible bands
+    - `states`: contains fields for state0-state8 indicating if that state is valid and ampInMilliamps; NaN indicates stimulation is not defined; -1 indicates hold for that state
+    - `stimRate`: In Hz
+    - `adaptiveMode`: Disabled; Operative; Embedded
+    - `currentState`: Current adaptive state
+    - `deltaLimitsValid`: Boolean
+    - `deltasValid`: Boolean
 
-- **ErrorLog.json**: Not currently used
-- **DiagnosticsLog.json**: Not currently used
-- **TimeSync.json**: Not currently used
+Each time series data stream has the following original timing information. These variables are saved to `AllDataTables.mat`, along with the calculated DerivedTimes, as sparse matrics (with accompanying cell arrays containing the column names). See `DEMO_LoadRCS.m` for example code of how to reconstruct the full table containing all this information, useful for validation of timing. 
 
-## Data tables contained in output file
+  - `timestamp`: INS clock driven timer that does not roll over. Highest resolution is 1 second. Total elaped time since March 1, 2000 at midnight. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](#systemtick-and-timestamp)
+  - `systemTick`: 16-bit INS clock timer that rolls over every 2^16 values. Highest resolution is 100 microseconds. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](#systemtick-and-timestamp)
+  - `PacketGenTime`: API estimate of when the packet was created on the INS within the PC clock domain. Estimate created by using results of latest latency check (one is done at system initialization, but can re-perform whenever you want) and time sync streaming. Only accurate within ~50ms.
+  - `PacketRxUnixTime`: PC clock-driven time when the packet was received. Highly inaccurate after packet drops.
+  - `dataTypeSequence`: 8-bit packet number counter that rolls over, ranging from 0 to 255; can be used to help identify if packets are in order or are missing. Should run continuously, but instances of resetting have been observed.
+
+## Creating combinedDataTable
+`createCombinedTable.m` can be used to put multiple data streams into one table, with harmonized DerivedTimes
 
 - **`combinedDataTable`**: Contains the following fields, if data present in this recording
    - `localTime`: Human-readable local time
@@ -319,179 +477,14 @@ Not all of these tables are saved as output in the form shown below. [See sectio
    - `Adaptive_Ld1_lowThreshold`: The low threshold value
    - `Adaptive_Ld1_output`: The linear discriminant output
 
-- **`AdaptiveEmbeddedRuns_StimSettings`**: Table with only changes to adaptive settings when adaptive was embedded, or transitioning from embedded to off 
-    - `HostUnixTime`
-    - `deltas`: contains fields for rise and fall rates, in mA/sec, for each of the four possible bands
-    - `states`: contains fields for state0-state8 indicating if that state is valid and ampInMilliamps; NaN indicates stimulation is not defined; -1 indicates hold for that state
-    - `stimRate`: In Hz
-    - `adaptiveMode`: Disabled; Operative; Embedded
-    - `currentState`: Current adaptive state
-    - `deltaLimitsValid`: Boolean
-    - `deltasValid`: Boolean
-
-- **`AdaptiveStimSettings`**
-    - `HostUnixTime`
-    - `deltas`: contains fields for rise and fall rates, in mA/sec, for each of the four possible bands
-    - `states`: contains fields for state0-state8 indicating if that state is valid and ampInMilliamps; NaN indicates stimulation is not defined; -1 indicates hold for that state
-    - `stimRate`: In Hz
-    - `adaptiveMode`: Disabled; Operative; Embedded
-    - `currentState`: Current adaptive state
-    - `deltaLimitsValid`: Boolean
-    - `deltasValid`: Boolean
-    - `updatedParameters`
-
-- **`DetectorSettings`**:
-    - `HostUnixTime`    
-    - `Ld0`
-        - `biasTerm`
-        - `features`: `normalizationMultiplyVector`, `normalizationSubtractVector`, `weightVector`
-        - `fractionalFixedPointValue`
-        - `updateRate`: in seconds
-        - `blankingDurationUponStateChange`: in seconds
-        - `onsetDuration`: in seconds
-        - `holdoffTime`: in seconds
-        - `terminationDuration`: in seconds
-        - `detectionInputs_BinaryCode`: Binary string indicating which power channel(s) were used as input for the linear discriminant
-            - 0000 0000: No inputs chosen
-            - 0000 0001: Power channel 0, band 0
-            - 0000 0010: Power channel 0, band 1
-            - 0000 0100: Power channel 1, band 0
-            - 0000 1000: Power channel 1, band 1
-            - 0001 0000: Power channel 2, band 0
-            - 0010 0000: Power channel 2, band 1
-            - 0100 0000: Power channel 3, band 0
-            - 1000 0000: Power channel 3, band 1
-        - `detectionEnable_BinaryCode`: Binary string indicating setting for linear discriminant detector
-            - 0000 0000: Single threshold detect mode
-            - 0000 0001: Enable dual threshold detection (possible outcomes are high, in-range, and low). If not set, single threshold detection is used (possible outcomes are low and in-range) 
-            - 0000 0010: Blank both LDs based on a state change from this LD. The blank duration specified for each LD is used (if 0 duration is set, then no blanking will occur). If this setting is not present, only this LD is blanked
-    - `Ld1`: same fields as Ld0
-    - `updatedParameters`
-
-- **`eventLogTable`**
-    - `SessionId`
-    - `HostUnixTime`
-    - `EventName`
-    - `EventType`
-    - `EventSubType`
-    - `UnixOnsetTime`
-    - `UnixOffsetTime'
-  
-- **`fftSettings`**
-    - `recNumber`
-    - `duration`
-    - `timeStart`
-    - `timeStop`
-    - `fftConfig`: `bandFormationConfig`, `config`, `interval`, `size`, `streamOffsetBins`, `streamSizeBins`, `windowLoad`
-    - `TDsampleRates`: In Hz
-    - `fftParameters`: `numBins`, `binwidth`, `fftBins`, `lower`, `upper`, `fftSize`
-
-- **`metaData`** 
-    - `subjectID`
-    - `patientGender`
-    - `handedness`
-    - `implantedLeads`
-    - `extensions`
-    - `leadLocations`
-    - `leadTargets`
-    - `INSimplantLocation`
-    - `stimProgramNames`
-    - `UTCoffset`
-    - `batteryLevelPercent`
-    - `batteryVoltage`
-    - `estimatedCapacity`
-    - `batterySOC`
-
-- **`powerSettings`**
-    - `recNumber`
-    - `duration`
-    - `timeStart`
-    - `timeStop`
-    - `powerBands`: `powerBandsInHz`, `powerBinsInHz`, `lowerBound`, `upperBound`, `fftSize`, `fftBins`, `indices_BandStart_BandStop`, `binWidth`, `TDsampleRate`
-    - `TDsampleRates`
-    - `fftConfig`: `bandFormationConfig`, `config`, `interval`, `size`, `streamOffsetBins`, `streamSizeBins`, `windowLoad`
- 
-- **`stimLogSettings`**
-    - `HostUnixTime`
-    - `activeGroup`
-    - `therapyStatus`
-    - `therapyStatusDescription`
-    - `GroupA`
-    - `GroupB`
-    - `GroupC`
-    - `GroupD`
-    - `updatedParameters`
-
-- **`stimMetaData`**
-    - `validPrograms`
-    - `validProgramNames`
-    - `anodes`
-    - `cathodes`
-
-- **`stimSettingsOut`**
-    - `HostUnixTime`
-    - `activeGroup`
-    - `therapyStatus`
-    - `therapyStatusDescription`
-
-- **`timeDomainSettings`**
-    - `recNum`
-    - `duration`
-    - `timeStart`
-    - `timeStop`
-    - `samplingRate`
-    - `chan1`
-    - `chan2`
-    - `chan3`
-    - `chan4`
-    - `TDsettings`: `currentMode`, `evokedMode`, `gain`, `hpf`, `lpf1`, `lpf2`, `minusInput`, `outputMode`, `plusInput`, `sampleRate`, `chanOut`, `chanFullStr`
-
-## Functions
-This list contains the functions that have been tested in branch and pushed to master (brief description of function input output next to each function name)
-
-### Wrappers
-- **DEMO_ProcessRCS**: Demo wrapper script for importing raw .JSON files from RC+S, parsing into Matlab table format, and handling missing packets / harmonizing timestamps across data streams
-
-### CreateTables
-- **createAccelTable**: Create Matlab table of raw data from RawDataAccel.json
-- **createAdaptiveSettingsfromDeviceSettings**: Create Matlab table of adaptive settings from DeviceSettings.json
-- **createAdaptiveTable**: Create Matlab table of adaptive time domain signals from AdaptiveLog.json
-- **createCombinedTable**: Create Matlab table of combined data, with harmonized `DerivedTime`values
-- **createDataTableWithMultipleSamplingRates**: Create Matlab table from data with multiple sampling rates within a data stream
-- **createDeviceSettingsTable**: Extract information from DeviceSettings.json related to configuration for time domain, power domain, FFT domain, adaptive, and stimulation
-- **createEventLogTable**: Extract information from EventLog.json 
-- **createFFTtable**: Create Matlab table of raw data from RawDataFFT.json
-- **createPowerTable**: Create Matlab table of raw data from RawDataPower.json
-- **createStimSettingsFromDeviceSettings**: Create Matlab table of stim settings data from DeviceSettings.json
-- **createStimSettingsTable**: Create Matlab table of stim data from StimLog.json
-- **createTimeDomainTable**: Create Matlab table of raw data from RawDataTD.json
-
-### Utility
-- **addNewEntry_FFTSettings**: Extract FFT settings in order to add a new row to the `FFT_SettingsTable`
-- **addNewEntry_PowerDomainSettings**: Extract powerDomain settings in order to collect data to add a new row to the `Power_SettingsTable`
-- **addNewEntry_StimSettings**: Collect data to add a new row to the `Stim_SettingsTable`
-- **addNewEntry_TimeDomainSettings**: Extract timeDomain settings in order to add a new row to the `TD_SettingsTable`
-- **addRowToTable**: Add row of new data to table
-- **calculateDeltaSystemTick**: A 'circular calculator' for `systemTick`, to determine total elapsed time (assuming no full rollover of `systemTick`)
-- **convertDetectorCodes**: Convert information from Ld0 and Ld1 fields of DeviceSettings.DetectionConfig into human readable information
-- **convertFFTCodes**: Convert information from fftConfig into human readable information
-- **convertMetadataCodes**: Convert Medtronic numeric codes from the subjectInfo field of DeviceSettings to human readable information
-- **convertTDcodes**: Conversion of Medtronic numeric codes into values (e.g. Hz)
-- **convertTherapyStatus**: Take information from therapyStatus and create therapyStatusDescription
-- **deserializeJSON**: Reads .json files and loads into Matlab
-- **fixMalfomedJSON**: Checks for and replaces missing brackets and braces in json file, which can prevent proper loading
-- **getFFTparameters**: Determine FFT parameters from FFTconfig and TD sample rate
-- **getPowerBands**: Calculate lower and upper bounds, in Hz, for each power domain timeseries
-- **getSampleRate**: Convert Medtronic codes to sample rates in Hz for time domain data
-- **getSampleRateAcc**: Convert Medtronic codes to sample rates in Hz for accelerometer data
-- **getStimParameters**: For a given stimulation group, update prior fields with any information present in current fields
-- **getPowerFromTimeDomain**: For a given session dataset, calculates equivalent RCS power from timedomain series based on harmonized DerivedTimes
-
-### (Pre)Processing
-- **assignTime**: Function for creating timestamps for each sample of valid RC+S data. 
-- **harmonizeTimeAcrossDataStreams**: Shift `DerivedTime` values to nearest `unifiedDerivedTimes` value, extending `unifiedDerivedTimes` as needed
-
 ## How to get a time value for each sample of data
+
+The raw data comtain the following timing-related data:
+- `timestamp`: INS clock driven timer that does not roll over. Highest resolution is 1 second. Total elaped time since March 1, 2000 at midnight. One value per packet, corresponding to last sample in the packet. 
+- `systemTick`: 16-bit INS clock timer that rolls over every 2^16 values. Highest resolution is 100 microseconds. One value per packet, corresponding to last sample in the packet. 
+- `PacketGenTime`: API estimate of when the packet was created on the INS within the PC clock domain. Estimate created by using results of latest latency check (one is done at system initialization, but can re-perform whenever you want) and time sync streaming. Only accurate within ~50ms. One value per packet, corresponding to last sample in the packet. 
+- `PacketRxUnixTime`: PC clock-driven time when the packet was received. Highly inaccurate after packet drops. One value per packet, corresponding to last sample in the packet. 
+
 Ideally, there would be a value reported with each packet from which we could easily re-create unix time for each sample. Nominally, this would be `PacketGenTime`. However, upon inspection we see that: 
 - **(1)** The difference between adjacent `PacketGenTime` values does not always equal the expect amount of elapsed time, where the expected amount of elapsed time is calculated by the number of samples in the packet and the sampling rate. This is a serious problem. In cases where there is missing time, we would lose the stereotyped 1/Fs duration between samples. In cases of overlap, how do we account for having more than one value sampled at the same time?
 - **(2)** `PacketGenTime` has suspect values across packets and relative to other timing variables. Together, these indicate that `PacketGenTime` is unreliable when high precision time reconstruction is required (as for some task-locked analyses, looking at ERPs, etc).
@@ -601,16 +594,3 @@ A number of factors impact the fidelity with which the RC+S streams data to the 
 
 ## Overview of Adaptive Stimulation
 The RC+S system is designed to deliver Adaptive Stimulation based on neural biomarker(s) band(s) fluctuations. The device has 2 detectors (Ld0 and Ld1) and the adaptive therapy can be set based on one or the combination of both detectors. Each detector can be configured with one up to four power bands (input features). A detector state is defined as a function of the detector output signal relative to a predefined threshold (single or dual treshold). In the case of dual theshold, the detector output may transition among 3 states, 'below' lower threshold, 'in between' lower and upper threshold, and 'above' upper threshold; in the case of a single threshold, the detector output fluctuates between 2 states ('below' and 'above' threshold). Each Therapy Status State is mapped to 1 of 9 possible states, depending on whether one or two detectors are used and whether single or dual threshold is used for each detector.
-
-The two main functions of the code base specific to the adaptive therapy engine are (see CreateTables section above):
-1) createAdaptiveSettingsfromDeviceSettings
-2) createAdpativeData
-
-From the first table we get the adaptive metadata and adaptive settings which can be changed by the user, eg. one recording session containing a series of detector and adaptive settings changes. From the second table we get the adaptive detector time series data.
-
-createAdaptiveSettingsfromDeviceSettings gives the following outputs
-- DetectorSettings: contains any changes in the detectors settings
-- AdaptiveStimSettings: contains any changes in adpative settings (metadata, deltas, states).
-- AdaptiveRuns_StimSettings: contains Adaptive Settings for each new Adaptive run  
-
- As with the other data streams, the output adaptive time series are harmonized with the rest of data streams using harmonizeTimeAcrossDataStreams (using unifiedDerivedTimes and srates_TD).

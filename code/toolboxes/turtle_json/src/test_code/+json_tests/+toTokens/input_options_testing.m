@@ -14,7 +14,7 @@ fprintf('Running toTokens.input_options_testing()\n');
 leadin = 'json_tests.toTokens.input_options_testing: ';
 fh2 = @json_tests.utils.runTest;
 encode = @json_tests.utils.encodeJSON;
-getC = @(x) json.utils.getMexC(x.mex);
+getC = @(x) json.utils.getPerformanceLog(x.mex);
 
 %TODO: Missing passing a string into the file parser
 

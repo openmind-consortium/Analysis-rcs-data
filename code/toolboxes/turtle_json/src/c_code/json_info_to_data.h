@@ -1,5 +1,8 @@
 #define MAX_ARRAY_DIMS 10
-                
+
+//  Name: json_info_to_data.h
+    
+// see populate_data in json_info_to_data.c
 typedef struct {
     uint8_t *types;
     int *d1;
@@ -23,6 +26,11 @@ typedef struct {
     mxArray *strings;
     
     double *numeric_data;
+    
+    mxArray *mxfalse;
+    mxArray *mxtrue;
+    mxArray *mxnan;
+    
 } Data;
 
 typedef struct {

@@ -4,6 +4,10 @@ This code parses JSON files/strings using C (mex) code. Writing is not supported
 
 I needed JSON parsing for a project. Loading JSON files using existing parsers was painfully slow. This slowness was due to 1) JSON parsing being done in Matlab or 2) parsing using C/C++ or Java, but with inefficient memory structures. This code started off by wrapping an already written C JSON tokenizer, and then post-processing in Matlab. After some nit-picking here and there, I found myself writing an entire parser in C, from scratch.
 
+More on "why/how" can be found here: [https://jimhokanson.com/blog/2018/2018_01_Turtle_JSON_Intro/](https://jimhokanson.com/blog/2018/2018_01_Turtle_JSON_Intro/)
+
+More on performance can be found here: [https://jimhokanson.com/blog/2018/2018_08_Turtle_JSON_speed/](https://jimhokanson.com/blog/2018/2018_08_Turtle_JSON_speed/)
+
 # Advantages and Disadvantages
 
 ## Advantages
@@ -13,7 +17,7 @@ I needed JSON parsing for a project. Loading JSON files using existing parsers w
 
 ## Disadvantages
 * I used a non-native compiler for both Windows and Mac (GCC)
-* Currently favors speed over memory usage(this can be improved)
+* Currently favors speed over memory usage (this can be improved)
 * Currently requires newer computers due to use of SIMD (I believe I'm only using AVX so ~2011 or newer processor required). Ideally a switch would allow an option not to use SIMD.
 
 ## Limitations
@@ -67,7 +71,7 @@ Note there are options that can control the mapping from JSON to Matlab structur
 %TODO: Document this option
 data = json.load(file_path,{},{'column_major',false});
 
-%Other options can be found
+%Other options can be found in the json.load documentation
 
 ```
 
@@ -114,7 +118,7 @@ TODO: Document some issues and reference a different file
 
 # Documentation
 
-TODO: More documentation can be found at ...
+More documentation can be found in the [docs folder](./docs/)
 
 # Contributing
 

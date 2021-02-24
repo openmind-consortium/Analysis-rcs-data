@@ -12,7 +12,7 @@ n = 0;
 
 fh2 = @json_tests.utils.runTest;
 encode = @json_tests.utils.encodeJSON;
-getC = @(x) json.utils.getMexC(x.mex);
+getC = @(x) json.utils.getPerformanceLog(x.mex);
 
 
 %==========================================================================

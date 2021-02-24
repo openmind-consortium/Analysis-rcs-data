@@ -27,6 +27,10 @@ currentSettings = DeviceSettings{1};
 
 HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
 
+% initialize cathodes and anodes for all programs
+stimMetaData.anodes = cell(4,4);
+stimMetaData.cathodes = cell(4,4);
+
 counter = 1;
 for iGroup = 0:3
     printGroupName = sprintf('TherapyConfigGroup%d',iGroup);
