@@ -981,6 +981,7 @@ classdef rcsPlotter < handle
             end
             hold(hAxes,'on');
             hold(hAxes,'on');
+            yDetAll = [];
             for i = 1:obj.NumberOfSessions
                 if ~isempty(obj.Data(i))
                     dt = obj.Data(i).combinedDataTable;
@@ -989,6 +990,7 @@ classdef rcsPlotter < handle
                     chanfn = sprintf('Adaptive_Ld%d_output',chan);
                     if sum(ismember(dt.Properties.VariableNames,chanfn)) % check if adaptive data exists
                         ydet = dt.(chanfn);
+                        yDetAll = [yDetAll; ydet];
                         idplot = ~isnan(ydet);
                         hplt = plot(x(idplot),ydet(idplot),'Parent',hAxes);
                         hplt.LineWidth = 0.5;
@@ -1056,6 +1058,14 @@ classdef rcsPlotter < handle
                     end
                 end
             end
+            % save percentils in user data in axes 
+            allData = yDetAll(~isnan(yDetAll));
+            prctiles = [2.5 5:5:95 97.5];
+            for pp = 1:length(prctiles)
+                percentilesZoom(pp,1) =  prctiles(pp);
+                percentilesZoom(pp,2) =  prctile(allData,prctiles(pp));
+            end
+            hAxes.UserData.prctiles = percentilesZoom;
         end
         
         %%%%%%
@@ -1786,6 +1796,53 @@ classdef rcsPlotter < handle
                     end
                 end
             end
+        end
+        
+        
+        
+        %%%%%%
+        %
+        % utility plotting function 
+        %
+        %%%%%%
+        function utilitySetYLim(obj,varargin)
+            %% utility funciton to set the Y limit if percentil exsists 
+            %
+            % often in embedded adaptive or power a lot of transient 
+            % make it needed to zoom 
+            % for both of these function rcsPlotter computes percentils 
+            % if percentiles exist for plotting data, you can zoom to 5-95%
+            % (default) or give a value (2 element matrix) with percentiles
+            % Note that percentiles computed are [2.5 5:5:95 97.5]; 
+            
+            %% input:
+            %       1. axes (required)
+            %       2. percentile (5-95 default) 
+            %% usage:
+            %
+            % % rc.utilitySetYLim(hAxes);
+            % % rc.utilitySetYLim(hAxes,[2.5 95]);
+            %
+            %
+            if nargin == 1
+                error('need to supply hanld to axes');
+            end
+            if nargin == 2
+                hAxes = varargin{1}; 
+                prctilZoom = [5 95];
+            end
+            if ishandle(hAxes)
+                if isfield(hAxes.UserData,'prctiles')
+                    prctiles = hAxes.UserData.prctiles;
+                    idx1 = prctilZoom(1) == prctiles(:,1);
+                    idx2 = prctilZoom(2) == prctiles(:,1);
+                    if prctiles(idx1,2) > prctiles(idx2,2)
+                        hAxes.YLim = [prctiles(idx1,2) prctiles(idx2,2)];
+                    end
+                end
+                
+            end
+            i
         end
     end
 
