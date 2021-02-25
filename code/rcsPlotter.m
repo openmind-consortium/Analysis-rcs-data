@@ -1682,7 +1682,7 @@ classdef rcsPlotter < handle
             for i = 1:obj.NumberOfSessions
                 if ~isempty(obj.Data(i))
                     
-                    chanfn = sprintf('TD_key%d',charcs1);
+                    chanfn = sprintf('TD_key%d',chan);
                     dt = obj.Data(i).combinedDataTable;
                     x = datenum(dt.localTime);
                     y = dt.(chanfn);
