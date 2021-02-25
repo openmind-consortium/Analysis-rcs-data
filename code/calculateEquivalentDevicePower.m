@@ -1,6 +1,6 @@
 function [newPowerFromTimeDomain, newSettings] = calculateEquivalentDevicePower(combinedDataTable, fftSettings, powerSettings, metaData, channel, freqBand)
 % calculates equivalent device power as a function of chosen power bands
-% this function assumest to have in the workspace the output from DEMO_ProcessRCS.m
+% Assumption: it takes as baseline powerSettings the initial powerSettings of teh Session
 % Input = 
 % (1) combinedDataTable
 % (2) settings: cell with following structures {fftSettings, powerSettings, metaData}
@@ -21,6 +21,7 @@ newSettings.tdChannel = channel;
 newSettings.bandLimits = freqBand;
 
 % initialize with the default sesttings to have access to default settings
+powerSettings(2:end,:) = [] ; % relying only on the first set of power settings (removing all other pwoer settings changes of the session)
 newSettings.powerSettings = powerSettings;
 ampGains = newSettings.metaData.ampGains; % actual amplifier gains per channel
 
@@ -42,11 +43,16 @@ tempIndecesBinsA = find(powerSettings.powerBands.fftBins>newSettings.bandLimits(
 tempIndecesBinsB = find(powerSettings.powerBands.fftBins<newSettings.bandLimits(2));
 [C,IA,IB] = intersect(tempIndecesBinsA,tempIndecesBinsB);
 binIndecesInBand = tempIndecesBinsA(IA);
-binsInBand = powerSettings.powerBands.fftBins(tempIndecesBinsA(IA))
-disp(['The bins within the proposed band (', num2str(newSettings.bandLimits(1)),'Hz-',num2str(newSettings.bandLimits(2)),'Hz) limits are:']);
+binsInBand = powerSettings.powerBands.fftBins(tempIndecesBinsA(IA));
+
+disp('---')
+disp('Calculating equivalent power based on input defined [TD channel (1..4)] and [Power Band]:')
+disp(['TD channel = ', num2str(channel)])
+disp(['Power Band = ', num2str(newSettings.bandLimits(1)),'Hz-',num2str(newSettings.bandLimits(2)),'Hz']);
 disp(['Lower bin = ', num2str(binsInBand(1)), ' Hz']);
 disp(['Upper bin = ', num2str(binsInBand(end)), 'Hz']);
 disp(['Total bins = ', num2str(length(binsInBand))]);
+disp('---')
 
 % add new bins information to new power band in power newSettings
 newSettings.powerSettings.powerBands.indices_BandStart_BandStop = [binIndecesInBand(1) binIndecesInBand(end)];

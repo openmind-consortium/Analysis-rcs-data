@@ -1,4 +1,4 @@
-function  [powerOutput] = getPowerFromTimeDomain(combinedDataTable,fftSettings, powerSettings, metaData)
+function  [combinedPowerTable, partialPowerTables] = getPowerFromTimeDomain(combinedDataTable,fftSettings, powerSettings, metaData, calculationType)
 % creates a table with power computed signals from time domain signal using
 % an equivalent process to the internal power computation in the device
 % power is computed using
@@ -11,40 +11,60 @@ function  [powerOutput] = getPowerFromTimeDomain(combinedDataTable,fftSettings, 
 %   (2) fftSettings
 %   (3) powerSettings
 %   (4) metaData
+%   (5) calculationType
+%        1. default: it assumes same power settings throughout the whole recording
+%        2. it looks at all recording segments within a session and for each of those segments it will calculate the equivalent power
 %
-% output
-%   powerFromTimeDomain = table(harmoinized times, derived times, PB1,PB2,PB3,...,PB8)
-%
-% Assumptions:
-% - hann window 100%
-% - no change in fft and power settings in data set
+% outputs
+%   (default) combinedPowerTable = table(harmoinized times, derived times, PB1,PB2,PB3,...,PB8)
+%   partialPowerTables = 
 %
 
-powerOutput = table();
-% powerFromTimeDomain = table(size(powerSettings,1),size(powerSettings,2)+1);
-% powerFromTimeDomain = powerSettings;
-for inumRec = 1:size(powerSettings,1)
-
-    % search power subdataset in the session 
-    timeFormat = sprintf('%+03.0f:00',metaData.UTCoffset);
-    timeStart = powerSettings.timeStart(inumRec);     
-    localTimeStart = datetime(timeStart/1000,'ConvertFrom','posixTime','TimeZone',timeFormat,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
-    timeStop = powerSettings.timeStop(inumRec);
-    localTimeStop = datetime(timeStop/1000,'ConvertFrom','posixTime','TimeZone',timeFormat,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
-    idxRecordA = find(combinedDataTable.localTime >= localTimeStart);
-    idxRecordB = find(combinedDataTable.localTime <= localTimeStop);
-    [C,idA,idB] = intersect(idxRecordA,idxRecordB);
-    idxRecordUse = C(idA);
-    
-    % initialize output power 
-    powerFromTimeDomain = table();
-    powerFromTimeDomain.localTime= combinedDataTable.localTime(idxRecordUse);
-    powerFromTimeDomain.DerivedTimes = combinedDataTable.DerivedTime(idxRecordUse);
-    
-    for inumBands = 1:8 % initialize bands
-        powerFromTimeDomain.(['PowerCh',num2str(inumBands)]) = nan(1,length(idxRecordUse))';
+if nargin <4 || nargin > 5
+    error('input arguments must be at least the following 4 variables: combinedDataTable, fftSettings, powerSettings, metaData, calculationType (optional, 1 (default) or 2)')
+elseif nargin == 4 % default, assume only 1 set of power settings (remove rest from powerSettings table)
+        powerSettings(2:end,:) = []; 
+elseif nargin == 5
+    if calculationType == 1
+        powerSettings(2:end,:) = []; % remove additional powerSetttings raw
+    elseif calculationType == 2 % looks for potential different recordings within session
+        % no need to do anything, powerSettings contains by default the subsets
+    else
+        error('the last argument (calcualtionType) must be either (default, not passed) or an integer 1 or 2')
     end
+end
 
+% initialize tables
+combinedPowerTable = table();
+combinedPowerTable.localTime= combinedDataTable.localTime;
+combinedPowerTable.DerivedTimes = combinedDataTable.DerivedTime;
+for inumBands = 1:8, combinedPowerTable.(['Power_Band',num2str(inumBands)]) = nan(1,size(combinedDataTable,1))'; end % initialize bands
+partialPowerTables = table();
+
+%   loop through combined data table in 1 shot (calculationType 1) or
+%   indexing subsets of time series data based on the start and stop time
+%   defined in powerSettings
+for inumRec = 1:size(powerSettings,1)
+    if size(powerSettings,1) > 1 % search power subdataset in the session 
+        timeFormat = sprintf('%+03.0f:00',metaData.UTCoffset);
+        timeStart = powerSettings.timeStart(inumRec);     
+        localTimeStart = datetime(timeStart/1000,'ConvertFrom','posixTime','TimeZone',timeFormat,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+        timeStop = powerSettings.timeStop(inumRec);
+        localTimeStop = datetime(timeStop/1000,'ConvertFrom','posixTime','TimeZone',timeFormat,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+        idxRecordA = find(combinedDataTable.localTime >= localTimeStart);
+        idxRecordB = find(combinedDataTable.localTime <= localTimeStop);
+        [C,idA] = intersect(idxRecordA,idxRecordB);
+        idxRecordUse = C(idA);
+    else
+        idxRecordUse = 1:size(combinedDataTable,1);
+    end        
+    % initialize output power 
+    powerTable = table();
+    powerTable.localTime= combinedDataTable.localTime(idxRecordUse);
+    powerTable.DerivedTimes = combinedDataTable.DerivedTime(idxRecordUse);    
+    for inumBands = 1:8 % initialize bands
+        powerTable.(['Power_Band',num2str(inumBands)]) = nan(1,length(idxRecordUse))';
+    end
     % loop for each time domain channel
     for c=1:4
         % extract input parameters
@@ -77,18 +97,17 @@ for inumRec = 1:size(powerSettings,1)
                 binEndBand1 = binEnd(2*c-1);
                 binStartBand2 = binStart(2*c);
                 binEndBand2 = binEnd(2*c);
-                powerFromTimeDomain.(['PowerCh',num2str(2*c-1)])(stime+L-1) = sum(fftPower(binStartBand1:binEndBand1));
-                powerFromTimeDomain.(['PowerCh',num2str(2*c)])(stime+L-1) = sum(fftPower(binStartBand2:binEndBand2));
+                powerTable.(['Power_Band',num2str(2*c-1)])(stime+L-1) = sum(fftPower(binStartBand1:binEndBand1));
+                powerTable.(['Power_Band',num2str(2*c)])(stime+L-1) = sum(fftPower(binStartBand2:binEndBand2));
             end
             counter = counter + 1;
             stime = stime + (L - ceil(L*overlap));
         end   
-    end    
-    
-    powerOutput.Recum{inumRec} = inumRec;
-    powerOutput.Output{inumRec} = powerFromTimeDomain;
+    end        
+    partialPowerTables.Recum{inumRec} = inumRec;
+    partialPowerTables.PowerTable{inumRec} = powerTable;
+    combinedPowerTable(idxRecordUse(1):idxRecordUse(end),3:size(combinedPowerTable,2)) = powerTable(:,3:end);
 end
-
 end
 
 
