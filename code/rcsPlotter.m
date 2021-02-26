@@ -57,6 +57,17 @@ classdef rcsPlotter < handle
     %              % link axes since time domain and acc have differnt
     %              % sample rates: 
     %              linkaxes(hsb,'x');
+    %
+    %
+    %% list of functions:
+    %       type: 
+    %
+    %       rc = rcsPlotter(); 
+    %       rc.Help();
+    %
+    %       or without init:
+    %
+    %       methods(rcsPlotter);
     
     properties
         FolderNames
@@ -1842,7 +1853,41 @@ classdef rcsPlotter < handle
                 end
                 
             end
-            i
+        end
+        
+        %%%%%%
+        %
+        % help method 
+        %
+        %%%%%%
+        function Help(obj,varargin)
+            %
+            %% How to use help 
+            %
+            % rcsPlotter creats an object (class) 
+            % that has several functions. 
+            %
+            % usage: 
+            %   for list of of functions and what they do: 
+            %    
+            %   rc = rcsPlotter. 
+            %   rc.Help(); 
+            %   for help on specific function: 
+            %   rc.Help('plotAdaptiveState'); 
+            %
+            % 
+            %
+            if nargin == 1
+                strSearch = '*';
+                eval('help rcsPlotter.Help');
+                methods(obj);
+            end
+            if nargin == 2 
+                strSearch = varargin{1};
+                eval(sprintf('help rcsPlotter.%s', strSearch));
+            end
+            
+           
         end
     end
 
