@@ -28,6 +28,9 @@ classdef parsing_info
     methods
         function obj = parsing_info(result)
             
+            %this code is a bit old and out of date
+            
+            %Use 
             
             %Elapsed time
             %--------------------------------------------------------

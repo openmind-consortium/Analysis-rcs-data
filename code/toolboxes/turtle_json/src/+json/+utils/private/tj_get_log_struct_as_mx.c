@@ -2,7 +2,12 @@
 
 //  Note this is not designed to be fast since this is only for debugging
 
+//  Compile as:
 //  mex -DNO_OPENMP tj_get_log_struct_as_mx.c 
+//
+//  Exposed in MATLAB as:
+//  json.utils.getPerformanceLog
+
 
 //TODO: Do an input check ...
 

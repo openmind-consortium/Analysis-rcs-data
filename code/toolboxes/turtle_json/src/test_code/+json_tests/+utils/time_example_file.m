@@ -3,6 +3,12 @@ classdef time_example_file
     %   Class:
     %   json_tests.time_example_file
     %
+    %   Access
+    %   ------
+    %   all_results = json_tests.time_example_file.testAll()
+    %
+    %   json_tests.utils.testExample
+    %
     %   This class may move to a 'support' folder
     
     properties

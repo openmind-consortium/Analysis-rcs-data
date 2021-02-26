@@ -1,4 +1,4 @@
-function [stimLogSettings] = createStimSettingsTable(folderPath)
+function [stimLogSettings] = createStimSettingsTable(folderPath,stimMetaData)
 %%
 % Extract information from StimLog.json related to stimulation programs and
 % settings
@@ -38,8 +38,8 @@ while recordCounter <= numRecords
             addEntry = 1;
             updatedParameters = [updatedParameters;'therapyStatus'];
         end
-        
     end
+    
     if isfield(currentSettings, 'therapyStatusData') && isfield(currentSettings.therapyStatusData, 'activeGroup')
         switch currentSettings.therapyStatusData.activeGroup
             case 0
@@ -109,11 +109,61 @@ while recordCounter <= numRecords
         end
     end
     
-    % If any parameter was updated, add all current parameters to table as
+    % Update string for stimParams for all programs, given currently active
+    % group
+    if addEntry == 1
+        switch updatedActiveGroup
+            case 'A'
+                currentGroup = updatedGroupA;
+                anodes = stimMetaData.anodes(1,:);
+                cathodes = stimMetaData.cathodes(1,:);
+            case 'B'
+                currentGroup = updatedGroupB;
+                anodes = stimMetaData.anodes(2,:);
+                cathodes = stimMetaData.cathodes(2,:);
+            case 'C'
+                currentGroup = updatedGroupC;
+                anodes = stimMetaData.anodes(3,:);
+                cathodes = stimMetaData.cathodes(3,:);
+            case 'D'
+                currentGroup = updatedGroupD;
+                anodes = stimMetaData.anodes(4,:);
+                cathodes = stimMetaData.cathodes(4,:);
+        end
+        
+        for iProgram = 1:4
+            anodeString = [];
+            cathodeString = [];
+            if currentGroup.ampInMilliamps(iProgram) == 8.5
+                stimParamsString{iProgram} = 'Disabled';
+            else
+                for iAnode = 1:length(anodes{iProgram})
+                   if ~isequal(anodes{iProgram}(iAnode),16)
+                       anodeString = [anodeString sprintf('%.0f+',anodes{iProgram}(iAnode))];
+                   elseif isequal(anodes{iProgram}(iAnode),16)
+                       anodeString = [anodeString 'c+']; 
+                   end
+                end   
+                for iCathode = 1:length(cathodes{iProgram})
+                   if ~isequal(cathodes{iProgram}(iCathode),16)
+                       cathodeString = [cathodeString sprintf('%.0f-',cathodes{iProgram}(iCathode))];
+                   else isequal(cathodes{iProgram}(iCathode),16)
+                       cathodeString = [cathodeString 'c-']; 
+                   end
+                end  
+                
+                stimParamsString{iProgram} = sprintf('%s%s, %.1fmA, %0.fus, %.1fHz',anodeString,...
+                    cathodeString, currentGroup.ampInMilliamps(iProgram),...
+                    currentGroup.pulseWidthInMicroseconds(iProgram),currentGroup.RateInHz );
+            end
+        end
+    end
+    
+        % If any parameter was updated, add all current parameters to table as
     % a new entry
     if addEntry == 1
         [newEntry] = addNewEntry_StimSettings(currentSettings,updatedActiveGroup,...
-            updatedTherapyStatus, updatedGroupA, updatedGroupB, updatedGroupC, updatedGroupD, updatedParameters);
+            updatedTherapyStatus, updatedGroupA, updatedGroupB, updatedGroupC, updatedGroupD, stimParamsString, updatedParameters);
         stimLogSettings = addRowToTable(newEntry,stimLogSettings);
     end
     addEntry = 0;

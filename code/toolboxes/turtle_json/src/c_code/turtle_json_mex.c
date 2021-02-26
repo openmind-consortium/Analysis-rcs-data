@@ -414,7 +414,7 @@ void init_options(int nrhs, const mxArray* prhs[], Options *options){
         
         //  typecast(uint16('raw_'),'int64')
         if (*prop_string == 26740633894977650){
-            mexPrintf("raw_string\n");
+            //mexPrintf("raw_string\n");
             if (mxIsClass(mx_value,"logical")){
                 //If logical and false, exit early
                 if (!(*(uint8_t *)mxGetData(mx_value))){
@@ -564,26 +564,38 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
     
     //Processing of inputs
     //-------------------------------------
+    //mexPrintf("init options\n");
     init_options(nrhs, prhs, &options);
+    
+    //mexPrintf("input parsing\n");
     
     TIC(start_read);
     get_json_string(plhs, nrhs, prhs, &json_string, &string_byte_length, 
             &options, slog);
     TOC(start_read,time__elapsed_read_time);
     
+    
+    
     //Token parsing
     //-------------
+    //mexPrintf("token parsing\n");
     TIC(start_parse);
     parse_json(json_string, string_byte_length, plhs, &options, slog);
     TOC(start_parse, time__total_elapsed_parse_time);
    
+    
+    
     //Post token parsing
+    //------------------
+    //mexPrintf("post token parsing\n");
     post_process(json_string, plhs, slog);
     
     TOC(start_mex,time__total_elapsed_time_mex);
     
     //Move c_struct log to field of output
     //---------------------------------------
+    //mexPrintf("setting up output\n");
+    
     mxArray *mx_slog = mxCreateNumericMatrix(0, 1, mxUINT8_CLASS, 0);
     mxSetData(mx_slog,slog);
     mxSetM(mx_slog,sizeof(struct sdata));
