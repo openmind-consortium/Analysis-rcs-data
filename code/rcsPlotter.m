@@ -390,6 +390,7 @@ classdef rcsPlotter < handle
                 end
             end
             datetick(hAxes,'x',15,'keepticks','keeplimits');
+            obj.formatTimeXaxes(hAxes);
         end
         
         %%%%%%
@@ -518,6 +519,7 @@ classdef rcsPlotter < handle
                 end
             end
             datetick(hAxes,'x',15,'keepticks','keeplimits');
+            obj.formatTimeXaxes(hAxes);
         end
         
         
@@ -776,6 +778,7 @@ classdef rcsPlotter < handle
                     gapsAll = [gapsAll; gaps];
                 end
             end
+            obj.formatTimeXaxes(hAxes);
             modGap = mode(gaps);
             medGap = median(gaps);
             maxGap = max(gaps);
@@ -957,6 +960,7 @@ classdef rcsPlotter < handle
                 end
             end
             datetick('x',15,'keepticks','keeplimits');
+            obj.formatTimeXaxes(hAxes);
         end
         
         
@@ -1069,6 +1073,7 @@ classdef rcsPlotter < handle
                     end
                 end
             end
+            obj.formatTimeXaxes(hAxes);
             % save percentils in user data in axes 
             allData = yDetAll(~isnan(yDetAll));
             prctiles = [2.5 5:5:95 97.5];
@@ -1136,6 +1141,7 @@ classdef rcsPlotter < handle
             end
             axes(hAxes);
             datetick('x',15,'keepticks','keeplimits');
+            obj.formatTimeXaxes(hAxes);
         end
         
         %%%%%%
@@ -1193,6 +1199,7 @@ classdef rcsPlotter < handle
             end
             axes(hAxes);
             datetick('x',15,'keepticks','keeplimits');
+            obj.formatTimeXaxes(hAxes);
         end
         
         %%%%%%
@@ -1284,6 +1291,7 @@ classdef rcsPlotter < handle
                     end
                 end
             end
+            obj.formatTimeXaxes(hAxes);
             
         end
         
@@ -1350,6 +1358,7 @@ classdef rcsPlotter < handle
                 end
             end
             datetick(hAxes,'x',15,'keepticks','keeplimits');
+            obj.formatTimeXaxes(hAxes);
         end
         
         
@@ -1472,6 +1481,7 @@ classdef rcsPlotter < handle
                 end
             end
             datetick('x',15,'keepticks','keeplimits');
+            obj.formatTimeXaxes(hAxes);
             %% set limits;
             ylims(1) = prctile(ypowerOut,5);
             ylims(2) = prctile(ypowerOut,95);
@@ -1926,10 +1936,86 @@ classdef rcsPlotter < handle
             end
         end
         
-
-
+        
+        %%%%%%
+        %
+        % utility function that formats data to make it looks a little
+        % nicer 
+        %
+        %%%%%%
+        %
+        % all of the plotting function use datenum as the x axis
+        % reason is that for plotting spectral data using imagesc (fastest
+        % performance, compared to pcolor etc. which is slow in
+        % largedatasets) you need a numeric axee.
+        % This utility function allows one to see a human readable time on
+        % mouseover
+        function formatTimeXaxes(obj,hax)
+            % add data tip for human readable time if matlab
+            % version allows this:
+            %
+            
+            % set a few rules / hurestics for time 
+            % 1. under 1 min - data every 15 sec
+            % 2. under 1 min - 5 min - tick every 1 min 
+            % 3. over 5 min - 20 min. tick every 2 min 
+            % 4. over 20 min -1 hour - tick every 10 min. 
+            % 5. 1 hour - 2 hours - tick every 15 min 
+            % 6. 2 hours - tick every 30 minutes 
+            
+            plottedDuration = datetime(datevec(hax.XLim(2))) - datetime(datevec(hax.XLim(1)));
+            if plottedDuration < minutes(1)
+                timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','minute');
+                timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','minute');
+                xticks = datenum(timeStart : seconds(15) : timeEnd);
+                hax.XTick = xticks;
+                datetick('x','HH:MM:SS.FFF','keepticks','keeplimits');
+                
+            elseif plottedDuration >= minutes(1) & plottedDuration < minutes(5)
+                timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','minute');
+                timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','minute');
+                xticks = datenum(timeStart : minutes(1) : timeEnd);
+                hax.XTick = xticks;
+                datetick('x','HH:MM:SS','keepticks','keeplimits');
+                
+            elseif plottedDuration >= minutes(5) & plottedDuration < minutes(20)
+                timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','hour');
+                timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','hour');
+                xticks = datenum(timeStart : minutes(2) : timeEnd);
+                hax.XTick = xticks;
+                datetick('x','HH:MM','keepticks','keeplimits');
+                
+            elseif plottedDuration >= minutes(20) & plottedDuration < minutes(60)
+                timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','hour');
+                timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','hour');
+                xticks = datenum(timeStart : minutes(10) : timeEnd);
+                hax.XTick = xticks;
+                datetick('x','HH:MM','keepticks','keeplimits');
+                
+            elseif plottedDuration >= minutes(60) & plottedDuration < minutes(60*2)
+                timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','hour');
+                timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','hour');
+                xticks = datenum(timeStart : minutes(15) : timeEnd);
+                hax.XTick = xticks;
+                datetick('x','HH:MM','keepticks','keeplimits');
+                
+            elseif plottedDuration > minutes(60*2)
+                timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','hour');
+                timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','hour');
+                xticks = datenum(timeStart : minutes(30) : timeEnd);
+                hax.XTick = xticks;
+                datetick('x','HH:MM','keepticks','keeplimits');    
+            end
+            
+            
+                
+        end
+        
+        
         
     end
+    
+    
 end
 
       
