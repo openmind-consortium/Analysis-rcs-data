@@ -44,9 +44,9 @@ packetIndices_NegGenTime = find(dataTable_original.PacketGenTime <= 0);
 duplicate_firstIndex = intersect(find(diff(dataTable_original.dataTypeSequence) == 0),...
     find(diff(dataTable_original.systemTick) == 0));
 
-% Identify packetGenTimes that go backwards in time; should overlap with negative PacketGenTime
+% Identify packetGenTimes that go backwards in time by more than 500ms; may overlap with negative PacketGenTime
 packetGenTime_diffs = diff(dataTable_original.PacketGenTime);
-diffIndices = find(packetGenTime_diffs < 0 );
+diffIndices = find(packetGenTime_diffs < -500 );
 
 % Need to remove [diffIndices + 1], but may also need to remove subsequent
 % packets. Automatically remove the next packet [diffIndices + 2], as this is easier than
