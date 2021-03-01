@@ -403,7 +403,7 @@ Each time series data stream has the following original timing information. Thes
 
   - `timestamp`: INS clock driven timer that does not roll over. Highest resolution is 1 second. Total elaped time since March 1, 2000 at midnight. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](#systemtick-and-timestamp)
   - `systemTick`: 16-bit INS clock timer that rolls over every 2^16 values. Highest resolution is 100 microseconds. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](#systemtick-and-timestamp)
-  - `PacketGenTime`: API estimate of when the packet was created on the INS within the PC clock domain. Estimate created by using results of latest latency check (one is done at system initialization, but can re-perform whenever you want) and time sync streaming. Only accurate within ~50ms.
+  - `PacketGenTime`: API estimate of when the packet was created on the INS within the PC clock domain. Unix time with resolution to milliseconds. Estimate created by using results of latest latency check (one is done at system initialization, but can re-perform whenever you want) and time sync streaming. Only accurate within ~50ms.
   - `PacketRxUnixTime`: PC clock-driven time when the packet was received. Highly inaccurate after packet drops.
   - `dataTypeSequence`: 8-bit packet number counter that rolls over, ranging from 0 to 255; can be used to help identify if packets are in order or are missing. Should run continuously, but instances of resetting have been observed.
 
@@ -488,7 +488,7 @@ Each time series data stream has the following original timing information. Thes
 The raw data comtain the following timing-related data:
 - `timestamp`: INS clock driven timer that does not roll over. Highest resolution is 1 second. Total elaped time since March 1, 2000 at midnight. One value per packet, corresponding to last sample in the packet. 
 - `systemTick`: 16-bit INS clock timer that rolls over every 2^16 values. Highest resolution is 100 microseconds. One value per packet, corresponding to last sample in the packet. 
-- `PacketGenTime`: API estimate of when the packet was created on the INS within the PC clock domain. Estimate created by using results of latest latency check (one is done at system initialization, but can re-perform whenever you want) and time sync streaming. Only accurate within ~50ms. One value per packet, corresponding to last sample in the packet. 
+- `PacketGenTime`: API estimate of when the packet was created on the INS within the PC clock domain. Unix time with resolution to milliseconds. Estimate created by using results of latest latency check (one is done at system initialization, but can re-perform whenever you want) and time sync streaming. Only accurate within ~50ms. One value per packet, corresponding to last sample in the packet. 
 - `PacketRxUnixTime`: PC clock-driven time when the packet was received. Highly inaccurate after packet drops. One value per packet, corresponding to last sample in the packet. 
 
 Ideally, there would be a value reported with each packet from which we could easily re-create unix time for each sample. Nominally, this would be `PacketGenTime`. However, upon inspection we see that: 
@@ -555,7 +555,7 @@ Because of the above described unreliability of `PacketGenTime` and the offset i
 
 ![Create DerivedTime](documentationFigures/RCS_CreateDerivedTime.png)
 
-- Identify and remove packets with faulty meta-data or which indicate samples will be hard to place in continuous stream (e.g. packets with `timestamp` that is more than 24 hours away from median `timestamp`; packets with negative `PacketGenTime`; packets with outlier `packetGenTimes`; packets where `packetGenTime` goes backwards in time)
+- Identify and remove packets with faulty meta-data or which indicate samples will be hard to place in continuous stream (e.g. packets with `timestamp` that is more than 24 hours away from median `timestamp`; packets with negative `PacketGenTime`; packets with outlier `packetGenTimes`; packets where `packetGenTime` goes backwards in time more than 500ms)
 - Chunk data -- chunks are defined as segments of data which were continuously sampled. Breaks between chunks can occur because packets were removed in the previous step, because there were dropped packets (never acquired), or because streaming was stopped but the recording was continued. Changes in time domain sampling rate will also result in a new chunk. Chunks are identified by looking at the adjacent values of `dataTypeSequence`, `timestamp` and `systemTick` as a function of sampling rate and number of samples per packet.
 - We need to align each chunk to a time:
   - For the first chunk in a file, we align using the `PacketGenTime` of the first packet in the chunk.
