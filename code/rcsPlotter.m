@@ -959,7 +959,7 @@ classdef rcsPlotter < handle
 
                 end
             end
-            datetick('x',15,'keepticks','keeplimits');
+            datetick(hAxes,'x',15,'keepticks','keeplimits');
             obj.formatTimeXaxes(hAxes);
         end
         
@@ -1068,7 +1068,7 @@ classdef rcsPlotter < handle
                         end
                         title(hAxes,detectorInput);
                         axes(hAxes);
-                        datetick('x',15,'keepticks','keeplimits');
+                        datetick(hAxes,'x',15,'keepticks','keeplimits');
                         
                     end
                 end
@@ -1140,7 +1140,7 @@ classdef rcsPlotter < handle
                 end
             end
             axes(hAxes);
-            datetick('x',15,'keepticks','keeplimits');
+            datetick(hAxes,'x',15,'keepticks','keeplimits');
             obj.formatTimeXaxes(hAxes);
         end
         
@@ -1198,7 +1198,7 @@ classdef rcsPlotter < handle
                 end
             end
             axes(hAxes);
-            datetick('x',15,'keepticks','keeplimits');
+            datetick(hAxes,'x',15,'keepticks','keeplimits');
             obj.formatTimeXaxes(hAxes);
         end
         
@@ -1480,7 +1480,7 @@ classdef rcsPlotter < handle
                     end
                 end
             end
-            datetick('x',15,'keepticks','keeplimits');
+            datetick(hAxes,'x',15,'keepticks','keeplimits');
             obj.formatTimeXaxes(hAxes);
             %% set limits;
             ylims(1) = prctile(ypowerOut,5);
@@ -1947,9 +1947,12 @@ classdef rcsPlotter < handle
         % all of the plotting function use datenum as the x axis
         % reason is that for plotting spectral data using imagesc (fastest
         % performance, compared to pcolor etc. which is slow in
-        % largedatasets) you need a numeric axee.
-        % This utility function allows one to see a human readable time on
-        % mouseover
+        % largedatasets) you need a numeric axes. 
+        % This utility function tries to format time on x axis in a huamn
+        % readable fashion with timing in crements which make sense given
+        % the size of the plotted. Can copy this in outside function to
+        % produce more results that have desired outcome for plotting for
+        % unique cases 
         function formatTimeXaxes(obj,hax)
             % add data tip for human readable time if matlab
             % version allows this:

@@ -86,7 +86,7 @@ Plotting helper for RC+S files<br/>
    
 Background: 
   
-This class is built as as a utility function to make plotting RC+S data easier. It wraps other functions in this repo and handles loading multiple folders and plotting specific data streams such as time domain, acitgraphy, power bands, adaptive etc. 
+This class is built as as a utility function to make plotting RC+S data easier. It wraps other functions in this repo and handles loading multiple folders and plotting specific data streams such as time domain, acitgraphy, power bands, adaptive etc. Note that the `signal processing toolbox` is needed for some functions to work properly.
  
 There are 2 main "type" of methods in this function:<br/>
 
@@ -129,6 +129,12 @@ This function creats an object of type "rcsPlotter" with several associated meth
 ```
 
 Using the `rc.addFolder` method multiple folders can be added and plotted. 
+
+We have also added a convenience GUI that wraps `rcsPlotter` and allows for dynamic plotting. 
+
+Usage: 
+
+
 
 **Part 4**
 
