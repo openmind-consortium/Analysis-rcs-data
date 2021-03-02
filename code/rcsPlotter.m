@@ -493,9 +493,16 @@ classdef rcsPlotter < handle
                         [b,a]        = butter(3,[bandsUsed(1) bandsUsed(end)] / (sr/2),'bandpass'); % user 3rd order butter filter
                         y_filt       = filtfilt(b,a,yFilled); %filter all
                         y_filt_hilbert       = abs(hilbert(y_filt));
-                        hplt = plot(hAxes,timeUseNoNans,y_filt,'LineWidth',0.5,'Color',[0.8 0 0 0.1]);
-                        obj.addLocalTimeDataTip(hplt,dt.localTime);
-                        hplt = plot(hAxes,timeUseNoNans,y_filt_hilbert,'LineWidth',3,'Color',[0.8 0 0 0.6]);
+%                         hplt = plot(hAxes,timeUseNoNans,y_filt,'LineWidth',0.5,'Color',[0.8 0 0 0.1]);
+%                         obj.addLocalTimeDataTip(hplt,dt.localTime);
+                        hplt = plot(hAxes,timeUseNoNans,y_filt_hilbert,'LineWidth',0.5); % 'Color',[0.8 0 0 0.6]
+                        
+                        % add oppacity component
+                        oppacityFactor = 1;
+                        for pi=1:size(hplt,1)
+                            hplt(pi).Color = [hplt(pi).Color, oppacityFactor]; 
+                        end
+                        
                         obj.addLocalTimeDataTip(hplt,dt.localTime);
                         
                         
@@ -529,7 +536,7 @@ classdef rcsPlotter < handle
             %
             %% usage:
             %
-            % % rc.plotTdChannelBandpass(1); 
+            % % rc.plotTdChannelPsd(1); 
             %
             % can also specifiy timing algo duration. 
             % 
@@ -540,9 +547,9 @@ classdef rcsPlotter < handle
             % to specify duration of data input into each pwelch
             % computation: 
             %
-            % rc.plotTdChannelBandpass(1,seconds(30),hAxes); 
+            % rc.plotTdChannelPsd(1,seconds(30),hAxes); 
             % or 
-            % rc.plotTdChannelBandpass(1,minutes(10),hAxes); 
+            % rc.plotTdChannelPsd(1,minutes(10),hAxes); 
             % (hAxes is handle to subplot) 
             % 
             % default PSD averaged is 5 minutes. 
@@ -592,6 +599,10 @@ classdef rcsPlotter < handle
                     y = dt.(chanfn);
                     y = y.*1e3; % so data is in microvolt 
                     yRaw = y;
+                    
+                    % DEBUGGING
+%                     figure
+%                     plot(dt.localTime,yRaw)
 
                     % verify that you have time domain data
                     if sum(isnan(y)) == length(y)
@@ -610,70 +621,88 @@ classdef rcsPlotter < handle
                         else
                             sr = uniqueSampleRate;
                         end
-                        
-                        % find data with no gaps - 
-                        % then for each continous section of data without
-                        % gaps 
-                        % reshape data according to psd duration size 
-                        % then concatenate all for psd computation
-                        % also save (for later) the time index for PSD
-                        % (middle of window) 
-                        diffNans = diff(idxnan);
-                        idxgapEnd = find(diffNans == 1) + 1;
-                        idxgapStart = find(diffNans == -1) + 1;
-                        if idxnan(1) == 0 % if data start with no gap
-                            idxgapStart = [1; idxgapStart ];
-                        end
-                        if idxnan(end) == 0 % if data ends with gap
-                            idxgapEnd = [idxgapEnd; length(idxnan) ];
-                        end
-                        localTime = dt.localTime;
-                        gaps = localTime(idxgapEnd) - localTime(idxgapStart);
-                        gaps.Format = 'hh:mm:ss.SSSS';
-                        psdDuration.Format = 'hh:mm:ss.SSSS';
-                        
-                        totalRecLenth = (localTime(end) - localTime(1));
-                        totalRecLenth.Format = 'hh:mm:ss.SSSS';
-                        totalData     = sum(gaps);
-                        totalData.Format = 'hh:mm:ss.SSSS';
-                        % report how what % of data was capturd  
-                        fprintf('%.2f of data of data recorded (%s / %s)\n', totalData/totalRecLenth,...
-                                    totalRecLenth,totalData);
-
-                        
-                        % report how much data will be lost 
-                        fprintf('%.2f of data has no gaps larger than %s (%s / %s)\n', sum(gaps(gaps > psdDuration))./sum(gaps),psdDuration,...
-                            sum(gaps(gaps > psdDuration)), sum(gaps));
-
-                        idxGapsUse = gaps > psdDuration;
-                        gapsUse = gaps(idxGapsUse,:);
-                        idxGapStartUse = idxgapStart(idxGapsUse);
-                        idxGapEndUse = idxgapEnd(idxGapsUse);
-                        if ~isempty(gapsUse)
-                        else
-                            error('at this window size (%s), all psd chunks have gaps in them / some NaNs',psdDuration)
-                        end
-                        
-                        
+%                         
+%                         % find data with no gaps - 
+%                         % then for each continous section of data without
+%                         % gaps 
+%                         % reshape data according to psd duration size 
+%                         % then concatenate all for psd computation
+%                         % also save (for later) the time index for PSD
+%                         % (middle of window) 
+%                         diffNans = diff(idxnan);
+%                         idxgapEnd = find(diffNans == 1) + 1;
+%                         idxgapStart = find(diffNans == -1) + 1;
+%                         if idxnan(1) == 0 % if data start with no gap
+%                             idxgapStart = [1; idxgapStart ];
+%                         end
+%                         if idxnan(end) == 0 % if data ends with gap
+%                             idxgapEnd = [idxgapEnd; length(idxnan) ];
+%                         end
+%                         localTime = dt.localTime;
+%                         gaps = localTime(idxgapEnd) - localTime(idxgapStart);
+%                         gaps.Format = 'hh:mm:ss.SSSS';
+%                         psdDuration.Format = 'hh:mm:ss.SSSS';
+%                         
+%                         totalRecLenth = (localTime(end) - localTime(1));
+%                         totalRecLenth.Format = 'hh:mm:ss.SSSS';
+%                         totalData     = sum(gaps);
+%                         totalData.Format = 'hh:mm:ss.SSSS';
+%                         % report how what % of data was capturd  
+%                         fprintf('%.2f of data of data recorded (%s / %s)\n', totalData/totalRecLenth,...
+%                                     totalRecLenth,totalData);
+% 
+%                         
+%                         % report how much data will be lost 
+%                         fprintf('%.2f of data has no gaps larger than %s (%s / %s)\n', sum(gaps(gaps > psdDuration))./sum(gaps),psdDuration,...
+%                             sum(gaps(gaps > psdDuration)), sum(gaps));
+% 
+%                         idxGapsUse = gaps > psdDuration; %# juan 1 instead of psdDuration
+%                         gapsUse = gaps(idxGapsUse,:);
+%                         idxGapStartUse = idxgapStart(idxGapsUse);
+%                         idxGapEndUse = idxgapEnd(idxGapsUse);
+%                         if ~isempty(gapsUse)
+%                         else
+%                             error('at this window size (%s), all psd chunks have gaps in them / some NaNs',psdDuration)
+%                         end
+                                              
                         rawDataForPSD = [];
-                        for g = 1:length(idxGapStartUse)
-                            y = yRaw(idxGapStartUse(g):idxGapEndUse(g));
+%                         for g = 1:length(idxGapStartUse)
+%                             y = yRaw(idxGapStartUse(g):idxGapEndUse(g));
+                            y = yRaw(~idxnan);
                             reshapeFactor = seconds(psdDuration)*sr;
                             
                             yDatReshape = y(1:end-(mod(size(y,1), reshapeFactor)));
                             yDataComputePSD  = reshape(yDatReshape,reshapeFactor,size(yDatReshape,1)/reshapeFactor);
                             rawDataForPSD = [rawDataForPSD, yDataComputePSD];
-                        end
+%                         end
                         
                         rawDataForPSDCentered = rawDataForPSD - ...
                                                    repmat(mean(rawDataForPSD,1),size(rawDataForPSD,1),1);
                         
                         
                         [fftOut,ff]   = pwelch(rawDataForPSDCentered,sr,sr/2,0:1:sr/2,sr,'psd');
+                                                
+                        hplt = plot(hAxes, ff,log10(fftOut),'Color','b','LineWidth',0.5); % color [0.5 0 0 0.5]
                         
+                        % add oppacity component
+                        oppacityFactor = 1;
+                        for pi=1:size(hplt,1)
+                            hplt(pi).Color = [hplt(pi).Color, oppacityFactor]; 
+                        end
+                                                
+                        xlim([1 100]);  
+                        yLims = [-3 3];
+                        ylim(yLims); 
+                        xTicks = [4 8 12 20 30 60 80];
+                        set(hAxes,'xtick',xTicks)
+                        set(hAxes,'xticklabel',xTicks)
+                        for iTicks = 1:length(xTicks)
+                            xs = [xTicks(iTicks) xTicks(iTicks)];
+                            plot(xs,yLims,'LineWidth',1,'Color',[0.5 0.5 0.5 0.2],'LineStyle','-.');
+                        end
                         
-                        hplt = plot(hAxes, ff,log10(fftOut),'Color',[0.8 0 0 0.5],'LineWidth',0.5);
                         ylabel(hAxes,'Power (log_1_0\muV^2/Hz)');
+                        xlabel(hAxes,'frequency (Hz)')
                         % get settings
                         tdSettings = obj.Data(i).timeDomainSettings;
                         chanfn = sprintf('chan%d',chan);
@@ -681,7 +710,7 @@ classdef rcsPlotter < handle
                     end
                 end
             end
-            datetick(hAxes,'x',15,'keepticks','keeplimits');
+
         end
         
         
@@ -840,14 +869,13 @@ classdef rcsPlotter < handle
                     yFilled = fillmissing(y,'constant',0);
 
                     % set params.
+                    params.windowInSec = seconds(0.1*256/sr);
                     params.windowSize     = sr;  % spect window size
                     params.windowOverlap  = ceil(params.windowSize*0.875);   % spect window overalp (points)
-                    params.paddingGap     = seconds(1); % padding to add to window spec
+                    params.paddingGap     = seconds(0.01); % padding to add to window spec
                     params.windowUse       = 'kaiser'; % blackmanharris \ kaiser \ hann
-
                     
-                    % blank should be bigger than window on each side
-                    windowInSec = seconds(256/sr);
+                    % blank should be bigger than window on each side                    
                     switch params.windowUse
                         case 'kaiser'
                             windowUse = kaiser(params.windowSize,2);
@@ -883,8 +911,8 @@ classdef rcsPlotter < handle
                     
                     localTime = dt.localTime;
                     for te = 1:size(idxgapStart,1)
-                        timeGap(te,1) = localTime(idxgapStart(te)) - (windowInSec + params.paddingGap);
-                        timeGap(te,2) = localTime(idxgapEnd(te))   + (windowInSec + params.paddingGap);
+                        timeGap(te,1) = localTime(idxgapStart(te)) - (params.windowInSec + params.paddingGap);
+                        timeGap(te,2) = localTime(idxgapEnd(te))   + (params.windowInSec + params.paddingGap);
                         idxBlank = spectTimes >= timeGap(te,1) & spectTimes <= timeGap(te,2);
                         ppp(:,idxBlank) = NaN;
                     end
@@ -1205,6 +1233,11 @@ classdef rcsPlotter < handle
             if nargin == 2
                 hAxes = varargin{1};
             end
+            
+            % set params.
+            params.reshapeSecondsFactor = 1;
+            params.moveMeanWindowFactor = 1; % the moving mean window is reshapeSecondsFactor x moveMeanWindowFactor (eg 21 sec = 7 x 3)
+            
             hold(hAxes,'on');
             for i = 1:obj.NumberOfSessions
                 if ~isempty(obj.Data(i))
@@ -1217,7 +1250,7 @@ classdef rcsPlotter < handle
                         idxkeep = ~isnan( dt.Accel_samplerate ); 
                         tuse = dt.localTime(idxkeep); 
                         unqSampleRates = unique(dt.Accel_samplerate(idxkeep));
-                        sampleRateUse = max(unqSampleRates); % average using window from largest sample rate
+                        sampleRateUse = round(max(unqSampleRates)); % average using window from largest sample rate
                         accXraw = dt.Accel_XSamples(idxkeep);
                         accYraw = dt.Accel_YSamples(idxkeep);
                         accZraw = dt.Accel_ZSamples(idxkeep);
@@ -1231,7 +1264,7 @@ classdef rcsPlotter < handle
                         for ac = 1:length(accAxes)
                             yDat = eval(accAxes{ac});
                             uxtimesPower = tuse;
-                            reshapeFactor = sampleRateUse*3;
+                            reshapeFactor = (sampleRateUse)*params.reshapeSecondsFactor;
                             yDatReshape = yDat(1:end-(mod(size(yDat,1), reshapeFactor)));
                             timeToReshape= uxtimesPower(1:end-(mod(size(yDat,1), reshapeFactor)));
                             yDatToAverage  = reshape(yDatReshape,reshapeFactor,size(yDatReshape,1)/reshapeFactor);
@@ -1242,7 +1275,7 @@ classdef rcsPlotter < handle
                         end
                         rmsAverage = log10(mean(yAvg));
                         % moving mean - 21 seconds 
-                        mvMean = movmean(rmsAverage,7);
+                        mvMean = movmean(rmsAverage,params.moveMeanWindowFactor);
                         
                         % plot "raw" data" 
                         hplt = plot(hAxes, datenum(tUse),rmsAverage);
@@ -1251,12 +1284,12 @@ classdef rcsPlotter < handle
                         obj.addLocalTimeDataTip(hplt,datetime(tUse));
                         
                         % pot moving mean moving mean - 21 seconds
-                        mvMean = movmean(rmsAverage,7);
+                        mvMean = movmean(rmsAverage,params.moveMeanWindowFactor);
                         hplt = plot(hAxes,datenum(tUse),mvMean);
-                        hplt.LineWidth = 2;
-                        hplt.Color = [0.5 0.5 0 0.5];
+                        hplt.LineWidth = 1;
+%                         hplt.Color = [0.5 0.5 0 0.5];
                         obj.addLocalTimeDataTip(hplt,datetime(tUse));
-                        legend(hplt,{'rms, 20 sec mov. avg.'});
+                        legend(hplt,['rms, ', num2str(params.reshapeSecondsFactor*params.moveMeanWindowFactor),' sec mov. avg.']);
                         title(hAxes ,'smoothed RMS of actigraphy');
                         ylabel(hAxes,'RMS of acc (log10(g))');
                         datetick(hAxes,'x',15,'keepticks','keeplimits');
@@ -1631,13 +1664,13 @@ classdef rcsPlotter < handle
                 end
             end
         end
-        
-        
+                
         %%%%%%
         %
-        % plot time domain data psds
+        % plot time domain data psds              
         %
-        %%%%%%
+        %%%%%%                       
+        
         function reportDataQualityAndGaps(obj,varargin)
             %% report data quality for time domain data as well as gaps
             %
