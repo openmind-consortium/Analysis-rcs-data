@@ -1207,7 +1207,7 @@ classdef rcsPlotter < handle
             %
             %% usage:
             %
-            % rc.plotTdChannelSpectral(); 
+            % rc.saveTdChannelSpectral(); 
             % 
             % note that default spect params are chosen 
             % and missing data is handeled in specific manner 
@@ -1304,14 +1304,175 @@ classdef rcsPlotter < handle
                     outputFileName = fullfile(folderPath,'AllDataSpectral.mat');
 %                     outputFileName = fullfile(folderPath,'AllDataTables.mat');
                     save(outputFileName,'spectralData');
-                    
-
-                end
-                
+                end 
             end
-            
         end
         
+        
+        
+        %%%%%%
+        %
+        % save time domain data  - spectrogram - all channels 
+        %
+        %%%%%%        
+        function saveTdChannelPsd(obj)
+            %% save RC+S PSD of td data  
+            %
+            % 
+            %% input:
+            %       1. none - loops and saves spectral data 
+            %          for down stream analysis 
+            %
+            %% usage:
+            %
+            % rc.saveTdChannelPsd(); 
+            % 
+            % note that default psd params are chosen 
+            % this will divide data into two minutes chunks to compute psds
+            
+            psdDuration = minutes(2); 
+       
+            for i = 1:obj.NumberOfSessions
+                if ~isempty(obj.Data(i))
+                    dt = obj.Data(i).combinedDataTable;
+                    idxnanSampleRate = isnan(dt.TD_samplerate);
+                    uniqueSampleRate = unique(dt.TD_samplerate(~idxnanSampleRate));
+                    if length(uniqueSampleRate) >1
+                        error('can only perform psd anlaysis on data in which sample rate is the same');
+                    else
+                        sr = uniqueSampleRate;
+                    end
+
+                    dt = obj.Data(i).combinedDataTable;
+                    x = datenum(dt.localTime);
+                    localTime = dt.localTime;
+                    for c = 1:4
+                        chanfn = sprintf('TD_key%d',c-1);
+                        y = dt.(chanfn);
+                        y = y - nanmean(y);
+                        y = y.*1e3;
+                        yRaw = y;
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        % verify that you have time domain data
+                        if sum(isnan(y)) == length(y)
+                            warningMessage = sprintf('no time domain data exists for: %s\n',...
+                                obj.Data(i).folder);
+                            warning(warningMessage);
+                        else
+                            idxnan = isnan(y);
+                            
+                            idxnanSampleRate = isnan(dt.TD_samplerate);
+                            uniqueSampleRate = unique(dt.TD_samplerate(~idxnanSampleRate));
+                            if length(uniqueSampleRate) >1
+                                error('can only perform psd anlaysis on data in which sample rate is the same');
+                            elseif length(y) < (seconds(psdDuration)*(max(uniqueSampleRate)))
+                                error('data is smaller than psd chunk duration selected');
+                            else
+                                sr = uniqueSampleRate;
+                            end
+                            
+                            % find data with no gaps -
+                            % then for each continous section of data without
+                            % gaps
+                            % reshape data according to psd duration size
+                            % then concatenate all for psd computation
+                            % also save (for later) the time index for PSD
+                            % (middle of window)
+                            diffNans = diff(idxnan);
+                            idxgapEnd = find(diffNans == 1) + 1;
+                            idxgapStart = find(diffNans == -1) + 1;
+                            if idxnan(1) == 0 % if data start with no gap
+                                idxgapStart = [1; idxgapStart ];
+                            end
+                            if idxnan(end) == 0 % if data ends with gap
+                                idxgapEnd = [idxgapEnd; length(idxnan) ];
+                            end
+                            localTime = dt.localTime;
+                            gaps = localTime(idxgapEnd) - localTime(idxgapStart);
+                            gaps.Format = 'hh:mm:ss.SSSS';
+                            psdDuration.Format = 'hh:mm:ss.SSSS';
+                            
+                            totalRecLenth = (localTime(end) - localTime(1));
+                            totalRecLenth.Format = 'hh:mm:ss.SSSS';
+                            totalData     = sum(gaps);
+                            totalData.Format = 'hh:mm:ss.SSSS';
+                            % report how what % of data was capturd
+                            fprintf('%.2f of data of data recorded (%s / %s)\n', totalData/totalRecLenth,...
+                                totalRecLenth,totalData);
+                            
+                            
+                            % report how much data will be lost
+                            fprintf('%.2f of data has no gaps larger than %s (%s / %s)\n', sum(gaps(gaps > psdDuration))./sum(gaps),psdDuration,...
+                                sum(gaps(gaps > psdDuration)), sum(gaps));
+                            
+                            idxGapsUse = gaps > psdDuration;
+                            gapsUse = gaps(idxGapsUse,:);
+                            idxGapStartUse = idxgapStart(idxGapsUse);
+                            idxGapEndUse = idxgapEnd(idxGapsUse);
+                            if ~isempty(gapsUse)
+                            else
+                                error('at this window size (%s), all psd chunks have gaps in them / some NaNs',psdDuration)
+                            end
+                            
+                            
+                            rawDataForPSD = [];
+                            xTimeAverage = [];
+                            for g = 1:length(idxGapStartUse)
+                                y = yRaw(idxGapStartUse(g):idxGapEndUse(g));
+                                reshapeFactor = seconds(psdDuration)*sr;
+                                
+                                yDatReshape = y(1:end-(mod(size(y,1), reshapeFactor)));
+                                yDataComputePSD  = reshape(yDatReshape,reshapeFactor,size(yDatReshape,1)/reshapeFactor);
+                                rawDataForPSD = [rawDataForPSD, yDataComputePSD];
+                                
+                                % get the raw times 
+                                xTime = localTime(idxGapStartUse(g):idxGapEndUse(g));
+                                xTimeReshape = xTime(1:end-(mod(size(xTime,1), reshapeFactor)));
+                                xTimeComputePSDTime  = reshape(xTimeReshape,reshapeFactor,size(xTimeReshape,1)/reshapeFactor);
+                                xTimeAverage = [xTimeAverage, xTimeComputePSDTime];
+                            end
+                            
+                            rawDataForPSDCentered = rawDataForPSD - ...
+                                repmat(mean(rawDataForPSD,1),size(rawDataForPSD,1),1);
+                            
+                            psdtimes = median(xTimeAverage,1)'; % median time for the psd - so window is centered 
+                            
+                            [fftOut,ff]   = pwelch(rawDataForPSDCentered,sr,sr/2,0:1:sr/2,sr,'psd');
+                            
+                        end
+                        
+
+                        
+                        chanf = sprintf('chan%d',c);
+                        dataOut(:,:,c) = fftOut;
+                        tdSettings = obj.Data(i).timeDomainSettings;
+                        chanfn = sprintf('chan%d_tdSettings',c);
+                        psdData.(chanfn) = tdSettings.(chanf){end};
+                        
+                    end  
+                    
+                    psdData.data = dataOut;
+                    psdData.freqs = ff;
+                    psdData.psdTimes = psdtimes;
+                    % save data
+                    folderPath = obj.Data(i).folder;
+                    outputFileName = fullfile(folderPath,'AllDataPSD.mat');
+%                     outputFileName = fullfile(folderPath,'AllDataTables.mat');
+                    save(outputFileName,'psdData');
+                end 
+            end
+        end
         
         
         
