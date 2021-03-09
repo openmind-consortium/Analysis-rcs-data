@@ -514,7 +514,9 @@ classdef rcsPlotter < handle
                         % get settings
                         tdSettings = obj.Data(i).timeDomainSettings;
                         chanfn = sprintf('chan%d',chan);
-                        title(tdSettings.(chanfn){1},'Parent',hAxes);
+                        ttlUse{1,1} = tdSettings.(chanfn){1};
+                        ttlUse{2,1} = sprintf('bandpass: [%.2f- %.2f Hz]',bandsUsed(1) , bandsUsed(end));
+                        title(ttlUse,'Parent',hAxes);
                     end
                 end
             end
@@ -1525,7 +1527,16 @@ classdef rcsPlotter < handle
                         ydet = dt.(chanfn);
                         yDetAll = [yDetAll; ydet];
                         idplot = ~isnan(ydet);
-                        hplt = plot(x(idplot),ydet(idplot),'Parent',hAxes);
+                        % incldue ffpv 
+                        chanfnThresh = sprintf('Ld%d',chan);
+                        FFPV = obj(i).Data.DetectorSettings.(chanfnThresh).fractionalFixedPointValue;
+                        u = ydet(idplot);
+                        isNegative = int32(bitget(u,32));
+                        convertedValue = int32(bitset(u,32,0)) + (-2^31)*isNegative;
+                        ydetectorPlot = double(convertedValue)./FFPV;
+
+                        
+                        hplt = plot(x(idplot),ydetectorPlot,'Parent',hAxes);
                         hplt.LineWidth = 0.5;
                         hplt.Color = [0 0 0.8 0.5];
                         obj.addLocalTimeDataTip(hplt,datetime(dt.localTime(idplot)));
@@ -1533,7 +1544,15 @@ classdef rcsPlotter < handle
                         chanfn = sprintf('Adaptive_Ld%d_highThreshold',chan);
                         yupper = dt.(chanfn);
                         idplot = ~isnan(yupper);
-                        hplt = plot(x(idplot),yupper(idplot),'Parent',hAxes);
+                        
+                        chanfnThresh = sprintf('Ld%d',chan);
+                        FFPV = obj(i).Data.DetectorSettings.(chanfnThresh).fractionalFixedPointValue;
+                        u = yupper(idplot);
+                        isNegative = int32(bitget(u,32));
+                        convertedValue = int32(bitset(u,32,0)) + (-2^31)*isNegative;
+                        yThreshoPlot = double(convertedValue)./FFPV;
+
+                        hplt = plot(x(idplot),yThreshoPlot,'Parent',hAxes);
                         hplt.LineWidth = 0.5;
                         hplt.Color = [0.8 0 0 0.5];
                         hplt.LineStyle = '-.';
@@ -1542,7 +1561,16 @@ classdef rcsPlotter < handle
                         chanfn = sprintf('Adaptive_Ld%d_lowThreshold',chan);
                         ylower = dt.(chanfn);
                         idplot = ~isnan(ylower);
-                        hplt = plot(x(idplot),ylower(idplot),'Parent',hAxes);
+                        
+                        chanfnThresh = sprintf('Ld%d',chan);
+                        FFPV = obj(i).Data.DetectorSettings.(chanfnThresh).fractionalFixedPointValue;
+                        u = ylower(idplot);
+                        isNegative = int32(bitget(u,32));
+                        convertedValue = int32(bitset(u,32,0)) + (-2^31)*isNegative;
+                        yThreshoPlot = double(convertedValue)./FFPV;
+
+                        
+                        hplt = plot(x(idplot),yThreshoPlot,'Parent',hAxes);
                         hplt.LineWidth = 0.5;
                         hplt.Color = [0.8 0 0 0.5];
                         hplt.LineStyle = '-.';
