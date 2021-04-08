@@ -16,11 +16,16 @@ switch percentage
     case '100% Hann'
         hann_win = 0.5*(1-cos(2*pi*(0:L-1)/(L-1))); % create hann taper function, equivalent to the Hann 100%         
     case '50% Hann'
-        temp_win = 0.5*(1-cos(4*pi*(0:L-1)/(L-1))); % create hann taper function, equivalent to the Hann 100% 
+        temp_win = 0.5*(1-cos(4*pi*(0:L-1)/(L-1))); % create hann taper function, equivalent to the Hann 50% 
         hann_win = sethannwindow(temp_win);                
     case '25% Hann'
-        temp_win = 0.5*(1-cos(8*pi*(0:L-1)/(L-1))); % create hann taper function, equivalent to the Hann 100% 
+        temp_win = 0.5*(1-cos(8*pi*(0:L-1)/(L-1))); % create hann taper function, equivalent to the Hann 250% 
         hann_win = sethannwindow(temp_win);  
+end
+
+% adding this to match length of hann window and fft size (needs debugging)
+if length(hann_win) > L && mod(length(hann_win),L) == 2
+    hann_win = hann_win(2:end-1);    
 end
 
 end

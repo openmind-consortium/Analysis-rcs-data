@@ -16,11 +16,11 @@ dataStreams = {timeDomainData, AccelData, PowerData, FFTData, AdaptiveData};
 
 % Compare the 'postprocessing-calculated' power data with the RCS streamed
 % for the default time domain and power band settings
-combinedPowerTable = getPowerFromTimeDomain(combinedDataTable,fftSettings, powerSettings, metaData);
+[combinedPowerTable, powerTablesBySetting] = getPowerFromTimeDomain(combinedDataTable,fftSettings, powerSettings, metaData,2); 
 idxPowerCalc = ~isnan(combinedPowerTable.Power_Band1); % these values are computed in getPowerFromTimeDomain based on the default time channels and power settings (harmonized time)
 idxPowerRCS = ~isnan(combinedDataTable.Power_Band1); % these values come from RawDataPower.json (and are harmonized in time via the combinedDataTable)
 % now calculate equivalent power series from time domain channel (1..4) and a given power band [X,Y] Hz
-[newPowerFromTimeDomain, newSettings] = calculateEquivalentDevicePower(combinedDataTable, fftSettings, powerSettings, metaData, 1, [20 30]);
+[newPowerFromTimeDomain, newSettings] = calculateEquivalentDevicePower(combinedDataTable, fftSettings, powerSettings, metaData, 1, [4 10]);
 idxPowerNewCalc = ~isnan(newPowerFromTimeDomain.calculatedPower);
 
 % plot the results

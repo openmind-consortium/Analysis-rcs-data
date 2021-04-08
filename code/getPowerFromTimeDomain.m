@@ -1,7 +1,11 @@
-function  [combinedPowerTable, partialPowerTables] = getPowerFromTimeDomain(combinedDataTable,fftSettings, powerSettings, metaData, calculationType)
+function  [combinedPowerTable, powerTablesBySetting] = getPowerFromTimeDomain(combinedDataTable,fftSettings, powerSettings, metaData, calculationType)
 % creates a table with power computed signals from time domain signal using
-% an equivalent process to the internal power computation in the device
-% power is computed using
+% equivalent process to internal power computation in the RC+S device. The
+% user inputs with 'calculationType' '1' or '2' the desired output format
+% of the power talbe ('1': assumes same setting through recording, and '2':
+% several settings through recording and one power table per recodring).
+% 
+% Power is computed using
 % - hann windowing of latest fft interval (new and old points, depending on overlapping)
 % - fft is applied
 % - power calculated as sum of power of all bins in the frequency band
@@ -11,9 +15,9 @@ function  [combinedPowerTable, partialPowerTables] = getPowerFromTimeDomain(comb
 %   (2) fftSettings
 %   (3) powerSettings
 %   (4) metaData
-%   (5) calculationType
-%        1. default: it assumes same power settings throughout the whole recording
-%        2. it looks at all recording segments within a session and for each of those segments it will calculate the equivalent power
+%   (5) calculationType (integer) = 1 or 2
+%        = 1 -> default: assumes same power settings throughout the whole recording
+%        = 2 -> for each recording segments in a session calculates equivalent power
 %
 % outputs
 %   (default) combinedPowerTable = table(harmoinized times, derived times, PB1,PB2,PB3,...,PB8)
@@ -27,8 +31,10 @@ elseif nargin == 4 % default, assume only 1 set of power settings (remove rest f
 elseif nargin == 5
     if calculationType == 1
         powerSettings(2:end,:) = []; % remove additional powerSetttings raw
-    elseif calculationType == 2 % looks for potential different recordings within session
-        % no need to do anything, powerSettings contains by default the subsets
+    elseif calculationType == 2 % looks for potential different recordings within session        
+        % don nothing here, it does in loop by only filling in a
+        % powerTableBySetting if that's input by user and there is several
+        % recording segments in the session
     else
         error('the last argument (calcualtionType) must be either (default, not passed) or an integer 1 or 2')
     end
@@ -39,7 +45,9 @@ combinedPowerTable = table();
 combinedPowerTable.localTime= combinedDataTable.localTime;
 combinedPowerTable.DerivedTimes = combinedDataTable.DerivedTime;
 for inumBands = 1:8, combinedPowerTable.(['Power_Band',num2str(inumBands)]) = nan(1,size(combinedDataTable,1))'; end % initialize bands
-partialPowerTables = table();
+if calculationType == 2
+    powerTablesBySetting = table();    
+end
 
 %   loop through combined data table in 1 shot (calculationType 1) or
 %   indexing subsets of time series data based on the start and stop time
@@ -72,7 +80,7 @@ for inumRec = 1:size(powerSettings,1)
         t = seconds(tch-tch(1))/1000;
         [interval,binStart,binEnd,fftSize] = readFFTsettings(powerSettings,inumRec);
         sr = fftSettings.TDsampleRates;
-        switch fftSize % actual fft size of device for 64, 250, 1024 fftpoints
+        switch fftSize % actual fft size of device for 64, 256, 1024 fftpoints
             case 64, fftSizeActual = 62;
             case 256, fftSizeActual = 250;
             case 1024, fftSizeActual = 1000;
@@ -103,9 +111,19 @@ for inumRec = 1:size(powerSettings,1)
             counter = counter + 1;
             stime = stime + (L - ceil(L*overlap));
         end   
-    end        
-    partialPowerTables.Recum{inumRec} = inumRec;
-    partialPowerTables.PowerTable{inumRec} = powerTable;
+    end
+    % only fills in partial power tables by settings if input by user
+    % (calculation type ==2) && there is serveral recording segments
+    if calculationType == 2 && size(powerSettings,1) > 1    
+          changePowerSettings = array2table(inumRec*ones(size(powerTable,1),1));
+          tempTable = [changePowerSettings,powerTable];
+          powerTablesBySetting = [powerTablesBySetting ; tempTable];
+          if inumRec == size(powerSettings,1)
+              powerTablesBySetting.Properties.VariableNames(1) = "Power Settings Change Number";
+          end
+%         powerTablesBySetting.Recum(inumRec) = inumRec;
+%         powerTablesBySetting.PowerTable{inumRec} = powerTable;
+    end    
     combinedPowerTable(idxRecordUse(1):idxRecordUse(end),3:size(combinedPowerTable,2)) = powerTable(:,3:end);
 end
 end
