@@ -26,6 +26,9 @@ function [unifiedDerivedTimes,...
 %       exist, process and save
 %       4 = If processed file already exists, then load. If it does not
 %       exist, process but do not save
+% (3) Advanced user: input '1' to use systemTick for time alignment of chunks if gaps
+% < 6 seconds; default (input '0') will use PacketGenTime to align the start of all
+% chunks regardless of preceeding gap length
 %
 % The raw data directory indicated or selected will be checked for the
 % processed data file
@@ -48,6 +51,7 @@ switch nargin
     case 0
         folderPath = uigetdir();
         processFlag = 1;
+        shortGaps_systemTick = 0;
     case 1
         if length(varargin{1}) == 1 % this indicates processFlag was input
             folderPath = uigetdir();
@@ -56,9 +60,19 @@ switch nargin
             folderPath  = varargin{1};
             processFlag = 1;
         end
+        shortGaps_systemTick = 0;
     case 2
         folderPath  = varargin{1};
         processFlag = varargin{2};
+        shortGaps_systemTick = 0;
+    case 3
+        if isempty(varargin{1})
+            folderPath = uigetdir();
+        else
+            folderPath  = varargin{1};
+        end
+        processFlag = varargin{2};
+        shortGaps_systemTick = varargin{3};
 end
 
 % Check if processed file exists
@@ -135,7 +149,7 @@ if processFlag == 1 || processFlag == 2
             disp('Loading Time Domain Data')
             [outtable_TD, srates_TD] = createTimeDomainTable(jsonobj_TD);
             disp('Creating derivedTimes for time domain:')
-            timeDomainData = assignTime(outtable_TD);
+            timeDomainData = assignTime(outtable_TD, shortGaps_systemTick);
         else
             timeDomainData = [];
         end
@@ -153,7 +167,7 @@ if processFlag == 1 || processFlag == 2
             disp('Loading Accelerometer Data')
             [outtable_Accel, srates_Accel] = createAccelTable(jsonobj_Accel);
             disp('Creating derivedTimes for accelerometer:')
-            AccelData = assignTime(outtable_Accel);
+            AccelData = assignTime(outtable_Accel, shortGaps_systemTick);
         else
             AccelData = [];
         end
@@ -183,13 +197,13 @@ if processFlag == 1 || processFlag == 2
             
             if length(unique(all_powerFs)) > 1
                 % Multiple sample rates for power data in the full file
-                PowerData = createDataTableWithMultipleSamplingRates(all_powerFs,powerSettings,outtable_Power);
+                PowerData = createDataTableWithMultipleSamplingRates(all_powerFs,powerSettings,outtable_Power,shortGaps_systemTick);
             else
                 % Same sample rate for power data for the full file
                 powerDomain_sampleRate = unique(all_powerFs);
                 outtable_Power.samplerate(:) = powerDomain_sampleRate;
                 outtable_Power.packetsizes(:) = 1;
-                PowerData = assignTime(outtable_Power);
+                PowerData = assignTime(outtable_Power, shortGaps_systemTick);
             end
         else
             PowerData = [];
@@ -226,14 +240,14 @@ if processFlag == 1 || processFlag == 2
             end
             
             if length(unique(all_fftFs)) > 1
-                FFTData = createDataTableWithMultipleSamplingRates(all_fftFs,fftSettings,outtable_FFT);
+                FFTData = createDataTableWithMultipleSamplingRates(all_fftFs,fftSettings,outtable_FFT,shortGaps_systemTick);
             else
                 % Same sample rate for FFT data for the full file
                 FFT_sampleRate = unique(all_fftFs);
                 outtable_FFT.samplerate(:) = FFT_sampleRate;
                 outtable_FFT.packetsizes(:) = 1;
                 disp('Creating derivedTimes for FFT:')
-                FFTData = assignTime(outtable_FFT);
+                FFTData = assignTime(outtable_FFT, shortGaps_systemTick);
             end
         else
             FFTData = [];
@@ -261,20 +275,20 @@ if processFlag == 1 || processFlag == 2
                 outtable_Adaptive.StateTime = outtable_Adaptive.StateTime * (fftSettings.fftConfig(1).interval/1000);
                 
                 disp('Creating derivedTimes for Adaptive:')
-                AdaptiveData = assignTime(outtable_Adaptive);
+                AdaptiveData = assignTime(outtable_Adaptive, shortGaps_systemTick);
             else
                 for iSetting = 1:size(fftSettings,1)
                     all_adaptiveFs(iSetting) =  1/((fftSettings.fftConfig(iSetting).interval)/1000);
                 end
                 if length(unique(all_adaptiveFs)) > 1
-                    AdaptiveData = createDataTableWithMultipleSamplingRates(all_adaptiveFs,fftSettings,outtable_Adaptive);
+                    AdaptiveData = createDataTableWithMultipleSamplingRates(all_adaptiveFs,fftSettings,outtable_Adaptive,shortGaps_systemTick);
                 else
                     adaptive_sampleRate = all_adaptiveFs(1);
                     outtable_Adaptive.samplerate(:) = adaptive_sampleRate;
                     outtable_Adaptive.packetsizes(:) = 1;
                     
                     disp('Creating derivedTimes for Adaptive:')
-                    AdaptiveData = assignTime(outtable_Adaptive);
+                    AdaptiveData = assignTime(outtable_Adaptive, shortGaps_systemTick);
                 end
             end
         else
