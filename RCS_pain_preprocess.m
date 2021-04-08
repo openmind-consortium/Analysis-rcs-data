@@ -9,7 +9,7 @@
 clear
 clc
 
-PATIENTID = 'CPRCS01'
+PATIENTID = 'RCS02R'
 % 'RCS02R'
 % 'CPRCS01';
 rootdir = '/Volumes/Prasad_X5/' ;
@@ -38,7 +38,7 @@ dirsdata = findFilesBVQX(scbsdir,'Sess*',struct('dirs',1,'depth',1));
 % find out if a mat file was already created in this folder
 % if so, just an update is needed and will not recreate mat file
 dbout = [];
-for d = 1:numel(dirdata)
+for d = 1:numel(dirsdata)
     diruse = findFilesBVQX(dirsdata{d},'Device*',struct('dirs',1,'depth',1));
     
     fprintf('\n \n Reading Session Folder %d of %d  \n',d,length(dirsdata))
@@ -52,7 +52,7 @@ for d = 1:numel(dirdata)
         try
             [combinedDataTable, debugTable, timeDomainSettings,powerSettings,...
                 fftSettings,eventLogTable, metaData,stimSettingsOut,stimMetaData,stimLogSettings,...
-                DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = DEMO_ProcessRCS(diruse{1});
+                DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = ProcessRCS(diruse{1});
         catch
         end
     end

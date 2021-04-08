@@ -43,7 +43,7 @@ D = sorted_database;
 
 % find the rec # to load
 % recs_to_load = (381:392);
-recs_to_load= 385:389
+recs_to_load= 421:423
 
 %% Process and load all data 
 
@@ -67,11 +67,18 @@ for d = recs_to_load
         
     else % process the data
         try
-%             clear combinedDataTable
-            [combinedDataTable, debugTable, timeDomainSettings,powerSettings,...
-                fftSettings,eventLogTable, metaData,stimSettingsOut,stimMetaData,stimLogSettings,...
-                DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = DEMO_ProcessRCS(diruse,2);
-%        do not save
+            clear combinedDataTable timeDomainData AccelData PowerData FFTData AdaptiveData *Settings
+%             [combinedDataTable, debugTable, timeDomainSettings,powerSettings,...
+%                 fftSettings,eventLogTable, metaData,stimSettingsOut,stimMetaData,stimLogSettings,...
+%                 DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = ProcessRCS(diruse,2);
+%        do not save  
+
+load(fullfile(diruse,'AllDataTables.mat'));
+
+% Create unified table with selected data streams -- use timeDomain data as
+% time base
+dataStreams = {timeDomainData, AccelData, PowerData, FFTData, AdaptiveData};
+[combinedDataTable] = createCombinedTable(dataStreams,unifiedDerivedTimes,metaData);
  
             
                
@@ -85,6 +92,7 @@ for d = recs_to_load
         catstate = [catstate;combinedDataTable.Adaptive_CurrentAdaptiveState(~isnan(combinedDataTable.Power_Band1))];
          
            idx=idx+1;
+           disp('file read')
         catch
             idx=idx+1;
         end
@@ -211,10 +219,10 @@ tilefigs()
 close all
 
 % ### DEFINE Threshold
-Threshold = 8000; %  Default weight vector (stim channel should have weight 1, all others -1)
+Threshold = 40000; %  Default weight vector (stim channel should have weight 1, all others -1)
 
 % % ### Constants for LDA equation
-weights = [1, -1];
+weights = [-1, 0];
 norm_const.a = [0, 0];
 norm_const.b = [1, 1];
 SampleRate=2;
@@ -239,7 +247,8 @@ title('embedded RC+S LD0 and state')
 hold on
 % stairs(detect)
 plot([catLD0time(1) catLD0time(end)],[Threshold Threshold],'r')
-xlim([0 numel(actualLD)/SampleRate])
+xlim([min(catLD0time) max(catLD0time)])
+% xlim([0 numel(catLD0)/SampleRate])
 ylimvals = s1.YLim;
 
 subplot 412
@@ -247,13 +256,15 @@ stairs(time,calcLDA)
 title('offline computed LDA')
 hold on
 plot([catLD0time(1) catLD0time(end)],[Threshold Threshold],'r')
-xlim([0 numel(calcLDA)/SampleRate]);
+xlim([min(catLD0time) max(catLD0time)])
+% xlim([0 numel(calcLDA)/SampleRate]);
 ylim(s1.YLim)
 
 subplot 413
 area(time,input1(:,1),'FaceColor','red')
 title('Stimulation Channel Power')
-xlim([0 numel(calcLDA)/SampleRate]);
+xlim([min(catLD0time) max(catLD0time)])
+% xlim([0 numel(calcLDA)/SampleRate]);
 
 subplot 414
 plot(time,input1(:,2))
@@ -261,7 +272,8 @@ title('Feature Channel Power')
 xlabel('time (sec)')
 h.Position =[848 886 2248 535];
 sgtitle(['Weights [' num2str(weights) ']  Threshold = ' num2str(Threshold)])
-xlim([0 numel(calcLDA)/SampleRate]);
+xlim([min(catLD0time) max(catLD0time)])
+% xlim([0 numel(calcLDA)/SampleRate]);
 
 figure
 plot(input1(:,1),input1(:,2),'o')
@@ -292,9 +304,9 @@ fprintf('%0.1f < Threshold < %0.1f \n',b_lb,b_ub)
 % calculate how long the power signal of interest is above some threshold value before dropping below it (and vice versa)
 % do this for each recording separately
 
-Threshold = 15000
+Threshold = 350000
 num_bins = 100;
-UpdateRate = 600; % LdA update rate multiple of FFT Fs
+UpdateRate = 10; % LdA update rate multiple of FFT Fs
 usedata= catLD0;
 pwrhold = zeros(numel(catLD0),1);
 % usedata = find(arrayfun(@(PWR) any(PWR.(ch_num)),PWR)); % sme as hasdata
