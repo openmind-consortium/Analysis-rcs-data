@@ -164,10 +164,15 @@ if processFlag == 1 || processFlag == 2
     if isfile(Accel_fileToLoad)
         jsonobj_Accel = deserializeJSON(Accel_fileToLoad);
         if isfield(jsonobj_Accel,'AccelData') && ~isempty(jsonobj_Accel.AccelData)
-            disp('Loading Accelerometer Data')
-            [outtable_Accel, srates_Accel] = createAccelTable(jsonobj_Accel);
-            disp('Creating derivedTimes for accelerometer:')
-            AccelData = assignTime(outtable_Accel, shortGaps_systemTick);
+            try
+                disp('Loading Accelerometer Data')
+                [outtable_Accel, srates_Accel] = createAccelTable(jsonobj_Accel);
+                disp('Creating derivedTimes for accelerometer:')
+                AccelData = assignTime(outtable_Accel, shortGaps_systemTick);
+            catch
+                warning('Accelerometer data present but error when trying to process. Will be excluded.')
+                AccelData = [];
+            end
         else
             AccelData = [];
         end
@@ -187,23 +192,28 @@ if processFlag == 1 || processFlag == 2
         
         % Calculate power band cutoffs (in Hz) and add column to powerSettings
         if ~isempty(outtable_Power)
-            % Add samplerate and packetsizes column to outtable_Power -- samplerate is inverse
-            % of fftConfig.interval
-            numSettings = size(powerSettings,1);
-            % Determine if more than one sampling rate across recording
-            for iSetting = 1:numSettings
-                all_powerFs(iSetting) =  1/((powerSettings.fftConfig(iSetting).interval)/1000);
-            end
-            
-            if length(unique(all_powerFs)) > 1
-                % Multiple sample rates for power data in the full file
-                PowerData = createDataTableWithMultipleSamplingRates(all_powerFs,powerSettings,outtable_Power,shortGaps_systemTick);
-            else
-                % Same sample rate for power data for the full file
-                powerDomain_sampleRate = unique(all_powerFs);
-                outtable_Power.samplerate(:) = powerDomain_sampleRate;
-                outtable_Power.packetsizes(:) = 1;
-                PowerData = assignTime(outtable_Power, shortGaps_systemTick);
+            try
+                % Add samplerate and packetsizes column to outtable_Power -- samplerate is inverse
+                % of fftConfig.interval
+                numSettings = size(powerSettings,1);
+                % Determine if more than one sampling rate across recording
+                for iSetting = 1:numSettings
+                    all_powerFs(iSetting) =  1/((powerSettings.fftConfig(iSetting).interval)/1000);
+                end
+                
+                if length(unique(all_powerFs)) > 1
+                    % Multiple sample rates for power data in the full file
+                    PowerData = createDataTableWithMultipleSamplingRates(all_powerFs,powerSettings,outtable_Power,shortGaps_systemTick);
+                else
+                    % Same sample rate for power data for the full file
+                    powerDomain_sampleRate = unique(all_powerFs);
+                    outtable_Power.samplerate(:) = powerDomain_sampleRate;
+                    outtable_Power.packetsizes(:) = 1;
+                    PowerData = assignTime(outtable_Power, shortGaps_systemTick);
+                end
+            catch
+                warning('Power data present but error when trying to process. Will be excluded.')
+                PowerData = [];
             end
         else
             PowerData = [];
@@ -219,35 +229,40 @@ if processFlag == 1 || processFlag == 2
     if isfile(FFT_fileToLoad)
         jsonobj_FFT = deserializeJSON(FFT_fileToLoad);
         if isfield(jsonobj_FFT,'FftData') && ~isempty(jsonobj_FFT.FftData)
-            disp('Loading FFT Data')
-            outtable_FFT = createFFTtable(jsonobj_FFT);
-            
-            % Add FFT parameter info to fftSettings
-            numSettings = size(fftSettings,1);
-            for iSetting = 1:numSettings
-                currentFFTconfig = fftSettings.fftConfig(iSetting);
-                currentTDsampleRate = fftSettings.TDsampleRates(iSetting);
-                fftParameters = getFFTparameters(currentFFTconfig,currentTDsampleRate);
-                fftSettings.fftParameters(iSetting) = fftParameters;
-            end
-            % Add samplerate and packetsizes column to outtable_FFT -- samplerate is inverse
-            % of fftConfig.interval; in principle this interval could change
-            % over the course of the recording
-            
-            % Determine if more than one sampling rate across recording
-            for iSetting = 1:numSettings
-                all_fftFs(iSetting) =  1/((fftSettings.fftConfig(iSetting).interval)/1000);
-            end
-            
-            if length(unique(all_fftFs)) > 1
-                FFTData = createDataTableWithMultipleSamplingRates(all_fftFs,fftSettings,outtable_FFT,shortGaps_systemTick);
-            else
-                % Same sample rate for FFT data for the full file
-                FFT_sampleRate = unique(all_fftFs);
-                outtable_FFT.samplerate(:) = FFT_sampleRate;
-                outtable_FFT.packetsizes(:) = 1;
-                disp('Creating derivedTimes for FFT:')
-                FFTData = assignTime(outtable_FFT, shortGaps_systemTick);
+            try
+                disp('Loading FFT Data')
+                outtable_FFT = createFFTtable(jsonobj_FFT);
+                
+                % Add FFT parameter info to fftSettings
+                numSettings = size(fftSettings,1);
+                for iSetting = 1:numSettings
+                    currentFFTconfig = fftSettings.fftConfig(iSetting);
+                    currentTDsampleRate = fftSettings.TDsampleRates(iSetting);
+                    fftParameters = getFFTparameters(currentFFTconfig,currentTDsampleRate);
+                    fftSettings.fftParameters(iSetting) = fftParameters;
+                end
+                % Add samplerate and packetsizes column to outtable_FFT -- samplerate is inverse
+                % of fftConfig.interval; in principle this interval could change
+                % over the course of the recording
+                
+                % Determine if more than one sampling rate across recording
+                for iSetting = 1:numSettings
+                    all_fftFs(iSetting) =  1/((fftSettings.fftConfig(iSetting).interval)/1000);
+                end
+                
+                if length(unique(all_fftFs)) > 1
+                    FFTData = createDataTableWithMultipleSamplingRates(all_fftFs,fftSettings,outtable_FFT,shortGaps_systemTick);
+                else
+                    % Same sample rate for FFT data for the full file
+                    FFT_sampleRate = unique(all_fftFs);
+                    outtable_FFT.samplerate(:) = FFT_sampleRate;
+                    outtable_FFT.packetsizes(:) = 1;
+                    disp('Creating derivedTimes for FFT:')
+                    FFTData = assignTime(outtable_FFT, shortGaps_systemTick);
+                end
+            catch
+                warning('FFT data present but error when trying to process. Will be excluded.')
+                FFTData = [];
             end
         else
             FFTData = [];
@@ -262,34 +277,39 @@ if processFlag == 1 || processFlag == 2
     if isfile(Adaptive_fileToLoad)
         jsonobj_Adaptive = deserializeJSON(Adaptive_fileToLoad);
         if isfield(jsonobj_Adaptive,'AdaptiveUpdate') && ~isempty(jsonobj_Adaptive(1).AdaptiveUpdate)
-            disp('Loading Adaptive Data')
-            outtable_Adaptive = createAdaptiveTable(jsonobj_Adaptive);
-            % Note: StateTime must still be converted to sec in
-            % outtable_Adaptive
-            
-            % Calculate adaptive_sampleRate - determine if more than one
-            if size(fftSettings,1) == 1
-                adaptive_sampleRate =  1/((fftSettings.fftConfig(1).interval)/1000);
-                outtable_Adaptive.samplerate(:) = adaptive_sampleRate;
-                outtable_Adaptive.packetsizes(:) = 1;
-                outtable_Adaptive.StateTime = outtable_Adaptive.StateTime * (fftSettings.fftConfig(1).interval/1000);
+            try
+                disp('Loading Adaptive Data')
+                outtable_Adaptive = createAdaptiveTable(jsonobj_Adaptive);
+                % Note: StateTime must still be converted to sec in
+                % outtable_Adaptive
                 
-                disp('Creating derivedTimes for Adaptive:')
-                AdaptiveData = assignTime(outtable_Adaptive, shortGaps_systemTick);
-            else
-                for iSetting = 1:size(fftSettings,1)
-                    all_adaptiveFs(iSetting) =  1/((fftSettings.fftConfig(iSetting).interval)/1000);
-                end
-                if length(unique(all_adaptiveFs)) > 1
-                    AdaptiveData = createDataTableWithMultipleSamplingRates(all_adaptiveFs,fftSettings,outtable_Adaptive,shortGaps_systemTick);
-                else
-                    adaptive_sampleRate = all_adaptiveFs(1);
+                % Calculate adaptive_sampleRate - determine if more than one
+                if size(fftSettings,1) == 1
+                    adaptive_sampleRate =  1/((fftSettings.fftConfig(1).interval)/1000);
                     outtable_Adaptive.samplerate(:) = adaptive_sampleRate;
                     outtable_Adaptive.packetsizes(:) = 1;
+                    outtable_Adaptive.StateTime = outtable_Adaptive.StateTime * (fftSettings.fftConfig(1).interval/1000);
                     
                     disp('Creating derivedTimes for Adaptive:')
                     AdaptiveData = assignTime(outtable_Adaptive, shortGaps_systemTick);
+                else
+                    for iSetting = 1:size(fftSettings,1)
+                        all_adaptiveFs(iSetting) =  1/((fftSettings.fftConfig(iSetting).interval)/1000);
+                    end
+                    if length(unique(all_adaptiveFs)) > 1
+                        AdaptiveData = createDataTableWithMultipleSamplingRates(all_adaptiveFs,fftSettings,outtable_Adaptive,shortGaps_systemTick);
+                    else
+                        adaptive_sampleRate = all_adaptiveFs(1);
+                        outtable_Adaptive.samplerate(:) = adaptive_sampleRate;
+                        outtable_Adaptive.packetsizes(:) = 1;
+                        
+                        disp('Creating derivedTimes for Adaptive:')
+                        AdaptiveData = assignTime(outtable_Adaptive, shortGaps_systemTick);
+                    end
                 end
+            catch
+                 warning('Adaptive data present but error when trying to process. Will be excluded.')
+                AdaptiveData = [];
             end
         else
             AdaptiveData = [];
