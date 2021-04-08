@@ -42,6 +42,17 @@ badDatePackets = union(find(dataTable_original.timestamp > medianTimestamp + num
 % Negative PacketGenTime
 packetIndices_NegGenTime = find(dataTable_original.PacketGenTime <= 0);
 
+% Identify PacketGenTime that is more than 2 seconds different from
+% timestamp (indicating outlier PacketGenTime)
+% Find first packet which does not have a negative packetGenTime
+temp_startIndex = min(setdiff(1:length(indicesOfTimestamps),packetIndices_NegGenTime));
+
+elapsed_timestamp = dataTable_original.timestamp(temp_startIndex:end) - dataTable_original.timestamp(temp_startIndex); % in seconds
+elapsed_packetGenTime = (dataTable_original.PacketGenTime(temp_startIndex:end) - dataTable_original.PacketGenTime(temp_startIndex))/1000; % in seconds
+timeDifference = abs(elapsed_timestamp - elapsed_packetGenTime); % in seconds
+
+packetIndices_outlierPacketGenTime = find(timeDifference > 2);
+
 % Consecutive packets with identical dataTypeSequence and systemTick;
 % identify the second packet for removal; identify the first
 % instance of these duplicates below
@@ -84,7 +95,7 @@ end
 
 % Collect all packets to remove
 packetsToRemove = unique([badDatePackets; packetIndices_NegGenTime;...
-    duplicate_firstIndex + 1; indices_backInTime']);
+    duplicate_firstIndex + 1; indices_backInTime'; packetIndices_outlierPacketGenTime]);
 
 % Remove packets identified above for rejection
 packetsToKeep = setdiff(1:size(dataTable_original,1),packetsToRemove);
