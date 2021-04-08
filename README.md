@@ -53,7 +53,7 @@ Matlab functions and scripts to facilitate raw data extraction and subsequent vi
 ## Usage
 **Part 1**
 
-```[unifiedDerivedTimes, timeDomainData, timeDomainData_onlyTimeVariables, timeDomain_timeVariableNames, AccelData, AccelData_onlyTimeVariables, Accel_timeVariableNames,  PowerData, PowerData_onlyTimeVariables, Power_timeVariableNames, FFTData, FFTData_onlyTimeVariables, FFT_timeVariableNames, AdaptiveData, AdaptiveData_onlyTimeVariables, Adaptive_timeVariableNames, timeDomainSettings, powerSettings, fftSettings, eventLogTable, metaData, stimSettingsOut, stimMetaData, stimLogSettings, DetectorSettings, AdaptiveStimSettings, AdaptiveEmbeddedRuns_StimSettings] = ProcessRCS(pathName, processFlag)```
+```[unifiedDerivedTimes, timeDomainData, timeDomainData_onlyTimeVariables, timeDomain_timeVariableNames, AccelData, AccelData_onlyTimeVariables, Accel_timeVariableNames,  PowerData, PowerData_onlyTimeVariables, Power_timeVariableNames, FFTData, FFTData_onlyTimeVariables, FFT_timeVariableNames, AdaptiveData, AdaptiveData_onlyTimeVariables, Adaptive_timeVariableNames, timeDomainSettings, powerSettings, fftSettings, eventLogTable, metaData, stimSettingsOut, stimMetaData, stimLogSettings, DetectorSettings, AdaptiveStimSettings, AdaptiveEmbeddedRuns_StimSettings] = ProcessRCS(pathName, processFlag, shortGaps_systemTick)```
 
 Optional input argument(s):<br/>
 \[If no `pathName` is selected, a folder selection dialog box will open at the start of processing\]
@@ -65,6 +65,7 @@ Optional input argument(s):<br/>
        exist, process and save
   - 4: If processed file already exists, then load. If it does not
        exist, process but do not save<br/>
+- `shortGaps_systemTick`: For advanced users: Flag, default is '0', indicating that `PacketGenTime` should be used to align the start of all chunks regardless of preceeding gap length; setting to '1' indicates that `systemTick` should be used for time alignment of chunks if preceeding gap is < 6 seconds
 
 If applicable, data are saved in the same 'Device' directory where raw JSON were selected
 
