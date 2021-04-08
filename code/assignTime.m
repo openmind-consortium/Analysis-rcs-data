@@ -140,9 +140,10 @@ end
 % samples per packet; in units of systemTick (1e-4 seconds)
 expectedElapsed = dataTable.packetsizes .* (1./dataTable.samplerate) * 1e4;
 
-% If diff_systemTick and expectedElapsed differ by more than 20% of expectedElapsed,
+% If diff_systemTick and expectedElapsed differ by more than the larger of 50% of expectedElapsed OR 100ms,
 % flag as gap
-indices_systemTickFlagged = find (abs(expectedElapsed(2:end) - diff_systemTick(2:end)) > 0.2*expectedElapsed(2:end));
+cutoffValues = max([0.5*expectedElapsed ones(length(expectedElapsed),1)*1000],[],2); % in units of systemTick
+indices_systemTickFlagged = find (abs(expectedElapsed(2:end) - diff_systemTick(2:end)) > cutoffValues(2:end));
 
 % All packets flagged as end of continuous chunks
 allFlaggedIndices = unique([indices_changeFs; indices_timestampFlagged;...
