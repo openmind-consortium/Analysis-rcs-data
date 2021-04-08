@@ -53,7 +53,7 @@ Matlab functions and scripts to facilitate raw data extraction and subsequent vi
 ## Usage
 **Part 1**
 
-```[unifiedDerivedTimes, timeDomainData, timeDomainData_onlyTimeVariables, timeDomain_timeVariableNames, AccelData, AccelData_onlyTimeVariables, Accel_timeVariableNames,  PowerData, PowerData_onlyTimeVariables, Power_timeVariableNames, FFTData, FFTData_onlyTimeVariables, FFT_timeVariableNames, AdaptiveData, AdaptiveData_onlyTimeVariables, Adaptive_timeVariableNames, timeDomainSettings, powerSettings, fftSettings, eventLogTable, metaData, stimSettingsOut, stimMetaData, stimLogSettings, DetectorSettings, AdaptiveStimSettings, AdaptiveEmbeddedRuns_StimSettings] = ProcessRCS(pathName, processFlag)```
+```[unifiedDerivedTimes, timeDomainData, timeDomainData_onlyTimeVariables, timeDomain_timeVariableNames, AccelData, AccelData_onlyTimeVariables, Accel_timeVariableNames,  PowerData, PowerData_onlyTimeVariables, Power_timeVariableNames, FFTData, FFTData_onlyTimeVariables, FFT_timeVariableNames, AdaptiveData, AdaptiveData_onlyTimeVariables, Adaptive_timeVariableNames, timeDomainSettings, powerSettings, fftSettings, eventLogTable, metaData, stimSettingsOut, stimMetaData, stimLogSettings, DetectorSettings, AdaptiveStimSettings, AdaptiveEmbeddedRuns_StimSettings] = ProcessRCS(pathName, processFlag, shortGaps_systemTick)```
 
 Optional input argument(s):<br/>
 \[If no `pathName` is selected, a folder selection dialog box will open at the start of processing\]
@@ -65,6 +65,7 @@ Optional input argument(s):<br/>
        exist, process and save
   - 4: If processed file already exists, then load. If it does not
        exist, process but do not save<br/>
+- `shortGaps_systemTick`: For advanced users: Flag, default is '0', indicating that `PacketGenTime` should be used to align the start of all chunks regardless of preceeding gap length; setting to '1' indicates that `systemTick` should be used for time alignment of chunks if preceeding gap is < 6 seconds
 
 If applicable, data are saved in the same 'Device' directory where raw JSON were selected
 
@@ -86,7 +87,7 @@ Plotting helper for RC+S files<br/>
    
 Background: 
   
-This class is built as as a utility function to make plotting RC+S data easier. It wraps other functions in this repo and handles loading multiple folders and plotting specific data streams such as time domain, acitgraphy, power bands, adaptive etc. 
+This class is built as as a utility function to make plotting RC+S data easier. It wraps other functions in this repo and handles loading multiple folders and plotting specific data streams such as time domain, acitgraphy, power bands, adaptive etc. Note that the `signal processing toolbox` is needed for some functions to work properly.
  
 There are 2 main "type" of methods in this function:<br/>
 
@@ -129,6 +130,12 @@ This function creats an object of type "rcsPlotter" with several associated meth
 ```
 
 Using the `rc.addFolder` method multiple folders can be added and plotted. 
+
+We have also added a convenience GUI that wraps `rcsPlotter` and allows for dynamic plotting. 
+
+Usage: 
+
+
 
 **Part 4**
 
@@ -397,7 +404,7 @@ Each time series data stream has the following original timing information. Thes
 
   - `timestamp`: INS clock driven timer that does not roll over. Highest resolution is 1 second. Total elaped time since March 1, 2000 at midnight. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](#systemtick-and-timestamp)
   - `systemTick`: 16-bit INS clock timer that rolls over every 2^16 values. Highest resolution is 100 microseconds. One value per packet, corresponding to last sample in the packet. [See section below on timestamp and systemTick](#systemtick-and-timestamp)
-  - `PacketGenTime`: API estimate of when the packet was created on the INS within the PC clock domain. Estimate created by using results of latest latency check (one is done at system initialization, but can re-perform whenever you want) and time sync streaming. Only accurate within ~50ms.
+  - `PacketGenTime`: API estimate of when the packet was created on the INS within the PC clock domain. Unix time with resolution to milliseconds. Estimate created by using results of latest latency check (one is done at system initialization, but can re-perform whenever you want) and time sync streaming. Only accurate within ~50ms.
   - `PacketRxUnixTime`: PC clock-driven time when the packet was received. Highly inaccurate after packet drops.
   - `dataTypeSequence`: 8-bit packet number counter that rolls over, ranging from 0 to 255; can be used to help identify if packets are in order or are missing. Should run continuously, but instances of resetting have been observed.
 
@@ -482,7 +489,7 @@ Each time series data stream has the following original timing information. Thes
 The raw data comtain the following timing-related data:
 - `timestamp`: INS clock driven timer that does not roll over. Highest resolution is 1 second. Total elaped time since March 1, 2000 at midnight. One value per packet, corresponding to last sample in the packet. 
 - `systemTick`: 16-bit INS clock timer that rolls over every 2^16 values. Highest resolution is 100 microseconds. One value per packet, corresponding to last sample in the packet. 
-- `PacketGenTime`: API estimate of when the packet was created on the INS within the PC clock domain. Estimate created by using results of latest latency check (one is done at system initialization, but can re-perform whenever you want) and time sync streaming. Only accurate within ~50ms. One value per packet, corresponding to last sample in the packet. 
+- `PacketGenTime`: API estimate of when the packet was created on the INS within the PC clock domain. Unix time with resolution to milliseconds. Estimate created by using results of latest latency check (one is done at system initialization, but can re-perform whenever you want) and time sync streaming. Only accurate within ~50ms. One value per packet, corresponding to last sample in the packet. 
 - `PacketRxUnixTime`: PC clock-driven time when the packet was received. Highly inaccurate after packet drops. One value per packet, corresponding to last sample in the packet. 
 
 Ideally, there would be a value reported with each packet from which we could easily re-create unix time for each sample. Nominally, this would be `PacketGenTime`. However, upon inspection we see that: 
@@ -549,11 +556,11 @@ Because of the above described unreliability of `PacketGenTime` and the offset i
 
 ![Create DerivedTime](documentationFigures/RCS_CreateDerivedTime.png)
 
-- Identify and remove packets with faulty meta-data or which indicate samples will be hard to place in continuous stream (e.g. packets with `timestamp` that is more than 24 hours away from median `timestamp`; packets with negative `PacketGenTime`; packets with outlier `packetGenTimes`; packets where `packetGenTime` goes backwards in time)
+- Identify and remove packets with faulty meta-data or which indicate samples will be hard to place in continuous stream (e.g. packets with `timestamp` that is more than 24 hours away from median `timestamp`; packets with negative `PacketGenTime`; packets with outlier `packetGenTimes`; packets where `packetGenTime` goes backwards in time more than 500ms; packets where elapsed `packetGenTime` disagrees with elapsed `timestamp` by more than 2 seconds)
 - Chunk data -- chunks are defined as segments of data which were continuously sampled. Breaks between chunks can occur because packets were removed in the previous step, because there were dropped packets (never acquired), or because streaming was stopped but the recording was continued. Changes in time domain sampling rate will also result in a new chunk. Chunks are identified by looking at the adjacent values of `dataTypeSequence`, `timestamp` and `systemTick` as a function of sampling rate and number of samples per packet.
 - We need to align each chunk to a time:
   - For the first chunk in a file, we align using the `PacketGenTime` of the first packet in the chunk.
-  - In cases where the gap between chunks of data is < 6 seconds (as determined by comparing `timestamp` values), we can align by using adjacent `systemTick` values (`systemTick` from the last packet of the previous chunk and `systemTick` of the first packet of the next chunk). This is possible because we have stayed within one full cycle of `systemTick` values.
+  - In cases where the gap between chunks of data is < 6 seconds (as determined by comparing `timestamp` values), we can align by using one of two methods (selected by user using the `shortGaps_systemTick` flag): the default option (`shortGaps_systemTick` = 0) is to use the same approach as for data following gaps >= 6 seconds (see next bullet). Alternatively, `shortGaps_systemTick` = 1 indicates that adjacent `systemTick` values should be used to calculate elapsed time (`systemTick` from the last packet of the previous chunk and `systemTick` of the first packet of the next chunk). This is possible because we have stayed within one full cycle of `systemTick` values.
   - In cases where the gap between chunks of data is >= 6 seconds, we look across all the packets in the chunk and calculate the average offset between each `packetGenTime` and the amount of time that is expected to have elapsed (calculated based on sampling rate and number of samples in the packet). We then apply this offset to the `packetGenTime` corresponding to the first packet of the chunk. We can now calculate a time for each sample in the chunk, as a function of the sampling rate. 
 - The above process is repeated separately for each chunk.
 

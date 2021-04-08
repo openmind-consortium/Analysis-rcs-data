@@ -57,6 +57,17 @@ classdef rcsPlotter < handle
     %              % link axes since time domain and acc have differnt
     %              % sample rates: 
     %              linkaxes(hsb,'x');
+    %
+    %
+    %% list of functions:
+    %       type: 
+    %
+    %       rc = rcsPlotter(); 
+    %       rc.Help();
+    %
+    %       or without init:
+    %
+    %       methods(rcsPlotter);
     
     properties
         FolderNames
@@ -379,6 +390,7 @@ classdef rcsPlotter < handle
                 end
             end
             datetick(hAxes,'x',15,'keepticks','keeplimits');
+            obj.formatTimeXaxes(hAxes);
         end
         
         %%%%%%
@@ -502,11 +514,14 @@ classdef rcsPlotter < handle
                         % get settings
                         tdSettings = obj.Data(i).timeDomainSettings;
                         chanfn = sprintf('chan%d',chan);
-                        title(tdSettings.(chanfn){1},'Parent',hAxes);
+                        ttlUse{1,1} = tdSettings.(chanfn){1};
+                        ttlUse{2,1} = sprintf('bandpass: [%.2f- %.2f Hz]',bandsUsed(1) , bandsUsed(end));
+                        title(ttlUse,'Parent',hAxes);
                     end
                 end
             end
             datetick(hAxes,'x',15,'keepticks','keeplimits');
+            obj.formatTimeXaxes(hAxes);
         end
         
         
@@ -526,10 +541,11 @@ classdef rcsPlotter < handle
             %       1. channel (int, 1-4)  (required) 
             %       2. psd chunk sizes (duration) 
             %       3. handle to subplot (optional) 
+            %       4. RGB color (optional, e.g. [1 0 0 0.5] = red @ alpha of 0.5)
             %
             %% usage:
             %
-            % % rc.plotTdChannelBandpass(1); 
+            % % rc.plotTdChannelPsd(1); 
             %
             % can also specifiy timing algo duration. 
             % 
@@ -540,10 +556,14 @@ classdef rcsPlotter < handle
             % to specify duration of data input into each pwelch
             % computation: 
             %
-            % rc.plotTdChannelBandpass(1,seconds(30),hAxes); 
+            % rc.plotTdChannelPsd(1,seconds(30),hAxes); 
             % or 
-            % rc.plotTdChannelBandpass(1,minutes(10),hAxes); 
+            % rc.plotTdChannelPsd(1,minutes(10),hAxes); 
             % (hAxes is handle to subplot) 
+            % or 
+            % % rc.plotTdChannelPsd(1,minutes(10),hAxes); 
+            % or 
+            % % rc.plotTdChannelPsd(1,minutes(10),hAxes,[1 0 0 0.5]); 
             % 
             % default PSD averaged is 5 minutes. 
             % note that if sampling rate was changed within session this
@@ -559,6 +579,8 @@ classdef rcsPlotter < handle
                 hfig = figure;
                 hfig.Color = 'w';
                 hAxes = subplot(1,1,1);
+                
+                coloruse = [0.8 0 0 0.5];
             end
             if nargin == 3
                 chan  = varargin{1};
@@ -567,12 +589,21 @@ classdef rcsPlotter < handle
                 hfig = figure;
                 hfig.Color = 'w';
                 hAxes = subplot(1,1,1);
-
+                
+                coloruse = [0.8 0 0 0.5];
             end
             if nargin == 4
                 chan  = varargin{1};
                 psdDuration = varargin{2};
                 hAxes = varargin{3};
+                coloruse = [0.8 0 0 0.5];
+            end
+            
+            if nargin == 5
+                chan  = varargin{1};
+                psdDuration = varargin{2};
+                hAxes = varargin{3};
+                coloruse = varargin{4};
             end
             % validate input
             if ~isnumeric(chan)
@@ -672,7 +703,7 @@ classdef rcsPlotter < handle
                         [fftOut,ff]   = pwelch(rawDataForPSDCentered,sr,sr/2,0:1:sr/2,sr,'psd');
                         
                         
-                        hplt = plot(hAxes, ff,log10(fftOut),'Color',[0.8 0 0 0.5],'LineWidth',0.5);
+                        hplt = plot(hAxes, ff,log10(fftOut),'Color',coloruse,'LineWidth',0.1);
                         ylabel(hAxes,'Power (log_1_0\muV^2/Hz)');
                         % get settings
                         tdSettings = obj.Data(i).timeDomainSettings;
@@ -681,8 +712,210 @@ classdef rcsPlotter < handle
                     end
                 end
             end
-            datetick(hAxes,'x',15,'keepticks','keeplimits');
         end
+        
+        
+        %%%%%%
+        %
+        % plot time domain coherence plots 
+        %
+        %%%%%%
+        function plotTdChannelCoherence(obj,varargin)
+            %% plot RC+S ms cohernece of time domain data with envelope 
+            %
+            % divides the data into chunks (30 seconds is default) 
+            % plots ms coherence for each chunk
+            %
+            %% input:
+            %       1. channel ([int, int])  (required) 
+            %       2. coherence chunk sizes (duration) 
+            %       3. handle to subplot (optional) 
+            %       4. RGB color (optional, e.g. [1 0 0 0.5] = red @ alpha of 0.5)
+            %
+            %% usage:
+            %
+            % % rc.plotTdChannelCoherence([1,3]); 
+            % % will plot ms coherence between channels 1 and 3 
+            %
+            % 
+            % will not compute coherence if a gap exist in data chunk 
+            % if many chunks in data this may result in very few PSD's 
+            % given duration of recording 
+            %
+            % to specify duration of data input into each pwelch
+            % computation: 
+            %
+            % rc.plotTdChannelCoherence([1 3],seconds(30),hAxes); 
+            % or 
+            % rc.plotTdChannelCoherence([1 3],minutes(10),hAxes); 
+            % (hAxes is handle to subplot) 
+            % or 
+            % % rc.plotTdChannelCoherence([1 3],minutes(10),hAxes); 
+            % or 
+            % % rc.plotTdChannelCoherence([1 3],minutes(10),hAxes,[1 0 0 0.5]); 
+            % 
+            % note that if sampling rate was changed within session this
+            % function will error out 
+            %
+            
+            if nargin < 2
+                error('select at least one channel and band pass range (int)');
+            end
+            if nargin == 2
+                chan = varargin{1};
+                psdDuration = minutes(5);
+                hfig = figure;
+                hfig.Color = 'w';
+                hAxes = subplot(1,1,1);
+                
+                coloruse = [0.8 0 0 0.5];
+            end
+            if nargin == 3
+                chan  = varargin{1};
+                psdDuration = varargin{2};
+                
+                hfig = figure;
+                hfig.Color = 'w';
+                hAxes = subplot(1,1,1);
+                
+                coloruse = [0.8 0 0 0.5];
+            end
+            if nargin == 4
+                chan  = varargin{1};
+                psdDuration = varargin{2};
+                hAxes = varargin{3};
+                coloruse = [0.8 0 0 0.5];
+            end
+            
+            if nargin == 5
+                chan  = varargin{1};
+                psdDuration = varargin{2};
+                hAxes = varargin{3};
+                coloruse = varargin{4};
+            end
+            % validate input
+            if ~isnumeric(chan)
+                error('channel input must be integer between 1-4');
+            end
+            if ~ismember(chan,[1 : 1 : 4])
+                error('channel input must be integer between 1-4');
+            end
+            
+            hold(hAxes,'on');
+            for i = 1:obj.NumberOfSessions
+                if ~isempty(obj.Data(i))
+                    
+                    dt = obj.Data(i).combinedDataTable;
+                    x = datenum(dt.localTime);
+                    for ccc  = 1:2
+                        chanfn = sprintf('TD_key%d',chan(ccc)-1);
+                        y(:,ccc) = dt.(chanfn);
+                    end
+                    y = y.*1e3; % so data is in microvolt 
+                    yRaw = y;
+
+                    % verify that you have time domain data
+                    if sum(isnan(y(:,1))) == size(y,1)
+                        warningMessage = sprintf('no time domain data exists for: %s\n',...
+                            obj.Data(i).folder);
+                        warning(warningMessage);
+                    else
+                        idxnan = isnan(y(:,1));
+                        
+                        idxnanSampleRate = isnan(dt.TD_samplerate);
+                        uniqueSampleRate = unique(dt.TD_samplerate(~idxnanSampleRate));
+                        if length(uniqueSampleRate) >1
+                            error('can only perform psd anlaysis on data in which sample rate is the same');
+                        elseif length(y) < (seconds(psdDuration)*(max(uniqueSampleRate)))
+                            error('data is smaller than psd chunk duration selected');
+                        else
+                            sr = uniqueSampleRate;
+                        end
+                        
+                        % find data with no gaps - 
+                        % then for each continous section of data without
+                        % gaps 
+                        % reshape data according to psd duration size 
+                        % then concatenate all for psd computation
+                        % also save (for later) the time index for PSD
+                        % (middle of window) 
+                        diffNans = diff(idxnan);
+                        idxgapEnd = find(diffNans == 1) + 1;
+                        idxgapStart = find(diffNans == -1) + 1;
+                        if idxnan(1) == 0 % if data start with no gap
+                            idxgapStart = [1; idxgapStart ];
+                        end
+                        if idxnan(end) == 0 % if data ends with gap
+                            idxgapEnd = [idxgapEnd; length(idxnan) ];
+                        end
+                        localTime = dt.localTime;
+                        gaps = localTime(idxgapEnd) - localTime(idxgapStart);
+                        gaps.Format = 'hh:mm:ss.SSSS';
+                        psdDuration.Format = 'hh:mm:ss.SSSS';
+                        
+                        totalRecLenth = (localTime(end) - localTime(1));
+                        totalRecLenth.Format = 'hh:mm:ss.SSSS';
+                        totalData     = sum(gaps);
+                        totalData.Format = 'hh:mm:ss.SSSS';
+                        % report how what % of data was capturd  
+                        fprintf('%.2f of data of data recorded (%s / %s)\n', totalData/totalRecLenth,...
+                                    totalRecLenth,totalData);
+
+                        
+                        % report how much data will be lost 
+                        fprintf('%.2f of data has no gaps larger than %s (%s / %s)\n', sum(gaps(gaps > psdDuration))./sum(gaps),psdDuration,...
+                            sum(gaps(gaps > psdDuration)), sum(gaps));
+
+                        idxGapsUse = gaps > psdDuration;
+                        gapsUse = gaps(idxGapsUse,:);
+                        idxGapStartUse = idxgapStart(idxGapsUse);
+                        idxGapEndUse = idxgapEnd(idxGapsUse);
+                        if ~isempty(gapsUse)
+                        else
+                            error('at this window size (%s), all psd chunks have gaps in them / some NaNs',psdDuration)
+                        end
+                        
+                        for ccc = 1:2 % loop on both channels
+                            rawDataForPSD = [];
+                            for g = 1:length(idxGapStartUse)
+                                y = yRaw(idxGapStartUse(g):idxGapEndUse(g),ccc);
+                                reshapeFactor = seconds(psdDuration)*sr;
+                                
+                                yDatReshape = y(1:end-(mod(size(y,1), reshapeFactor)));
+                                yDataComputePSD  = reshape(yDatReshape,reshapeFactor,size(yDatReshape,1)/reshapeFactor);
+                                rawDataForPSD = [rawDataForPSD, yDataComputePSD];
+                            end
+                            rawDataForPSDCentered = rawDataForPSD - ...
+                                repmat(mean(rawDataForPSD,1),size(rawDataForPSD,1),1);
+                            cohInput(ccc).Data = rawDataForPSDCentered;
+                        end
+                        
+                        
+                        Fs = sr; 
+                        [Cxy,F] = mscohere(cohInput(1).Data,cohInput(2).Data,...
+                            2^(nextpow2(Fs)),...
+                            2^(nextpow2(Fs/2)),...
+                            2^(nextpow2(Fs)),...
+                            Fs);
+                        hplot = plot(F,Cxy,'Color',coloruse,'LineWidth',0.1);
+                        xlabel(hAxes,'Freq (Hz)');
+                        % get labels 
+                        for ccc = 1:2 
+                            chanfn = sprintf('chan%d',chan(ccc));
+                            ylab{ccc} = obj.Data(i).timeDomainSettings.(chanfn){1}(1:5);
+                        end
+                        
+                        ylabel(hAxes,'MS Coherence');
+                        
+                        % get settings
+                        titleUse = sprintf('MS Coherence (%s - %s)',ylab{1}, ylab{2});
+                        
+                        title(titleUse,'Parent',hAxes);
+                    end
+                end
+            end
+        end
+ 
         
         
         
@@ -765,6 +998,7 @@ classdef rcsPlotter < handle
                     gapsAll = [gapsAll; gaps];
                 end
             end
+            obj.formatTimeXaxes(hAxes);
             modGap = mode(gaps);
             medGap = median(gaps);
             maxGap = max(gaps);
@@ -945,8 +1179,309 @@ classdef rcsPlotter < handle
 
                 end
             end
-            datetick('x',15,'keepticks','keeplimits');
+            datetick(hAxes,'x',15,'keepticks','keeplimits');
+            obj.formatTimeXaxes(hAxes);
         end
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        %%%%%%
+        %
+        % save time domain data  - spectrogram - all channels 
+        %
+        %%%%%%        
+        function saveTdChannelSpectral(obj)
+            %% save RC+S spectral td data  
+            %
+            % 
+            %% input:
+            %       1. none - loops and saves spectral data 
+            %          for down stream analysis 
+            %
+            %% usage:
+            %
+            % rc.saveTdChannelSpectral(); 
+            % 
+            % note that default spect params are chosen 
+            % and missing data is handeled in specific manner 
+            
+       
+            for i = 1:obj.NumberOfSessions
+                if ~isempty(obj.Data(i))
+                    dt = obj.Data(i).combinedDataTable;
+                    idxnanSampleRate = isnan(dt.TD_samplerate);
+                    uniqueSampleRate = unique(dt.TD_samplerate(~idxnanSampleRate));
+                    if length(uniqueSampleRate) >1
+                        error('can only perform psd anlaysis on data in which sample rate is the same');
+                    else
+                        sr = uniqueSampleRate;
+                    end
+
+                    dt = obj.Data(i).combinedDataTable;
+                    x = datenum(dt.localTime);
+                    for c = 1:4
+                        chanfn = sprintf('TD_key%d',c-1);
+                        y = dt.(chanfn);
+                        y = y - nanmean(y);
+                        y = y.*1e3;
+                        
+                        
+                        
+                        yFilled = fillmissing(y,'constant',0);
+                        
+                        % set params.
+                        params.windowSize     = sr;  % spect window size
+                        params.windowOverlap  = ceil(params.windowSize*0.875);   % spect window overalp (points)
+                        params.paddingGap     = seconds(0.5); % padding to add to window spec
+                        params.windowUse       = 'kaiser'; % blackmanharris \ kaiser \ hann
+                        
+                        
+                        % blank should be bigger than window on each side
+                        windowInSec = seconds(256/sr);
+                        switch params.windowUse
+                            case 'kaiser'
+                                windowUse = kaiser(params.windowSize,2);
+                            case 'blackmanharris'
+                                windowUse = blackmanharris(params.windowSize);
+                            case 'hann'
+                                L = params.windowSize;
+                                windowUse = 0.5*(1-cos(2*pi*(0:L-1)/(L-1)));
+                                %             hann(params.windowSize);
+                        end
+                        
+                        [sss,fff,ttt,ppp] = spectrogram(yFilled,...
+                            windowUse,...
+                            params.windowOverlap,...
+                            256,sr,'yaxis');
+                        
+                        % put nan's in gaps for spectral data - to avoid
+                        % plotting artifacts from gaps
+                        idxnan = isnan(y);
+                        
+                        % report gaps
+                        diffNans = diff(idxnan);
+                        idxgapEnd = find(diffNans == -1) + 1;
+                        idxgapStart = find(diffNans == 1) + 1;
+                        if idxnan(1) == 1 % if data start with gap
+                            idxgapStart = [1; idxgapStart ];
+                        end
+                        if idxnan(end) == 1 % if data ends with gap
+                            idxgapEnd = [idxgapEnd; length(idxnan) ];
+                        end
+                        
+                        spectTimes = dt.localTime(1) + seconds(ttt);
+                        
+                        localTime = dt.localTime;
+                        for te = 1:size(idxgapStart,1)
+                            timeGap(te,1) = localTime(idxgapStart(te)) - (windowInSec + params.paddingGap);
+                            timeGap(te,2) = localTime(idxgapEnd(te))   + (windowInSec + params.paddingGap);
+                            idxBlank = spectTimes >= timeGap(te,1) & spectTimes <= timeGap(te,2);
+                            ppp(:,idxBlank) = NaN;
+                        end
+                        chanf = sprintf('chan%d',c);
+                        spectralDataMat(:,:,c) = ppp';
+                        tdSettings = obj.Data(i).timeDomainSettings;
+                        chanfn = sprintf('chan%d_tdSettings',c);
+                        spectralData.(chanfn) = tdSettings.(chanf){end};
+                        
+                    end  
+                    spectralDataSparse = sparse(spectralDataMat);
+                    
+                    % save sparse matrix version of this to save space 
+                    spectralData.data = spectralDataMat;
+                    spectralData.spectTimes = spectTimes;
+                    spectralData.freqs = fff;
+                    spectralData.spectTimes = spectTimes;
+                    % save data
+                    folderPath = obj.Data(i).folder;
+                    outputFileName = fullfile(folderPath,'AllDataSpectral.mat');
+%                     outputFileName = fullfile(folderPath,'AllDataTables.mat');
+                    save(outputFileName,'spectralData');
+                end 
+            end
+        end
+        
+        
+        
+        %%%%%%
+        %
+        % save time domain data  - spectrogram - all channels 
+        %
+        %%%%%%        
+        function saveTdChannelPsd(obj)
+            %% save RC+S PSD of td data  
+            %
+            % 
+            %% input:
+            %       1. none - loops and saves spectral data 
+            %          for down stream analysis 
+            %
+            %% usage:
+            %
+            % rc.saveTdChannelPsd(); 
+            % 
+            % note that default psd params are chosen 
+            % this will divide data into two minutes chunks to compute psds
+            
+            psdDuration = minutes(2); 
+       
+            for i = 1:obj.NumberOfSessions
+                if ~isempty(obj.Data(i))
+                    dt = obj.Data(i).combinedDataTable;
+                    idxnanSampleRate = isnan(dt.TD_samplerate);
+                    uniqueSampleRate = unique(dt.TD_samplerate(~idxnanSampleRate));
+                    if length(uniqueSampleRate) >1
+                        error('can only perform psd anlaysis on data in which sample rate is the same');
+                    else
+                        sr = uniqueSampleRate;
+                    end
+
+                    dt = obj.Data(i).combinedDataTable;
+                    x = datenum(dt.localTime);
+                    localTime = dt.localTime;
+                    for c = 1:4
+                        chanfn = sprintf('TD_key%d',c-1);
+                        y = dt.(chanfn);
+                        y = y - nanmean(y);
+                        y = y.*1e3;
+                        yRaw = y;
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        % verify that you have time domain data
+                        if sum(isnan(y)) == length(y)
+                            warningMessage = sprintf('no time domain data exists for: %s\n',...
+                                obj.Data(i).folder);
+                            warning(warningMessage);
+                        else
+                            idxnan = isnan(y);
+                            
+                            idxnanSampleRate = isnan(dt.TD_samplerate);
+                            uniqueSampleRate = unique(dt.TD_samplerate(~idxnanSampleRate));
+                            if length(uniqueSampleRate) >1
+                                error('can only perform psd anlaysis on data in which sample rate is the same');
+                            elseif length(y) < (seconds(psdDuration)*(max(uniqueSampleRate)))
+                                error('data is smaller than psd chunk duration selected');
+                            else
+                                sr = uniqueSampleRate;
+                            end
+                            
+                            % find data with no gaps -
+                            % then for each continous section of data without
+                            % gaps
+                            % reshape data according to psd duration size
+                            % then concatenate all for psd computation
+                            % also save (for later) the time index for PSD
+                            % (middle of window)
+                            diffNans = diff(idxnan);
+                            idxgapEnd = find(diffNans == 1) + 1;
+                            idxgapStart = find(diffNans == -1) + 1;
+                            if idxnan(1) == 0 % if data start with no gap
+                                idxgapStart = [1; idxgapStart ];
+                            end
+                            if idxnan(end) == 0 % if data ends with gap
+                                idxgapEnd = [idxgapEnd; length(idxnan) ];
+                            end
+                            localTime = dt.localTime;
+                            gaps = localTime(idxgapEnd) - localTime(idxgapStart);
+                            gaps.Format = 'hh:mm:ss.SSSS';
+                            psdDuration.Format = 'hh:mm:ss.SSSS';
+                            
+                            totalRecLenth = (localTime(end) - localTime(1));
+                            totalRecLenth.Format = 'hh:mm:ss.SSSS';
+                            totalData     = sum(gaps);
+                            totalData.Format = 'hh:mm:ss.SSSS';
+                            % report how what % of data was capturd
+                            fprintf('%.2f of data of data recorded (%s / %s)\n', totalData/totalRecLenth,...
+                                totalRecLenth,totalData);
+                            
+                            
+                            % report how much data will be lost
+                            fprintf('%.2f of data has no gaps larger than %s (%s / %s)\n', sum(gaps(gaps > psdDuration))./sum(gaps),psdDuration,...
+                                sum(gaps(gaps > psdDuration)), sum(gaps));
+                            
+                            idxGapsUse = gaps > psdDuration;
+                            gapsUse = gaps(idxGapsUse,:);
+                            idxGapStartUse = idxgapStart(idxGapsUse);
+                            idxGapEndUse = idxgapEnd(idxGapsUse);
+                            if ~isempty(gapsUse)
+                            else
+                                error('at this window size (%s), all psd chunks have gaps in them / some NaNs',psdDuration)
+                            end
+                            
+                            
+                            rawDataForPSD = [];
+                            xTimeAverage = [];
+                            for g = 1:length(idxGapStartUse)
+                                y = yRaw(idxGapStartUse(g):idxGapEndUse(g));
+                                reshapeFactor = seconds(psdDuration)*sr;
+                                
+                                yDatReshape = y(1:end-(mod(size(y,1), reshapeFactor)));
+                                yDataComputePSD  = reshape(yDatReshape,reshapeFactor,size(yDatReshape,1)/reshapeFactor);
+                                rawDataForPSD = [rawDataForPSD, yDataComputePSD];
+                                
+                                % get the raw times 
+                                xTime = localTime(idxGapStartUse(g):idxGapEndUse(g));
+                                xTimeReshape = xTime(1:end-(mod(size(xTime,1), reshapeFactor)));
+                                xTimeComputePSDTime  = reshape(xTimeReshape,reshapeFactor,size(xTimeReshape,1)/reshapeFactor);
+                                xTimeAverage = [xTimeAverage, xTimeComputePSDTime];
+                            end
+                            
+                            rawDataForPSDCentered = rawDataForPSD - ...
+                                repmat(mean(rawDataForPSD,1),size(rawDataForPSD,1),1);
+                            
+                            psdtimes = median(xTimeAverage,1)'; % median time for the psd - so window is centered 
+                            
+                            [fftOut,ff]   = pwelch(rawDataForPSDCentered,sr,sr/2,0:1:sr/2,sr,'psd');
+                            
+                        end
+                        
+
+                        
+                        chanf = sprintf('chan%d',c);
+                        dataOut(:,:,c) = fftOut;
+                        tdSettings = obj.Data(i).timeDomainSettings;
+                        chanfn = sprintf('chan%d_tdSettings',c);
+                        psdData.(chanfn) = tdSettings.(chanf){end};
+                        
+                    end  
+                    
+                    psdData.data = dataOut;
+                    psdData.freqs = ff;
+                    psdData.psdTimes = psdtimes;
+                    % save data
+                    folderPath = obj.Data(i).folder;
+                    outputFileName = fullfile(folderPath,'AllDataPSD.mat');
+%                     outputFileName = fullfile(folderPath,'AllDataTables.mat');
+                    save(outputFileName,'psdData');
+                end 
+            end
+        end
+        
+        
+        
+        
+        
+        
+        
         
         
         %%%%%%
@@ -992,7 +1527,16 @@ classdef rcsPlotter < handle
                         ydet = dt.(chanfn);
                         yDetAll = [yDetAll; ydet];
                         idplot = ~isnan(ydet);
-                        hplt = plot(x(idplot),ydet(idplot),'Parent',hAxes);
+                        % incldue ffpv 
+                        chanfnThresh = sprintf('Ld%d',chan);
+                        FFPV = obj(i).Data.DetectorSettings.(chanfnThresh).fractionalFixedPointValue;
+                        u = ydet(idplot);
+                        isNegative = int32(bitget(u,32));
+                        convertedValue = int32(bitset(u,32,0)) + (-2^31)*isNegative;
+                        ydetectorPlot = double(convertedValue)./FFPV;
+
+                        
+                        hplt = plot(x(idplot),ydetectorPlot,'Parent',hAxes);
                         hplt.LineWidth = 0.5;
                         hplt.Color = [0 0 0.8 0.5];
                         obj.addLocalTimeDataTip(hplt,datetime(dt.localTime(idplot)));
@@ -1000,7 +1544,15 @@ classdef rcsPlotter < handle
                         chanfn = sprintf('Adaptive_Ld%d_highThreshold',chan);
                         yupper = dt.(chanfn);
                         idplot = ~isnan(yupper);
-                        hplt = plot(x(idplot),yupper(idplot),'Parent',hAxes);
+                        
+                        chanfnThresh = sprintf('Ld%d',chan);
+                        FFPV = obj(i).Data.DetectorSettings.(chanfnThresh).fractionalFixedPointValue;
+                        u = yupper(idplot);
+                        isNegative = int32(bitget(u,32));
+                        convertedValue = int32(bitset(u,32,0)) + (-2^31)*isNegative;
+                        yThreshoPlot = double(convertedValue)./FFPV;
+
+                        hplt = plot(x(idplot),yThreshoPlot,'Parent',hAxes);
                         hplt.LineWidth = 0.5;
                         hplt.Color = [0.8 0 0 0.5];
                         hplt.LineStyle = '-.';
@@ -1009,7 +1561,16 @@ classdef rcsPlotter < handle
                         chanfn = sprintf('Adaptive_Ld%d_lowThreshold',chan);
                         ylower = dt.(chanfn);
                         idplot = ~isnan(ylower);
-                        hplt = plot(x(idplot),ylower(idplot),'Parent',hAxes);
+                        
+                        chanfnThresh = sprintf('Ld%d',chan);
+                        FFPV = obj(i).Data.DetectorSettings.(chanfnThresh).fractionalFixedPointValue;
+                        u = ylower(idplot);
+                        isNegative = int32(bitget(u,32));
+                        convertedValue = int32(bitset(u,32,0)) + (-2^31)*isNegative;
+                        yThreshoPlot = double(convertedValue)./FFPV;
+
+                        
+                        hplt = plot(x(idplot),yThreshoPlot,'Parent',hAxes);
                         hplt.LineWidth = 0.5;
                         hplt.Color = [0.8 0 0 0.5];
                         hplt.LineStyle = '-.';
@@ -1053,11 +1614,12 @@ classdef rcsPlotter < handle
                         end
                         title(hAxes,detectorInput);
                         axes(hAxes);
-                        datetick('x',15,'keepticks','keeplimits');
+                        datetick(hAxes,'x',15,'keepticks','keeplimits');
                         
                     end
                 end
             end
+            obj.formatTimeXaxes(hAxes);
             % save percentils in user data in axes 
             allData = yDetAll(~isnan(yDetAll));
             prctiles = [2.5 5:5:95 97.5];
@@ -1124,7 +1686,8 @@ classdef rcsPlotter < handle
                 end
             end
             axes(hAxes);
-            datetick('x',15,'keepticks','keeplimits');
+            datetick(hAxes,'x',15,'keepticks','keeplimits');
+            obj.formatTimeXaxes(hAxes);
         end
         
         %%%%%%
@@ -1181,7 +1744,8 @@ classdef rcsPlotter < handle
                 end
             end
             axes(hAxes);
-            datetick('x',15,'keepticks','keeplimits');
+            datetick(hAxes,'x',15,'keepticks','keeplimits');
+            obj.formatTimeXaxes(hAxes);
         end
         
         %%%%%%
@@ -1273,6 +1837,7 @@ classdef rcsPlotter < handle
                     end
                 end
             end
+            obj.formatTimeXaxes(hAxes);
             
         end
         
@@ -1339,6 +1904,7 @@ classdef rcsPlotter < handle
                 end
             end
             datetick(hAxes,'x',15,'keepticks','keeplimits');
+            obj.formatTimeXaxes(hAxes);
         end
         
         
@@ -1460,7 +2026,8 @@ classdef rcsPlotter < handle
                     end
                 end
             end
-            datetick('x',15,'keepticks','keeplimits');
+            datetick(hAxes,'x',15,'keepticks','keeplimits');
+            obj.formatTimeXaxes(hAxes);
             %% set limits;
             ylims(1) = prctile(ypowerOut,5);
             ylims(2) = prctile(ypowerOut,95);
@@ -1614,6 +2181,9 @@ classdef rcsPlotter < handle
                 
                 eventPrint = eventOutAll(:,{'localTime','EventType','EventSubType'});
                 eventPrint
+                folderPath = obj.Data(i).folder;
+                outputFileName = fullfile(folderPath,'AllDataTables.mat');
+                save(outputFileName,'eventPrint','-append');
             end
         end
         
@@ -1842,7 +2412,41 @@ classdef rcsPlotter < handle
                 end
                 
             end
-            i
+        end
+        
+        %%%%%%
+        %
+        % help method 
+        %
+        %%%%%%
+        function Help(obj,varargin)
+            %
+            %% How to use help 
+            %
+            % rcsPlotter creats an object (class) 
+            % that has several functions. 
+            %
+            % usage: 
+            %   for list of of functions and what they do: 
+            %    
+            %   rc = rcsPlotter. 
+            %   rc.Help(); 
+            %   for help on specific function: 
+            %   rc.Help('plotAdaptiveState'); 
+            %
+            % 
+            %
+            if nargin == 1
+                strSearch = '*';
+                eval('help rcsPlotter.Help');
+                methods(obj);
+            end
+            if nargin == 2 
+                strSearch = varargin{1};
+                eval(sprintf('help rcsPlotter.%s', strSearch));
+            end
+            
+           
         end
     end
 
@@ -1881,10 +2485,89 @@ classdef rcsPlotter < handle
             end
         end
         
-
-
+        
+        %%%%%%
+        %
+        % utility function that formats data to make it looks a little
+        % nicer 
+        %
+        %%%%%%
+        %
+        % all of the plotting function use datenum as the x axis
+        % reason is that for plotting spectral data using imagesc (fastest
+        % performance, compared to pcolor etc. which is slow in
+        % largedatasets) you need a numeric axes. 
+        % This utility function tries to format time on x axis in a huamn
+        % readable fashion with timing in crements which make sense given
+        % the size of the plotted. Can copy this in outside function to
+        % produce more results that have desired outcome for plotting for
+        % unique cases 
+        function formatTimeXaxes(obj,hax)
+            % add data tip for human readable time if matlab
+            % version allows this:
+            %
+            
+            % set a few rules / hurestics for time 
+            % 1. under 1 min - data every 15 sec
+            % 2. under 1 min - 5 min - tick every 1 min 
+            % 3. over 5 min - 20 min. tick every 2 min 
+            % 4. over 20 min -1 hour - tick every 10 min. 
+            % 5. 1 hour - 2 hours - tick every 15 min 
+            % 6. 2 hours - tick every 30 minutes 
+            
+            plottedDuration = datetime(datevec(hax.XLim(2))) - datetime(datevec(hax.XLim(1)));
+            if plottedDuration < minutes(1)
+                timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','minute');
+                timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','minute');
+                xticks = datenum(timeStart : seconds(15) : timeEnd);
+                hax.XTick = xticks;
+                datetick('x','HH:MM:SS.FFF','keepticks','keeplimits');
+                
+            elseif plottedDuration >= minutes(1) & plottedDuration < minutes(5)
+                timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','minute');
+                timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','minute');
+                xticks = datenum(timeStart : minutes(1) : timeEnd);
+                hax.XTick = xticks;
+                datetick('x','HH:MM:SS','keepticks','keeplimits');
+                
+            elseif plottedDuration >= minutes(5) & plottedDuration < minutes(20)
+                timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','hour');
+                timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','hour');
+                xticks = datenum(timeStart : minutes(2) : timeEnd);
+                hax.XTick = xticks;
+                datetick('x','HH:MM','keepticks','keeplimits');
+                
+            elseif plottedDuration >= minutes(20) & plottedDuration < minutes(60)
+                timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','hour');
+                timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','hour');
+                xticks = datenum(timeStart : minutes(10) : timeEnd);
+                hax.XTick = xticks;
+                datetick('x','HH:MM','keepticks','keeplimits');
+                
+            elseif plottedDuration >= minutes(60) & plottedDuration < minutes(60*2)
+                timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','hour');
+                timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','hour');
+                xticks = datenum(timeStart : minutes(15) : timeEnd);
+                hax.XTick = xticks;
+                datetick('x','HH:MM','keepticks','keeplimits');
+                
+            elseif plottedDuration > minutes(60*2)
+                timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','hour');
+                timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','hour');
+                xticks = datenum(timeStart : minutes(30) : timeEnd);
+                hax.XTick = xticks;
+                datetick('x','HH:MM','keepticks','keeplimits');    
+            end
+            
+            
+                
+        end
+        
+        
         
     end
+    
+    
 end
 
       

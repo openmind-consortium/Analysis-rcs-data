@@ -1,4 +1,4 @@
-function [outputData] = createDataTableWithMultipleSamplingRates(all_Fs, dataStreamSettings, outtable_data)
+function [outputData] = createDataTableWithMultipleSamplingRates(all_Fs, dataStreamSettings, outtable_data,shortGaps_systemTick)
 %%
 % Function to handle multiple sampling rates in a data stream
 %
@@ -64,7 +64,7 @@ if sum(isnan(startIndices)) == length(startIndices)
     temp_outtable = outtable_data;
     temp_outtable.samplerate(:) = all_Fs(end);
     temp_outtable.packetsizes(:) = 1;
-    outputData = assignTime(temp_outtable);
+    outputData = assignTime(temp_outtable, shortGaps_systemTick);
 else
     for iSegment = 1:numSegments
         if ~isnan(startIndices(iSegment))
@@ -76,7 +76,7 @@ else
                 temp_outtable.StateTime = temp_outtable.StateTime * (1/all_Fs(iSegment)); % to convert to seconds
             end
             
-            outputData = [outputData; assignTime(temp_outtable)];
+            outputData = [outputData; assignTime(temp_outtable, shortGaps_systemTick)];
         end
     end
 end

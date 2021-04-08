@@ -14,6 +14,8 @@ function mex_turtle_json(file_id,varargin)
 %
 %   Optional Inputs
 %   ---------------
+%   verbose : default false
+%       If true compile commands will be shown 
 %   allow_ref_count : default false
 %       If true, allocations can be made by simply increasing the reference
 %       count. If not, all allocations that are made that could be done
@@ -24,7 +26,7 @@ function mex_turtle_json(file_id,varargin)
 %   Compilation relies on:
 %       https://github.com/JimHokanson/mex_maker
 %
-%   The C code relies on GCC. 
+%   The C code relies on GCC.
 %
 %       mac : used homebrew to install GCC
 %   windows : used mingw
@@ -34,8 +36,19 @@ function mex_turtle_json(file_id,varargin)
 %
 %       mex CFLAGS="$CFLAGS -std=c11 -mavx2 -fopenmp" LDFLAGS="$LDFLAGS -fopenmp" turtle_json_mex.c turtle_json_main.c
 %
+%   Issues
+%   ------------------------------------------------------------------
+%   Windows: -----------------------
+%   Problem: .o file, no such file or directory
+%       GCC relies on libwinpthread-1.dll. I'm not sure how gcc has this
+%       included when called, but if you are getting the above error
+%       you may try including the bin folder on your Windows Path.
+%       - path is something like:
+%       C:\Program Files\mingw-w64\x86_64...\mingw64\bin\
 %
 %   
+%
+%
 %   Examples
 %   --------
 %   mex_turtle_json()
@@ -77,11 +90,12 @@ data = f.getParsedData();
 %       Whether to log timing. I made some improvements so this should
 %       really just be left true.
 %   log_alloc : default true
-%       Whether to log allocations made. I made some improvements so 
+%       Whether to log allocations made. I made some improvements so
 %       this should really just be left true.
 
 
 p = inputParser;
+addOptional(p,'verbose',false);
 addOptional(p,'log_timing',true);
 addOptional(p,'log_alloc',true);
 addOptional(p,'allow_ref_count',false);
@@ -90,7 +104,7 @@ parse(p,varargin{:});
 in = p.Results;
 
 if nargin == 0
-   file_id = [];
+    file_id = [];
 end
 
 
@@ -102,58 +116,60 @@ end
 %Compiling of turtle_json_mex.c and associated files
 %-------------------------------------------------------
 if isempty(file_id) || file_id == 1
-fprintf('Compiling turtle_json_mex.c\n');
-
-%TODO: mex maker should do this ...
-clear turtle_json_mex
-%c = mex.compilers.gcc('./turtle_json_mex.c');
-% c = mex.compilers.gcc('./turtle_json_mex.c',...
-%     'files',{...
-%     './turtle_json_main.c', ...
-%     './turtle_json_mex_helpers.c'});
-% 
-c = mex.compilers.gcc('./turtle_json_mex.c',...
-    'files',{...
-    './turtle_json_main.c', ...
-    './turtle_json_post_process.c', ...
-    './turtle_json_mex_helpers.c', ...
-    './turtle_json_pp_objects.c', ...
-    './turtle_json_number_parsing.c'});
-c.addLib('openmp');
-c.addCompileFlags('-mavx');
-
-if in.log_timing
-    c.addCompileDefines({'LOG_TIME'});
-end
-if in.log_alloc
-    c.addCompileDefines({'LOG_ALLOC'});
-end
-
-%build_spec = c.getBuildSpec();
-%   -> can be examined for the compile statements
-
-c.build();
+    fprintf('Compiling turtle_json_mex.c\n');
+    
+    %TODO: mex maker should do this ...
+    clear turtle_json_mex
+    %c = mex.compilers.gcc('./turtle_json_mex.c');
+    % c = mex.compilers.gcc('./turtle_json_mex.c',...
+    %     'files',{...
+    %     './turtle_json_main.c', ...
+    %     './turtle_json_mex_helpers.c'});
+    %
+    c = mex.compilers.gcc('./turtle_json_mex.c',...
+        'files',{...
+        './turtle_json_main.c', ...
+        './turtle_json_post_process.c', ...
+        './turtle_json_mex_helpers.c', ...
+        './turtle_json_pp_objects.c', ...
+        './turtle_json_number_parsing.c'},'verbose',in.verbose);
+    c.addLib('openmp');
+    c.addCompileFlags('-mavx');
+    
+    if in.log_timing
+        c.addCompileDefines({'LOG_TIME'});
+    end
+    if in.log_alloc
+        c.addCompileDefines({'LOG_ALLOC'});
+    end
+    
+    build_spec = c.getBuildSpec();
+    compile_statements = build_spec.getCompileStatments();
+    linker_statement = build_spec.getLinkerStatement();
+    %   -> can be examined for the compile statements
+    
+    c.build();
 end
 
 %Compiling of json_info_to_data.c and associated files
 %--------------------------------------------------------
 if isempty(file_id) || file_id == 2
-fprintf('Compiling json_info_to_data.c\n');
-clear json_info_to_data
-
-c = mex.compilers.gcc('./json_info_to_data.c',...
-    'files',{...
-    './json_info_to_data__arrays.c', ...
-    './json_info_to_data__objects.c', ...
-    './json_info_to_data__utils.c', ...
-    './json_info_to_data__option_handling.c'});
-if in.allow_ref_count
-    c.addCompileDefines({'ALLOW_REF_COUNT'});
-else
-    %nothing
-end
+    fprintf('Compiling json_info_to_data.c\n');
+    clear json_info_to_data
     
-c.build();
+    c = mex.compilers.gcc('./json_info_to_data.c',...
+        'files',{...
+        './json_info_to_data__arrays.c', ...
+        './json_info_to_data__objects.c', ...
+        './json_info_to_data__utils.c', ...
+        './json_info_to_data__option_handling.c'},'verbose',in.verbose);
+    if in.allow_ref_count
+        c.addCompileDefines({'ALLOW_REF_COUNT'});
+    else
+        %nothing
+    end
+    
+    c.build();
 end
 
 end
