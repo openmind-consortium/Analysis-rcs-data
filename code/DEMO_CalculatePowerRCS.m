@@ -1,7 +1,17 @@
 close all
 clear all
 clc
-%%
+
+%% Testing datasets
+% This code has been tested with a set of datasets under
+% ~/Box/UCSF-RCS_Test_Datasets_Analysis-rcs-data-Code/../Power/...
+% Access to this folder is managed and restricted to UCSF employees under
+% (https://ucsf.box.com/s/bolhachjv80rhywa5h0r9peo73mz3003)
+%
+% This example code can be run with a benchotp dataset that is shared for any user under
+% https://ucsf.box.com/s/9bte1t8s4il7rr0ot4egwsae1exl5y7i
+
+%% This code assumes you have run ProcessRCS and/or DEMO_LoadRCS.m
 % Select file
 [fileName,pathName] = uigetfile('AllDataTables.mat');
 
@@ -41,7 +51,7 @@ if ~isempty(powerSettings)
     
     % Here we calculate equivalent power series from a selected
     % time domain channel (1, 2, 3 or 4) for a chosen power band [X,Y]Hz
-    [newPowerFromTimeDomain, newSettings] = calculateEquivalentDevicePower(combinedDataTable, fftSettings, powerSettings, metaData, 1, [16 20]);
+    [newPowerFromTimeDomain, newSettings] = calculateEquivalentDevicePower(combinedDataTable, fftSettings, powerSettings, metaData, 1, [20 23]);
     idxPowerNewCalc = ~isnan(newPowerFromTimeDomain.calculatedPower);  
     
     % plot the result
@@ -57,27 +67,27 @@ end
 
 % Reset powerSettings to avoid table
 powerSettings = [];
-
+newfftSettings = fftSettings;
 % take default sampling rate - a must
 currentTDsampleRate = fftSettings.TDsampleRates;    
 
-% choose fft parameters and frequency band between these options
+% Choose new fft parameters and frequency band between these options
 % fft interval: 50 to 50000 ms
 % fft size: 64, 256, 1024      
 % freqBand:[0 to samplingRate/2]
-fftInterval = 50;
-fftSize = 256;
-freqBand = [20, 30];
+newfftSettings.fftConfig.interval = 50;
+newfftSettings.fftConfig.size = 256;
+freqBand = [20, 23];
 
 % Determine fftBins
-numBins = fftSize/2;
+numBins = newfftSettings.fftConfig.size/2;
 binWidth = (currentTDsampleRate/2)/numBins;
 lower = (0:numBins-1)*binWidth;
 fftBins = lower + binWidth/2;          % Bin center
 
 % Create a powerSettings structure based on chosen parameters   
-powerSettings.fftConfig.interval = fftInterval;
-powerSettings.fftConfig.size = fftSize;
+powerSettings.fftConfig.interval = newfftSettings.fftConfig.interval;
+powerSettings.fftConfig.size = newfftSettings.fftConfig.size;
 powerSettings.powerBands.fftBins = fftBins;
 
 % Determine indeces of frquency bins corresponsing and add to power settings structure
@@ -86,19 +96,17 @@ tempIndecesBinsB = find(powerSettings.powerBands.fftBins<freqBand(2));
 powerSettings.powerBands.indices_BandStart_BandStop(1,1) = tempIndecesBinsA(1);
 powerSettings.powerBands.indices_BandStart_BandStop(1,2) = tempIndecesBinsB(end);   
 
-% Plot the result
-[newPowerFromTimeDomain, newSettings] = calculateEquivalentDevicePower(combinedDataTable, fftSettings, powerSettings, metaData, 1, freqBand);
+% Calculate equivalent device power given the new fft and power settings
+[newPowerFromTimeDomain, newSettings] = calculateEquivalentDevicePower(combinedDataTable, newfftSettings, powerSettings, metaData, 1, freqBand);
 idxPowerNewCalc = ~isnan(newPowerFromTimeDomain.calculatedPower);    
 
-% plot the results
+% Plot the results
 figure, hold on, legend show, set(gca,'FontSize',15)                     
 plot(newPowerFromTimeDomain.localTime(idxPowerNewCalc),...
         newPowerFromTimeDomain.calculatedPower(idxPowerNewCalc),...
         'Marker','s','MarkerSize',1,'LineWidth',2,...
         'DisplayName',['New Calculated Power Band, Bins(Hz) = ',newSettings.powerSettings.powerBands.powerBinsInHz])
     
-                        
-
-    
-    
-    
+% END: remember this are only examples of use
+% If you find errors while using this code or want to help further develop
+% it, feel free to contact juan.ansoromeo@ucsf.edu or juan.anso@gmail.com

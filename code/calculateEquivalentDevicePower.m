@@ -1,18 +1,20 @@
 function [newPowerFromTimeDomain, newSettings] = calculateEquivalentDevicePower(combinedDataTable, fftSettings, powerSettings, metaData, channel, freqBand)
 % calculates equivalent device power as a function of chosen power bands
-% Assumption: it takes as baseline powerSettings the initial powerSettings of teh Session
+%
+% Assumption: only one set of fftSettings and powerSettings each time this function is invoked.
+% (1) Either the default (initial) settings of the recording session, or (see DEMO_CalculatePowerRCS.m, line~44)
+% (2) The fftSettings and powerSettings passed via the user (see DEMO_CalculatePowerRCS.m, line~100)
+% 
 % Input = 
 % (1) combinedDataTable
-% (2) settings: cell with following structures {fftSettings, powerSettings, metaData}
-%       1 = fftSettings (type = output from DEMO_Process)
-%       2 = powerSettings (type = output from DEMO_Process)
-%       3 = metaData (type = output from DEMO_Process)
-% (3) channel (type = integer (1..4), eg usage, channel = 1)
-% (4) freqBand (type = integer array, eg usage, freqBand = [20 25])
+% (2) fftSettings: fft 
+% (3) powerSettings 
+% (4) metaData (type = output from DEMO_Process)
+% (5) channel (type = integer (1..4), eg usage, channel = 1)
+% (6) freqBand (type = integer array, eg usage, freqBand = [20 25])
 % 
-% First prototype focuses only on user selecting a new power band given
-% default fft settings of recording session
-%
+% If you find errors while using this code or want to help further develop
+% it, contact juan.ansoromeo@ucsf.edu or juan.anso@gmail.com
 
 % Parse input variables
 newSettings.fftSettings = fftSettings;
@@ -62,7 +64,7 @@ newSettings.powerSettings.powerBands.powerBinsInHz = strcat(num2str(binsInBand(1
 tch = combinedDataTable.DerivedTime;
 t = seconds(tch-tch(1))/1000;
 [interval,binStart,binEnd,fftSize] = readFFTsettings(newSettings.powerSettings);
-sr = newSettings.fftSettings.TDsampleRates;
+sr = fftSettings.TDsampleRates;
 switch fftSize % actual fft size of device for 64, 250, 1024 fftpoints
     case 64, fftSizeActual = 62;
     case 256, fftSizeActual = 250;

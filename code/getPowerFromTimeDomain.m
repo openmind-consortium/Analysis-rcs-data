@@ -20,9 +20,14 @@ function  [combinedPowerTable, powerTablesBySetting] = getPowerFromTimeDomain(co
 %        = 2 -> for each recording segments in a session calculates equivalent power
 %
 % outputs
-%   (default) combinedPowerTable = table(harmoinized times, derived times, PB1,PB2,PB3,...,PB8)
-%   partialPowerTables = 
+%   default (calculationType == 1)
+%       -> combinedPowerTable = table(harmoinized times, derived times, PB1,PB2,PB3,...,PB8)
+%   calculationType == 2
+%       --> combinedPowerTable
+%       --> powerTablesBySettings
 %
+% If you find errors while using this code or want to help further develop
+% it, contact juan.ansoromeo@ucsf.edu or juan.anso@gmail.com
 
 if nargin <4 || nargin > 5
     error('input arguments must be at least the following 4 variables: combinedDataTable, fftSettings, powerSettings, metaData, calculationType (optional, 1 (default) or 2)')
@@ -121,8 +126,6 @@ for inumRec = 1:size(powerSettings,1)
           if inumRec == size(powerSettings,1)
               powerTablesBySetting.Properties.VariableNames(1) = "Power Settings Change Number";
           end
-%         powerTablesBySetting.Recum(inumRec) = inumRec;
-%         powerTablesBySetting.PowerTable{inumRec} = powerTable;
     end    
     combinedPowerTable(idxRecordUse(1):idxRecordUse(end),3:size(combinedPowerTable,2)) = powerTable(:,3:end);
 end
