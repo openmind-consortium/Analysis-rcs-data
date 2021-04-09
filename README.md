@@ -132,7 +132,19 @@ Using the `rc.addFolder` method multiple folders can be added and plotted.
 
 **Part 4**
 
-Coming soon
+Analysis functions which rely on the data structure output from (Part 1) and (Part 2). The phylosophy here is to create functions that can be used for data analysis independent of the specific protocol / use case. A first example is presented with a subset of functions that can be used to calculate power from time domain neural data, by using using an equivalent (~same) fft process as the device (RC+S).
+
+***Part 4.1***
+Examples of calculation of Power from time domain signals using an equivalent (similar) fft process as the device (RC+S).
+- `getPowerfromTimeDomain`
+- `calculateEquivalentDevicePower`
+- `DEMO_CalculatePowerRCS.m`
+
+The `getPowerfromTimeDomain` calculates the 'off line' power using exactly the same fft and power settings as in the recording. It creates power outputs for all time domain channels and power bands using the harmonized times from combinedDataTable. In case there were changes on settings during recording session it gives user the option to also create a separate output that accounts for that information (first column 'recNum').
+
+The `calculateEquivalentDevicePower` calculates 1 power output from 1 time domain channel given, either same fft settings as in the recording session or a new set of fft settings (fft interval and fft size), and passing the limites of the new power band [Lower Bin, Upper Bin].
+
+The `DEMO_CalculatePowerRCS.m` serves as an example of usability of these two functions (find example benchtop dataset attached in the top of the script).
 
 ## What is the RC+S native data format?
 The Medtronic API saves data into a session directory. There are 11 .json files which are created for each session, which contain both meta-data and numerical data. Out of the box, the size/duration of these files is limited by the battery powering the CTM. Unmodified, this battery lasts for 4-5 hours. The CTM can be modified to be powered with an external battery, leading to recording duration being limited by the INS (implanted neurostimulator) battery. The INS battery can stream for up to ~30 hours. 
