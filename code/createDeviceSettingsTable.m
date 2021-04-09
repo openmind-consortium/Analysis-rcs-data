@@ -34,6 +34,10 @@ metaData.batteryVoltage = DeviceSettings{1}.BatteryStatus.batteryVoltage;
 metaData.estimatedCapacity = DeviceSettings{1}.BatteryStatus.estimatedCapacity;
 metaData.batterySOC = DeviceSettings{1}.BatteryStatus.batterySOC;
 
+% Get actual amplifier gains
+ampGains = getActualAmplifierGains(folderPath);
+metaData.ampGains = ampGains;
+
 %%
 TD_SettingsTable = table(); % Initalize table
 Power_SettingsTable = table(); % Initalize table
