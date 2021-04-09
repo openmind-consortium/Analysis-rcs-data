@@ -131,7 +131,6 @@ for inumRec = 1:size(powerSettings,1)
 end
 end
 
-
 function [interval,binStart,binEnd,fftSize] = readFFTsettings(powerSettings, inumRec)
     % at the moment assuming the only active Power Band is Band 0
     interval = powerSettings.fftConfig(inumRec).interval; % is given in ms
