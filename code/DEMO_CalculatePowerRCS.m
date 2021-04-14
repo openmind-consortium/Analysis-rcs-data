@@ -6,7 +6,7 @@ clc
 % This code has been tested with a set of datasets under
 % ~/Box/UCSF-RCS_Test_Datasets_Analysis-rcs-data-Code/../Power/...
 % Access to this folder is managed and restricted to UCSF employees under
-% (https://ucsf.box.com/s/bolhachjv80rhywa5h0r9peo73mz3003)
+% (https://ucsf.box.com/s/gwyeakm47ogiqkkpf6j9e3cvjt5r7d9b)
 %
 % This example code can be run with a benchotp dataset that is shared for any user under
 % https://ucsf.box.com/s/9bte1t8s4il7rr0ot4egwsae1exl5y7i
