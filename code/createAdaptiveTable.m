@@ -7,9 +7,22 @@ function [outtable] = createAdaptiveTable(jsonobj_Adaptive)
 % (To transform *.json file into structure use deserializeJSON.m)
 %%
 
-numRecords = length(jsonobj_Adaptive); % If fix was required when opening JSON file, dimensions may be flipped
+try
+    AdaptiveUpdate = [jsonobj_Adaptive.AdaptiveUpdate];
+catch
+    % At least one record likely has fields missing, identify that record
+    % and exclude; we expect 16 fields in each AdaptiveUpdate record
+    numRecords = length(jsonobj_Adaptive);
+    recordsToRemove = [];
+    for iRecord = 1:numRecords
+        if ~isequal(length(fieldnames(jsonobj_Adaptive(iRecord).AdaptiveUpdate)),16)
+            recordsToRemove = [recordsToRemove iRecord];
+        end
+    end
+    jsonobj_Adaptive(recordsToRemove) = [];
+    AdaptiveUpdate = [jsonobj_Adaptive.AdaptiveUpdate];
+end
 
-AdaptiveUpdate = [jsonobj_Adaptive.AdaptiveUpdate];
 fieldNames = {'PacketGenTime','PacketRxUnixTime','CurrentProgramAmplitudesInMilliamps',...
     'IsInHoldOffOnStartup','StateEntryCount',...
     'StateTime','StimRateInHz'};
