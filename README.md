@@ -31,7 +31,7 @@ Matlab functions and scripts to facilitate raw data extraction and subsequent vi
 - [Overview of Adaptive Stimulation](#overview-of-adaptive-stimulation)
 
 ## Installation Instructions:
-- Compatibility - Mac or PC (Linux test pending). We rely on a toolbox (https://github.com/JimHokanson/turtle_json) to open .json files - many thanks to Jim Hokanson for additional development, now permitting functionality with all versions of Matlab.
+- Compatibility - Mac or PC (Linux test pending). We rely on a toolbox (https://github.com/JimHokanson/turtle_json) to open .json files - many thanks to Jim Hokanson for additional development, now permitting functionality with all versions of Matlab. Note that this toolbox relies on compiled Mex files and is not compatible with the new M1 chip macs for now. 
 - Clone this repository and add to Matlab path. 
 
 ## Structure of Repository
