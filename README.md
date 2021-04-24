@@ -98,6 +98,35 @@ There are 2 main "type" of methods in this function:<br/>
 Usage / Philosophy:<br/>
   
 This function creats an object of type "rcsPlotter" with several associated methods. Each type of data stream can be plotted without arguments in a new figure. However, the main utilty of the function is in stringing together several folders of RC+S data (for example recorded throughout a day) and easily plotting requested data streams (such as time domain, power and adaptive) in subplots. This is acheived by passing the subplot hanlde to the function.<br/>
+
+To get a list of 'rcsPlotter' methods type the command: <br/>
+```
+methods(rcsPlotter)
+```
+The primary reason for writing a class rather than a set of functions is to streamline intreracting with the data and common plotting functions. The basic usage consists of 3 steps:<br/>
+- 1: Initiate object: 
+```
+rc = rcsPlotter()
+```
+- 2: Add session folder (or folders) with RC+S .json data: 
+```
+rc.addFolder('/path/to/folder1'); 
+rc.addFolder('/path/to/folder2'); 
+```
+- 3: Load data (or folders): 
+```
+rc.loadData() 
+```
+All other plotting functions will then mostly consists of simple one-liner functions to plot common aspects of the data. 
+
+To print a full list of all available methods (plotting and reporting methods) associated with this class:
+```
+methods(rcsPlotter)
+```
+And for usage on any specific method (in example below, how to plot a time domain channel): 
+```
+rc.Help('plotTdChannel')
+```
         
  Some usage examples: 
  
