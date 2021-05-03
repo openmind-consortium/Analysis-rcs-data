@@ -9,6 +9,9 @@ Matlab functions and scripts to facilitate raw data extraction and subsequent vi
 
 **Policy**: Master will contain functions that have been tested in branch and pushed after pull request reviewers have approved. The collaborator doing the initial development and testing of a function in a testing branch (e.g. in 'importRawData') will make a pull request and assign 1-2 reviewers of the group who will review the code structure and the output of each function.
 
+Note: If you have reached this repository from the [Nature Biotechnology paper](https://www.nature.com/articles/s41587-021-00897-5), please be advised that this repository has been greatly enhanced since the paper was submitted in December 2020 and represents a “second-generation” code base that is actively maintained. For the “first-generation” code used to process data in the paper see [this repository](https://github.com/starrlab/rcsviz). Note that this first-generation repository is no longer maintained. New users that wish to process Summit RC+S data should use the current “second-generation” repository. A citable publication describing this new(er) work is forthcoming.
+
+
 ## Table of Contents
 - [Installation Instructions](#installation-instructions)
 - [Structure of Repository](#structure-of-repository)
