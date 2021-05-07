@@ -54,7 +54,10 @@ Note: If you have reached this repository from the [Nature Biotechnology paper](
     - e.g. `getPowerfromTimeDomain`
 
 ## Usage
-**Part 1**
+
+The goal of Parts 1 and 2 are to provide (a) a table (`combinedDataTable`) with timeseries data from all data streams with a calculated `DerivedTime` value for each sample, and (b) tables with relevant metadata and settings which can be applied to select periods of interest in `combinedDataTable`. `DerivedTime` is created from the beginning of the first data stream to the end of the last data stream, in steps of 1/Fs of the time domain data stream (Fs = 250, 500, or 1000Hz). `CombinedDataTable` is filled with data from all datastreams; if there is not a sample for a given time step, the entry if filled with a NaN. Thus, this neuroscience-analysis-ready table can be quite large to store on disk (leading to prohibitively long read/write times for long recordings). Therefore, we have broken up processing into Part 1 and Part 2:
+
+**Part 1** Run `ProcessRCS.m`, which produces many outputs – a separate sparse matrix contains the numerical data for each data stream, a cell array with the column labels for each sparse matrix, a table for each data stream with the remaining non-numerical data that cannot be included in the sparse matrix, and tables with meta data and settings. By creating these sparse matrices, we drastically reduce file size for writing and subsequent reading from disk. If saving is indicated when running `ProcessRCS.m` (the default option), `AllDataTables.mat` is written to disk with all the output arguments. *However, we recommend users execute Part 2 prior to interacting with these data*. 
 
 ```[unifiedDerivedTimes, timeDomainData, timeDomainData_onlyTimeVariables, timeDomain_timeVariableNames, AccelData, AccelData_onlyTimeVariables, Accel_timeVariableNames,  PowerData, PowerData_onlyTimeVariables, Power_timeVariableNames, FFTData, FFTData_onlyTimeVariables, FFT_timeVariableNames, AdaptiveData, AdaptiveData_onlyTimeVariables, Adaptive_timeVariableNames, timeDomainSettings, powerSettings, fftSettings, eventLogTable, metaData, stimSettingsOut, stimMetaData, stimLogSettings, DetectorSettings, AdaptiveStimSettings, AdaptiveEmbeddedRuns_StimSettings] = ProcessRCS(pathName, processFlag, shortGaps_systemTick)```
 
@@ -83,6 +86,8 @@ With the output of ProcessRCS still loaded into the workspace (or after loading 
 Currently, time domain data are REQUIRED for processing to work. Other time series data streams are optional.
 
 See example scripts DEMO_LoadRCS.m and DEMO_LoadDebugTable.m
+
+`DerivedTime` and `localTime` in `combinedDataTable` are our best estimate to be compatible with `HostUnixTime` found in other tables (e.g. `stimLogSettings`, `stimSettingsOut`, `eventLogTable`, `DetectorSettings`, `Adaptive_StimSettings`, `AdaptiveEmbeddedRuns_StimSettings`), and can be used for subsequent analysis to extract data segments of interest.
 
 **Part 3**
 
