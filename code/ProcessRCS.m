@@ -6,7 +6,8 @@ function [unifiedDerivedTimes,...
     AdaptiveData, AdaptiveData_onlyTimeVariables, Adaptive_timeVariableNames,...
     timeDomainSettings, powerSettings, fftSettings, eventLogTable,...
     metaData, stimSettingsOut, stimMetaData, stimLogSettings,...
-    DetectorSettings, AdaptiveStimSettings, AdaptiveEmbeddedRuns_StimSettings] = ProcessRCS(varargin)
+    DetectorSettings, AdaptiveStimSettings, AdaptiveEmbeddedRuns_StimSettings,...
+    versionInfo] = ProcessRCS(varargin)
 %%
 % Demo wrapper script for importing raw .JSON files from RC+S, parsing
 % into Matlab table format, and handling missing packets / harmonizing
@@ -481,6 +482,15 @@ if processFlag == 1 || processFlag == 2
         'PacketRxUnixTime','dataTypeSequence','packetsizes'});
     
     %%
+    % Load txt file with code version
+    
+    currentFunctionPath = mfilename('fullpath');
+    [filepath, name, ext] = fileparts(currentFunctionPath);
+    toLoad = [filepath filesep 'VersionInfo.txt'];
+    
+    versionInfo = importdata(toLoad);
+       
+    %%
     % Save output file if indicated
     if processFlag == 1
         disp('Saving output')
@@ -493,7 +503,7 @@ if processFlag == 1 || processFlag == 2
             'AdaptiveData','AdaptiveData_onlyTimeVariables','Adaptive_timeVariableNames',...
             'timeDomainSettings','powerSettings','fftSettings','eventLogTable','metaData',...
             'stimSettingsOut','stimMetaData','stimLogSettings','DetectorSettings','AdaptiveStimSettings',...
-            'AdaptiveEmbeddedRuns_StimSettings','-v7.3');
+            'AdaptiveEmbeddedRuns_StimSettings','versionInfo','-v7.3');
     end
 end
 
