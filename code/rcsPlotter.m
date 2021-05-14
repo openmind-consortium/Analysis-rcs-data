@@ -11,7 +11,7 @@ classdef rcsPlotter < handle
     %       loading multiple folders and plotting specific data streams
     %       such as time domain, acitgraphy, power bands, adaptive etc. 
     %
-    %       There are 2 main "type" of methods in this function: 
+    %       There are 2 main "types" of methods in this function: 
     %       
     %       1. "plotXX" methods: will help plot specific streams 
     %       2. "reportXX" methods: report some aspect of the data 
@@ -520,6 +520,7 @@ classdef rcsPlotter < handle
                     end
                 end
             end
+            ylabel('bandpass power');
             datetick(hAxes,'x',15,'keepticks','keeplimits');
             obj.formatTimeXaxes(hAxes);
         end
@@ -1184,14 +1185,7 @@ classdef rcsPlotter < handle
         end
         
         
-        
-        
-        
-        
-        
-        
-        
-        
+
         
         
         %%%%%%
@@ -1228,6 +1222,7 @@ classdef rcsPlotter < handle
 
                     dt = obj.Data(i).combinedDataTable;
                     x = datenum(dt.localTime);
+                    spectralDataMat = [];
                     for c = 1:4
                         chanfn = sprintf('TD_key%d',c-1);
                         y = dt.(chanfn);
@@ -1294,7 +1289,6 @@ classdef rcsPlotter < handle
                         spectralData.(chanfn) = tdSettings.(chanf){end};
                         
                     end  
-                    spectralDataSparse = sparse(spectralDataMat);
                     
                     % save sparse matrix version of this to save space 
                     spectralData.data = spectralDataMat;
@@ -1312,9 +1306,12 @@ classdef rcsPlotter < handle
         
         
         
+        
+        
+        
         %%%%%%
         %
-        % save time domain data  - spectrogram - all channels 
+        % save time domain data  - psd - all channels 
         %
         %%%%%%        
         function saveTdChannelPsd(obj)
@@ -1354,17 +1351,6 @@ classdef rcsPlotter < handle
                         y = y - nanmean(y);
                         y = y.*1e3;
                         yRaw = y;
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
                         
                         % verify that you have time domain data
                         if sum(isnan(y)) == length(y)
@@ -1478,7 +1464,123 @@ classdef rcsPlotter < handle
         
         
         
-        
+                
+        %%%%%%
+        %
+        % save time domain data  - spectrogram - all channels 
+        %
+        %%%%%%        
+        function saveDataChunk(obj,varargin)
+            %% utility function to save a data "chunk" 
+            % this will save a data chunk with psd + spectral + coherence
+            % measures, which can be used in later analysis 
+            % 
+            % 
+            %% input:
+            %   meant to be used in 4 stages: 
+            %   rc.saveDataChunk(1); display time domain data + event data 
+            %   rc.saveDataChunk(2,[timeStart, timeStop],'chunk name');
+            %
+            %% usage:
+            %   poorly documented for now... 
+            if nargin == 1
+                error('select 1/2 (displa data /save data');
+            end
+            if nargin == 2
+                mode = varargin{1};
+            end
+            if nargin == 3
+                error('in mode 2 need 3 args: mode,[timeStart , timeStop], chunkname'); 
+            end
+            if nargin == 4
+                mode = varargin{1};
+                timeCut = varargin{2};
+                chunkName = varargin{3};
+            end
+            
+            %% display data - to help choose chunk 
+            if mode == 1 % display data to choose a good "chunk" 
+                hfig = figure;
+                hfig.Color = 'w'; 
+                
+                
+                
+                nrows =5; 
+                cntplt = 1; 
+                for i = 1:4
+                    hsb = subplot(nrows,1,i);
+                    obj.plotTdChannel(i,hsb)
+                    hsbOut(cntplt,1) = hsb;
+                    cntplt = cntplt + 1;
+                end
+                hsb = subplot(nrows,1,5);
+                hsbOut(cntplt,1) = hsb;
+                cntplt = cntplt + 1;
+                hold(hsb,'on');
+                obj.plotActigraphyChannel('X',hsb);
+                obj.plotActigraphyChannel('Y',hsb);
+                obj.plotActigraphyChannel('Z',hsb);
+                linkaxes(hsbOut,'x');
+                obj.reportEventData;
+                % zoom in on first 20 seconds 
+                timeStart = datenum(datetime(datevec(hsb.XLim(1))) + seconds(40));
+                hsb.XLim = [timeStart hsb.XLim(2)];
+                eventData = obj.reportEventData;
+                for e = 1:size(eventData)
+                    for i = 1:5 
+                        ylims = get(hsbOut(i,1),'YLim'); 
+                        es = datenum(eventData.localTime(e)); 
+                        hplt = plot(hsbOut(i,1),[es es],ylims,'LineWidth',2,'Color',[0.8 0 0 0.5]); 
+                        row = dataTipTextRow('event:',{eventData.EventSubType{e}, eventData.EventSubType{e}});
+                        hplt.DataTipTemplate.DataTipRows(end+1) = row; 
+                    end
+                end
+                
+                data.obj = obj; 
+                data.ax = hsb;
+                uicontrol('Parent', hfig, 'Style', 'pushbutton','String','save chunk',...
+                    'Callback',@writeData,...
+                    'UserData',data);
+                
+            end
+            if mode == 2 
+               timeCut
+               chunkName
+               xvals = NaT;
+               xvals = datenum(obj.Data.combinedDataTable.localTime);
+               timekeep = logical(0); 
+               timekeep = xvals >= timeCut(1) &  xvals <= timeCut(2);
+               cTable = table();
+               cTable = obj.Data.combinedDataTable(timekeep,:); 
+               
+               % get sampling rate for the chunk - for montage you need to
+               % do this 
+               timeSettingsStart = NaT; 
+               timeSettingsStart = [obj.Data.timeDomainSettings.timeStart, obj.Data.timeDomainSettings.timeStop]; 
+               tdSettingsDate = NaT;
+               timeFormat = '';
+               timeFormat = sprintf('%+03.0f:00',obj.Data.metaData.UTCoffset);
+               tdSettingsDate = datetime(timeSettingsStart./1e3,...
+                   'ConvertFrom','posixTime','TimeZone',timeFormat,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+               idxTd = logical(0); 
+               idxTd = cTable.localTime(1) > tdSettingsDate(1) & cTable.localTime(end) < tdSettingsDate(1);
+               tdSettingsUse = table();
+               tdSettingsUse = obj.Data.timeDomainSettings(idxTd,:);
+               
+               
+               
+               % save psds 
+               
+               
+            end
+            
+            function writeData(obj,event)
+                xlims = obj.UserData.ax.XLim;
+                obj.UserData.obj.saveDataChunk(2,xlims, 'text');
+                
+            end
+            
+        end
         
         
         
@@ -1529,16 +1631,16 @@ classdef rcsPlotter < handle
                         idplot = ~isnan(ydet);
                         % incldue ffpv 
                         chanfnThresh = sprintf('Ld%d',chan);
-                        FFPV = obj(i).Data.DetectorSettings.(chanfnThresh).fractionalFixedPointValue;
+                        FFPV = obj.Data(i).DetectorSettings.(chanfnThresh).fractionalFixedPointValue;
                         u = ydet(idplot);
                         isNegative = int32(bitget(u,32));
                         convertedValue = int32(bitset(u,32,0)) + (-2^31)*isNegative;
-                        ydetectorPlot = double(convertedValue)./FFPV;
+                        ydetectorPlot = double(convertedValue)./(2^FFPV);
 
                         
                         hplt = plot(x(idplot),ydetectorPlot,'Parent',hAxes);
-                        hplt.LineWidth = 0.5;
-                        hplt.Color = [0 0 0.8 0.5];
+                        hplt.LineWidth = 1;
+                        hplt.Color = [0 0 0.8 0.8];
                         obj.addLocalTimeDataTip(hplt,datetime(dt.localTime(idplot)));
                         % plot upper thershold
                         chanfn = sprintf('Adaptive_Ld%d_highThreshold',chan);
@@ -1546,15 +1648,15 @@ classdef rcsPlotter < handle
                         idplot = ~isnan(yupper);
                         
                         chanfnThresh = sprintf('Ld%d',chan);
-                        FFPV = obj(i).Data.DetectorSettings.(chanfnThresh).fractionalFixedPointValue;
+                        FFPV = obj.Data(i).DetectorSettings.(chanfnThresh).fractionalFixedPointValue;
                         u = yupper(idplot);
                         isNegative = int32(bitget(u,32));
                         convertedValue = int32(bitset(u,32,0)) + (-2^31)*isNegative;
-                        yThreshoPlot = double(convertedValue)./FFPV;
+                        yThreshoPlot = double(convertedValue)./(2^FFPV);
 
                         hplt = plot(x(idplot),yThreshoPlot,'Parent',hAxes);
-                        hplt.LineWidth = 0.5;
-                        hplt.Color = [0.8 0 0 0.5];
+                        hplt.LineWidth = 2;
+                        hplt.Color = [0.8 0 0 0.8];
                         hplt.LineStyle = '-.';
                         obj.addLocalTimeDataTip(hplt,datetime(dt.localTime(idplot)));
                         % plot lower thershold
@@ -1563,16 +1665,16 @@ classdef rcsPlotter < handle
                         idplot = ~isnan(ylower);
                         
                         chanfnThresh = sprintf('Ld%d',chan);
-                        FFPV = obj(i).Data.DetectorSettings.(chanfnThresh).fractionalFixedPointValue;
+                        FFPV = obj.Data(i).DetectorSettings.(chanfnThresh).fractionalFixedPointValue;
                         u = ylower(idplot);
                         isNegative = int32(bitget(u,32));
                         convertedValue = int32(bitset(u,32,0)) + (-2^31)*isNegative;
-                        yThreshoPlot = double(convertedValue)./FFPV;
+                        yThreshoPlot = double(convertedValue)./(2^FFPV);
 
                         
                         hplt = plot(x(idplot),yThreshoPlot,'Parent',hAxes);
-                        hplt.LineWidth = 0.5;
-                        hplt.Color = [0.8 0 0 0.5];
+                        hplt.LineWidth = 2;
+                        hplt.Color = [0.8 0 0 0.8];
                         hplt.LineStyle = '-.';
                         obj.addLocalTimeDataTip(hplt,datetime(dt.localTime(idplot)));
                         % get input power bands
@@ -1619,6 +1721,7 @@ classdef rcsPlotter < handle
                     end
                 end
             end
+            ylabel('LD out (a.u.)');
             obj.formatTimeXaxes(hAxes);
             % save percentils in user data in axes 
             allData = yDetAll(~isnan(yDetAll));
@@ -1678,7 +1781,7 @@ classdef rcsPlotter < handle
                         ycurrent = cell2mat(ycurrent);
                         
                         current = ycurrent(:,program+1);
-                        hplt = plot(x,current,'Parent',hAxes);
+                        hplt = stairs(x,current,'Parent',hAxes);
                         hplt.LineWidth = 2;
                         hplt.Color = [0 0.8 0 0.5];
                         obj.addLocalTimeDataTip(hplt,datetime(dt.localTime(idxkeep)));
@@ -1686,6 +1789,25 @@ classdef rcsPlotter < handle
                 end
             end
             axes(hAxes);
+            progname = sprintf('stimParams_prog%d',program+1);
+            % this assume all data has same setting and it may not 
+            stimLogs = table(); 
+            for i = 1:size(obj.Data,2)
+                if i == 1 
+                    stimLogs = obj.Data(i).stimLogSettings;
+                else
+                    stimLogs = [stimLogs; obj.Data(i).stimLogSettings];
+                end
+                
+            end
+            
+            programName = obj.Data(end).stimLogSettings.(progname){end};
+            ttlUse{1,1} = 'Current';
+            ttlUse{2,1} = programName;
+            ttlUse{3,1} = sprintf('last out of %d stim settings',size(stimLogs,2));
+            
+            title(ttlUse);
+            ylabel('Current (mA)');
             datetick(hAxes,'x',15,'keepticks','keeplimits');
             obj.formatTimeXaxes(hAxes);
         end
@@ -1744,6 +1866,8 @@ classdef rcsPlotter < handle
                 end
             end
             axes(hAxes);
+            title('Adaptive state');
+            ylabel('state (a.u.)');
             datetick(hAxes,'x',15,'keepticks','keeplimits');
             obj.formatTimeXaxes(hAxes);
         end
@@ -1903,6 +2027,8 @@ classdef rcsPlotter < handle
                     title(titleUse,'Parent',hAxes);
                 end
             end
+            axes(hAxes);
+            ylabel('acc (g)');
             datetick(hAxes,'x',15,'keepticks','keeplimits');
             obj.formatTimeXaxes(hAxes);
         end

@@ -134,11 +134,31 @@ for iChan = 1:length(TDsettings)
         case 240
             TDsettings(iChan).sampleRate = 'Disabled';
         otherwise
-            TDsettings(iChan).plusInput = 'Unexpected';
+            TDsettings(iChan).sampleRate = 'Unexpected';
     end
     TDsettings(iChan).chanOut = sprintf('+%s-%s',...
         TDsettings(iChan).plusInput,TDsettings(iChan).minusInput);
-    TDsettings(iChan).chanFullStr = sprintf('%s LFP1-%i LFP2-%i SR-%i',...
+    % channel full string may hay have mix of double/str so need to account
+    % for this: 
+    if isstr(TDsettings(iChan).lpf1)
+        charUseLPF1 = '%s';
+    else
+        charUseLPF1 = '%d';
+    end
+    
+    if isstr(TDsettings(iChan).lpf2)
+        charUseLPF2 = '%s';
+    else
+        charUseLPF2 = '%d';
+    end
+    
+    if isstr(TDsettings(iChan).sampleRate)
+        charUseSR = '%s';
+    else
+        charUseSR = '%d';
+    end
+    
+    TDsettings(iChan).chanFullStr = sprintf(['%s' ' LFP1-' charUseLPF1 ' LFP2-' charUseLPF2 ' SR-' charUseSR],...
         TDsettings(iChan).chanOut,...
         TDsettings(iChan).lpf1,TDsettings(iChan).lpf2,TDsettings(iChan).sampleRate);
 end
