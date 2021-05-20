@@ -1856,13 +1856,15 @@ classdef rcsPlotter < handle
                     statesStringsStatesOnly = statesStrings(idxkeepStates);
                     xusePlot = xuse(idxkeepStates);
                     
-                    statesNum = cellfun(@(x) x(end), statesStringsStatesOnly);
-                    stateInts = str2num(statesNum);
-                    
-                    hplt = plot(xusePlot,stateInts,'Parent',hAxes);
-                    hplt.LineWidth = 2;
-                    hplt.Color = [0 0.8 0 0.5];
-                    obj.addLocalTimeDataTip(hplt,datetime(xusePlot,'ConvertFrom','datenum'));
+                    if ~isempty(xusePlot)
+                        statesNum = cellfun(@(x) x(end), statesStringsStatesOnly);
+                        stateInts = str2num(statesNum);
+                        
+                        hplt = plot(xusePlot,stateInts,'Parent',hAxes);
+                        hplt.LineWidth = 2;
+                        hplt.Color = [0 0.8 0 0.5];
+                        obj.addLocalTimeDataTip(hplt,datetime(xusePlot,'ConvertFrom','datenum'));
+                    end
                 end
             end
             axes(hAxes);
