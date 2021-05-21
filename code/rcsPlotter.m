@@ -1005,7 +1005,7 @@ classdef rcsPlotter < handle
                     dt = obj.Data(i).combinedDataTable;
                     x = datenum(dt.localTime);
                     for ccc  = 1:4 % hard coded for now - get all possible channels 
-                        chanfn = sprintf('TD_key%d',chan(ccc)-1);
+                        chanfn = sprintf('TD_key%d',ccc-1);
                         y(:,ccc) = dt.(chanfn);
                     end
                     y = y.*1e3; % so data is in microvolt 
@@ -1092,8 +1092,8 @@ classdef rcsPlotter < handle
                                 rawDataForPSD_chan_x = [rawDataForPSD_chan_x, xDataComputePSD];
                                 
                                 % get y data:
-                                y = yRaw(idxGapStartUse(g):idxGapEndUse(g),chan(ccc,1));
-                                yDatReshape = x(1:end-(mod(size(x,1), reshapeFactor)));
+                                y = yRaw(idxGapStartUse(g):idxGapEndUse(g),chan(ccc,2));
+                                yDatReshape = y(1:end-(mod(size(y,1), reshapeFactor)));
                                 yDataComputePSD  = reshape(yDatReshape,reshapeFactor,size(yDatReshape,1)/reshapeFactor);
                                 rawDataForPSD_chan_y = [rawDataForPSD_chan_y, yDataComputePSD];
                                 
@@ -1115,7 +1115,9 @@ classdef rcsPlotter < handle
                                 2^(nextpow2(Fs/2)),...
                                 2^(nextpow2(Fs)),...
                                 Fs);
-
+                            if sum(unique(Cxy==1))== 1
+                                warning('you have a channel pair that is either the same, or disabled'); 
+                            end
                             
                             % save output 
                             cohData.data(:,:,ccc) = Cxy;
