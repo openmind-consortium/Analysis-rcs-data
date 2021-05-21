@@ -1844,26 +1844,31 @@ classdef rcsPlotter < handle
                     % plot output
                     x = datenum(dt.localTime);
                     chanfn = sprintf('Adaptive_CurrentAdaptiveState');
-                    ystateRaw = dt.(chanfn);
-                    idxstates = cellfun(@(x) isstr(x), ystateRaw);
-                    
-                    statesStrings = ystateRaw(idxstates);
-                    xuse = x(idxstates);
-                    
-                    % only choose states that "exists" (e.g. get rid of "no
-                    % state"
-                    idxkeepStates = ~cellfun(@(x) strcmp(x,'No State'), statesStrings);
-                    statesStringsStatesOnly = statesStrings(idxkeepStates);
-                    xusePlot = xuse(idxkeepStates);
-                    
-                    if ~isempty(xusePlot)
-                        statesNum = cellfun(@(x) x(end), statesStringsStatesOnly);
-                        stateInts = str2num(statesNum);
+                    if sum(ismember(dt.Properties.VariableNames,chanfn)) % check if adaptive data exists
                         
-                        hplt = plot(xusePlot,stateInts,'Parent',hAxes);
-                        hplt.LineWidth = 2;
-                        hplt.Color = [0 0.8 0 0.5];
-                        obj.addLocalTimeDataTip(hplt,datetime(xusePlot,'ConvertFrom','datenum'));
+                        ystateRaw = dt.(chanfn);
+                        idxstates = cellfun(@(x) isstr(x), ystateRaw);
+                        
+                        statesStrings = ystateRaw(idxstates);
+                        xuse = x(idxstates);
+                        
+                        % only choose states that "exists" (e.g. get rid of "no
+                        % state"
+                        idxkeepStates = ~cellfun(@(x) strcmp(x,'No State'), statesStrings);
+                        statesStringsStatesOnly = statesStrings(idxkeepStates);
+                        xusePlot = xuse(idxkeepStates);
+                        
+                        if ~isempty(xusePlot)
+                            statesNum = cellfun(@(x) x(end), statesStringsStatesOnly);
+                            stateInts = str2num(statesNum);
+                            
+                            hplt = plot(xusePlot,stateInts,'Parent',hAxes);
+                            hplt.LineWidth = 2;
+                            hplt.Color = [0 0.8 0 0.5];
+                            obj.addLocalTimeDataTip(hplt,datetime(xusePlot,'ConvertFrom','datenum'));
+                        end
+                    else
+                        warning('adaptive data does not exist for file %s',obj.Data(i).folder);
                     end
                 end
             end
