@@ -27,7 +27,9 @@ powerSettings(2:end,:) = [];
 newSettings.powerSettings = powerSettings;
 fftSettings(2:end,:) = [];
 newSettings.fftSettings = fftSettings;
-ampGains = newSettings.metaData.ampGains; % actual amplifier gains per channel
+
+% read actual amplifier gains per channel from metadata
+ampGains = newSettings.metaData.ampGains;
 
 % initialize output power table
 newPower = table();
@@ -72,21 +74,39 @@ switch fftSize % actual fft size of device for 64, 250, 1024 fftpoints
     case 256, fftSizeActual = 250;
     case 1024, fftSizeActual = 1000;
 end
-keych = combinedDataTable.(['TD_key',num2str(newSettings.tdChannel-1)]); % next channel
-td_rcs = transformTDtoRCS(keych,ampGains.(['Amp',num2str(newSettings.tdChannel)])); % transform TD signal to rcs internal values
-overlap = 1-((sr*interval/1e3)/fftSizeActual); % time window parameters
-L = fftSize; % timeWin is now named L, number of time window points
+
+% Extract neural channel
+keych = combinedDataTable.(['TD_key',num2str(newSettings.tdChannel-1)]);
+% Transform to RCS units
+td_rcs = transformTDtoRCS(keych,ampGains.(['Amp',num2str(newSettings.tdChannel)]));
+% calcualte window overlap
+overlap = 1-((sr*interval/1e3)/fftSizeActual);
+% timeWin is now named L, number of time window points
+L = fftSize; 
+% create Hann window points
 hann_win = hannWindow(L,fftSettings.fftConfig.windowLoad);
-stime = 1; % sample 1 of data set where window starts
+% sample 1 of data set where window starts
+stime = 1; 
+% caculate an approximate of the total windows over the entire data set
 totalTimeWindows = ceil(length(td_rcs)/L/(1-overlap)); 
-counter = 1; % initialize counter
-while counter <= totalTimeWindows % loop through time singal
-    if stime+L <= length(t) % check at least one time window available before reach end signal
-        X = fft(td_rcs(stime:stime+L-1)'.*hann_win,fftSize); % fft of the next window
-        SSB = X(1:L/2); % from double to single sided FFT
-        SSB(2:end) = 2*SSB(2:end); % scaling step 1, multiply by 2 bins 2 to end (all except DC)
-        YFFT = abs(SSB/(L/2)); % scaling step 2, dividing by fft buffer size (L/2)
-        fftPower = 2*(YFFT.^2); % this factor 2 is necessary to match power values from RCS
+% initialize counter
+counter = 1; 
+
+% loop through time singal
+while counter <= totalTimeWindows 
+    % check at least one time window available before reach end signal
+    if stime+L <= length(t)
+        % Apply fft of the next signal window
+        X = fft(td_rcs(stime:stime+L-1)'.*hann_win,fftSize); 
+        % From double to single sided FFT
+        SSB = X(1:L/2); 
+        % scaling step 1 (multiply by 2 bins 2 to end)
+        SSB(2:end) = 2*SSB(2:end); 
+        % scaling step 2 (scaling step 2, dividing by 1/2 fft size (L/2))
+        YFFT = abs(SSB/(L/2));
+        % scaling ste 3 (for a closer match to on-device power values)
+        fftPower = 2*(YFFT.^2); 
+        % New values into output power variable (vector indexing is important for time alignment)
         newPower.calculatedPower(stime+L-1) = sum(fftPower(binStart:binEnd));
     end
     counter = counter + 1;
