@@ -21,9 +21,11 @@ catch
     [~,jsonFileName,~]=fileparts(filename);
     
     try
+        % First attempt to fix by simply adding missing curly and square braces
         data = jsondecode(fixMalformedJson(fileread(filename),jsonFileName));
     catch
         try 
+            % If this fix fails, attempt to remove last record in JSON array
             data = jsondecode(fixMalformedJson(fileread(filename),jsonFileName,false));
         catch
             data = [];

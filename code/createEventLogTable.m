@@ -5,11 +5,7 @@ function [eventLogTable] = createEventLogTable(folderPath)
 % Input: Folder path to Device* folder containing json files
 %%
 % Load in EventLog.json
-try
-    eventLog = jsondecode(fixMalformedJson(fileread([folderPath filesep 'EventLog.json']),'EventLog'));
-catch
-    eventLog = deserializeJSON([folderPath filesep 'EventLog.json']);
-end
+eventLog = deserializeJSON([folderPath filesep 'EventLog.json']);
 
 eventLogTable = table();
 if ~isempty(eventLog)

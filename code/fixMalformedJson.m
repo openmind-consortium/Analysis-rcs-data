@@ -1,5 +1,6 @@
 function [ jsonStringOut ] = fixMalformedJson( jsonString, type, simple)
 
+% Flag to use simple approach to fixing malformed files
 if nargin < 3
     simple=true;
 end
@@ -26,6 +27,10 @@ if simple
     end
 else
     disp('Simple fix failed, attempting to remove the last record')
+    % Accel, Power, FFT, and TD files primarily consist of a JSON array
+    % where each entry begins with a Header field. DeviceSettings, StimLog files have
+    % a similar structure but begin with RecordInfo. Write errors can be
+    % fixed by removing the last entry in the array.
     if contains(type,'Accel') || contains(type,'Power') || contains(type,'FFT') || contains(type,'TD')
         objs=split(jsonString,'{"Header"');
         info=objs{1};
@@ -33,7 +38,7 @@ else
         objs=strcat('{"Header"',objs);
         jsonStringOut=strjoin(objs);
         jsonStringOut=[info,jsonStringOut(1:end-1),']}]'];
-    elseif contains(type,'Settings')
+    elseif contains(type,'DeviceSettings') || contains(type,'StimLog')
         objs=split(jsonString,'{"RecordInfo"');
         objs=objs(2:end-1);
         objs=strcat('{"RecordInfo"',objs);
