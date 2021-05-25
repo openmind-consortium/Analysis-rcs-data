@@ -18,33 +18,16 @@ try
 catch
     warning('Not able to open file - attempting fix');
     fprintf('Defective file %s\n',filename);
+    [~,jsonFileName,~]=fileparts(filename);
     
-    % Try to fix the file; separate fixes for Adaptive vs all other JSON
-    % file types
-    dat = fileread(filename);
-    [~,jsonFileName,~] = fileparts(filename);
-    
-    if strcmp(jsonFileName,'AdaptiveLog')
-        adaptiveFile = filename;
-        try
-            data = jsondecode(fixMalformedJson(fileread(adaptiveFile),'AdaptiveLog'));
+    try
+        data = jsondecode(fixMalformedJson(fileread(filename),jsonFileName));
+    catch
+        try 
+            data = jsondecode(fixMalformedJson(fileread(filename),jsonFileName,false));
         catch
             data = [];
-        end
-    else
-        if strcmp(dat(end),'}')  % it's missing the end closing brackets
-            fileID = fopen(filename,'a');
-            fprintf(fileID,'%s',']}]');
-            fclose(fileID);
-            try
-                data = json.load(filename);
-                fprintf('File loaded in %.2f seconds\n',toc(start));
-            catch
-                fprintf('File failed to load problem with json\n');
-                data = [];
-            end
-        else
-            data = [];
+            warning('Failed to fix')
         end
     end
 end
