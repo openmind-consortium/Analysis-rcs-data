@@ -6,7 +6,7 @@ clc
 % This code has been tested with a set of datasets under
 % ~/Box/UCSF-RCS_Test_Datasets_Analysis-rcs-data-Code/../Power/...
 % Access to this folder is managed and restricted to UCSF employees under
-% (https://ucsf.box.com/s/gwyeakm47ogiqkkpf6j9e3cvjt5r7d9b)
+% (https://ucsf.box.com/s/bolhachjv80rhywa5h0r9peo73mz3003)
 %
 % This example code can be run with a benchotp dataset that is shared for any user under
 % https://ucsf.box.com/s/9bte1t8s4il7rr0ot4egwsae1exl5y7i
@@ -38,27 +38,30 @@ if ~isempty(powerSettings)
     idxPowerRCS = ~isnan(combinedDataTable.Power_Band1);
     
     % plot the result, comparing actual Streamed power with 'off line'
-    figure, hold on, legend show, set(gca,'FontSize',15)       
+    figure, hold on, legend show, set(gca,'FontSize',20)       
+    title('RC+S band power: on-board vs off-line comparison')
     plot(combinedDataTable.localTime(idxPowerRCS),...
                 combinedDataTable.(['Power_Band',num2str(1)])(idxPowerRCS),...
                 'Marker','*','MarkerSize',1,'Linewidth',1,...
-                'DisplayName',['RCS Power Band, Bins(Hz) = ',powerSettings.powerBands(1).powerBinsInHz{1}])
+                'DisplayName',['on-board, band(Hz) = ',powerSettings.powerBands(1).powerBinsInHz{1}])
                         
-    plot(combinedPowerTable.localTime(idxPowerCalc),...
-                combinedPowerTable.(['Power_Band',num2str(1)])(idxPowerCalc),...
-                'Marker','o','MarkerSize',5,'LineWidth',2,...
-                'DisplayName',['Calculated Power Band, Bins(Hz) = ',powerSettings.powerBands(1).powerBinsInHz{1}])                 
+%     plot(combinedPowerTable.localTime(idxPowerCalc),...
+%                 combinedPowerTable.(['Power_Band',num2str(1)])(idxPowerCalc),...
+%                 'Marker','o','MarkerSize',5,'LineWidth',2,...
+%                 'DisplayName',['Calculated Power Band, Bins(Hz) = ',powerSettings.powerBands(1).powerBinsInHz{1}])                 
     
     % Here we calculate equivalent power series from a selected
     % time domain channel (1, 2, 3 or 4) for a chosen power band [X,Y]Hz
-    [newPowerFromTimeDomain, newSettings] = calculateEquivalentDevicePower(combinedDataTable, fftSettings, powerSettings, metaData, 1, [20 23]);
+    [newPowerFromTimeDomain, newSettings] = calculateNewPower(combinedDataTable, fftSettings, powerSettings, metaData, 1, [8 12.2]);
     idxPowerNewCalc = ~isnan(newPowerFromTimeDomain.calculatedPower);  
     
     % plot the result
     plot(newPowerFromTimeDomain.localTime(idxPowerNewCalc),...
                 newPowerFromTimeDomain.calculatedPower(idxPowerNewCalc),...
-                'Marker','s','MarkerSize',1,'LineWidth',2,...
-                'DisplayName',['New Calculated Power Band, Bins(Hz) = ',newSettings.powerSettings.powerBands.powerBinsInHz])
+                'Marker','o','MarkerSize',1,'LineWidth',2,...
+                'DisplayName',['off-line, band(Hz) = ',newSettings.powerSettings.powerBands.powerBinsInHz])
+            
+    ylabel('Power (millivolts^2)')
 end
 
 %% Example how to create a power output just based on time domain signal and desired fft and power settings, e.g.
@@ -74,16 +77,18 @@ currentTDsampleRate = fftSettings.TDsampleRates;
 % Choose new fft parameters and frequency band between these options
 % fft interval: 50 to 50000 ms
 % fft size: 64, 256, 1024      
+% windowLoad ('100% Hann', '50% Hann', '25% Hann')
 % freqBand:[0 to samplingRate/2]
 newfftSettings.fftConfig.interval = 50;
 newfftSettings.fftConfig.size = 256;
+newfftSettings.fftConfig.windowLoad = '100% Hann';
 freqBand = [20, 23];
 
 % Determine fftBins
 numBins = newfftSettings.fftConfig.size/2;
 binWidth = (currentTDsampleRate/2)/numBins;
-lower = (0:numBins-1)*binWidth;
-fftBins = lower + binWidth/2;          % Bin center
+lowerBins = (0:numBins-1)*binWidth;
+fftBins = lowerBins + binWidth/2;          % Bin center
 
 % Create a powerSettings structure based on chosen parameters   
 powerSettings.fftConfig.interval = newfftSettings.fftConfig.interval;
@@ -91,21 +96,21 @@ powerSettings.fftConfig.size = newfftSettings.fftConfig.size;
 powerSettings.powerBands.fftBins = fftBins;
 
 % Determine indeces of frquency bins corresponsing and add to power settings structure
-tempIndecesBinsA = find(powerSettings.powerBands.fftBins>freqBand(1));
-tempIndecesBinsB = find(powerSettings.powerBands.fftBins<freqBand(2));
-powerSettings.powerBands.indices_BandStart_BandStop(1,1) = tempIndecesBinsA(1);
-powerSettings.powerBands.indices_BandStart_BandStop(1,2) = tempIndecesBinsB(end);   
+idxBinsA = find(powerSettings.powerBands.fftBins>freqBand(1));
+idxBinsB = find(powerSettings.powerBands.fftBins<freqBand(2));
+powerSettings.powerBands.indices_BandStart_BandStop(1,1) = idxBinsA(1);
+powerSettings.powerBands.indices_BandStart_BandStop(1,2) = idxBinsB(end);
 
 % Calculate equivalent device power given the new fft and power settings
-[newPowerFromTimeDomain, newSettings] = calculateEquivalentDevicePower(combinedDataTable, newfftSettings, powerSettings, metaData, 1, freqBand);
-idxPowerNewCalc = ~isnan(newPowerFromTimeDomain.calculatedPower);    
+[newPower, newSettings] = calculateNewPower(combinedDataTable, newfftSettings, powerSettings, metaData, 1, freqBand);
+idxPowerNewCalc = ~isnan(newPower.calculatedPower);    
 
 % Plot the results
-figure, hold on, legend show, set(gca,'FontSize',15)                     
-plot(newPowerFromTimeDomain.localTime(idxPowerNewCalc),...
-        newPowerFromTimeDomain.calculatedPower(idxPowerNewCalc),...
+% figure, hold on, legend show, set(gca,'FontSize',15)                     
+plot(newPower.localTime(idxPowerNewCalc),...
+        newPower.calculatedPower(idxPowerNewCalc),...
         'Marker','s','MarkerSize',1,'LineWidth',2,...
-        'DisplayName',['New Calculated Power Band, Bins(Hz) = ',newSettings.powerSettings.powerBands.powerBinsInHz])
+        'DisplayName',['off-line, band(Hz) = ',newSettings.powerSettings.powerBands.powerBinsInHz])
     
 % END: remember this are only examples of use
 % If you find errors while using this code or want to help further develop

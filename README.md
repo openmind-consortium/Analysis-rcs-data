@@ -181,12 +181,12 @@ Analysis functions which rely on the data structure output from (Part 1) and (Pa
 ***Part 4.1***
 Examples of calculation of Power from time domain signals using an equivalent (similar) fft process as the device (RC+S).
 - `getPowerfromTimeDomain`
-- `calculateEquivalentDevicePower`
+- `calculateNewPower`
 - `DEMO_CalculatePowerRCS.m`
 
-The `getPowerfromTimeDomain` calculates the 'off line' power using exactly the same fft and power settings as in the recording. It creates power outputs for all time domain channels and power bands using the harmonized times from combinedDataTable. In case there were changes on settings during recording session it gives user the option to also create a separate output that accounts for that information (first column 'recNum').
+The `getPowerfromTimeDomain()` calculates the 'off-device' power using exactly the same fft and power settings as in the recording. It creates power outputs for all time domain channels and power bands using the harmonized times from combinedDataTable. In case there were changes on settings during recording session it gives user the option to also create a separate output that accounts for that information (first column 'recNum').
 
-The `calculateEquivalentDevicePower` calculates 1 power output from 1 time domain channel given, either same fft settings as in the recording session or a new set of fft settings (fft interval and fft size), and passing the limites of the new power band [Lower Bin, Upper Bin].
+The `calculateNewPower()` calculates 1 power output from 1 time domain channel given, either same fft settings as in the recording session or a new set of fft settings (fft interval, fft size, hann window), and passing the new frequency band limits [Lower Bin, Upper Bin].
 
 The `DEMO_CalculatePowerRCS.m` serves as an example of usability of these two functions (find example benchtop dataset attached in the top of the script).
 

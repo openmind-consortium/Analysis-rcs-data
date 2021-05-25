@@ -919,6 +919,262 @@ classdef rcsPlotter < handle
  
         
         
+        %%%%%%
+        %
+        % save time domain coherence plots 
+        %
+        %%%%%%
+        function saveTdChannelCoherence(obj,varargin)
+            %% save RC+S ms cohernece of time domain data
+            %
+            % divides the data into chunks (30 seconds is default) 
+            % saves ms coherence for downstream analysis
+            %
+            %% input:
+            %       1. coherence pairs, as matrix (required)
+            %               e.g.  [1,2] will compute coherence between
+            %               channels 1 + 2 
+            %               [1,3; 2, 4] - compute coherence between
+            %               channels 1 and 3 and 2 and 4 
+            %       (reqs: consistent sampling rate through out the
+            %       session).
+            %       this is mostly used for downstream analysis 
+            %
+            %       2. duration (optional) 
+            %               e.g. seconds(30) or minutes(1) 
+            %               duration of data chunks without gaps to split
+            %               the data into 
+            %           
+            %% usage:
+            %  This plot saves data for down stream anaylsis). 
+            %  rc.saveTdChannelCoherence([1,3]); 
+            %  rc.saveTdChannelCoherence([1,3; 2,4]); 
+            %  will save ms coherence between pairs  
+            %
+            %% output:
+            % .mat of save ms-cohernece data in each folder in which .json
+            % files exist (if multiple folders loaded will save there) 
+            % 
+            % will not compute coherence if a gap exist in data chunk 
+            % if many chunks in data this may result in very few ms
+            % coherence plots 
+            % given duration of recording 
+            %
+            % to specify duration of data input into each ms coherence
+            % computation: 
+            %
+            % rc.saveTdChannelCoherence([1 3],seconds(30));
+            % or 
+            % rc.saveTdChannelCoherence([1 3; 2 4],minutes(10));
+            %
+            % note that if sampling rate was changed within session this
+            % function will error out 
+            
+            
+            if nargin == 1
+                error('specifiy at least two channels to compute coherence between in format [1,2] ');
+            end
+            if nargin == 2
+                chan = varargin{1};
+                psdDuration = seconds(30);
+            end
+            if nargin == 3
+                chan = varargin{1};
+                psdDuration =  varargin{2};
+                if ~isduration(psdDuration)
+                    psdDuration = seconds(psdDuration);
+                    warning('assuming %s seconds in future pass variable seconds(30) as duration',psdDuration);
+                end
+            end
+            
+          
+            % validate input
+            if ~isnumeric(chan)
+                error('channel input must be integer between 1-4');
+            end
+            % assumes only 4 possible TD channels, this may not be the case
+            % for all users (up to 8 are posible in certain configurations)
+            % code revision needed for this case 
+            if sum(ismember(chan(:),[1 : 1 : 4])==0) >= 1
+                error('channel input must be integer between 1-4, at least one int in channel input is not');
+            end
+            
+            for i = 1:obj.NumberOfSessions
+                if ~isempty(obj.Data(i))
+                    
+                    dt = obj.Data(i).combinedDataTable;
+                    x = datenum(dt.localTime);
+                    for ccc  = 1:4 % hard coded for now - get all possible channels 
+                        chanfn = sprintf('TD_key%d',ccc-1);
+                        y(:,ccc) = dt.(chanfn);
+                    end
+                    y = y.*1e3; % so data is in microvolt 
+                    yRaw = y;
+
+                    % verify that you have time domain data
+                    if sum(isnan(y(:,1))) == size(y,1)
+                        warningMessage = sprintf('no time domain data exists for: %s\n',...
+                            obj.Data(i).folder);
+                        warning(warningMessage);
+                    else
+                        idxnan = isnan(y(:,1));
+                        
+                        idxnanSampleRate = isnan(dt.TD_samplerate);
+                        uniqueSampleRate = unique(dt.TD_samplerate(~idxnanSampleRate));
+                        if length(uniqueSampleRate) >1
+                            error('can only perform psd anlaysis on data in which sample rate is the same');
+                        elseif length(y) < (seconds(psdDuration)*(max(uniqueSampleRate)))
+                            error('data is smaller than psd chunk duration selected');
+                        else
+                            sr = uniqueSampleRate;
+                        end
+                        
+                        % find data with no gaps - 
+                        % then for each continous section of data without
+                        % gaps 
+                        % reshape data according to psd duration size 
+                        % then concatenate all for psd computation
+                        % also save (for later) the time index for PSD
+                        % (middle of window) 
+                        diffNans = diff(idxnan);
+                        idxgapEnd = find(diffNans == 1) + 1;
+                        idxgapStart = find(diffNans == -1) + 1;
+                        if idxnan(1) == 0 % if data start with no gap
+                            idxgapStart = [1; idxgapStart ];
+                        end
+                        if idxnan(end) == 0 % if data ends with gap
+                            idxgapEnd = [idxgapEnd; length(idxnan) ];
+                        end
+                        localTime = dt.localTime;
+                        gaps = localTime(idxgapEnd) - localTime(idxgapStart);
+                        gaps.Format = 'hh:mm:ss.SSSS';
+                        psdDuration.Format = 'hh:mm:ss.SSSS';
+                        
+                        totalRecLenth = (localTime(end) - localTime(1));
+                        totalRecLenth.Format = 'hh:mm:ss.SSSS';
+                        totalData     = sum(gaps);
+                        totalData.Format = 'hh:mm:ss.SSSS';
+                        % report how what % of data was capturd  
+                        fprintf('%.2f of data of data recorded (%s / %s)\n', totalData/totalRecLenth,...
+                                    totalRecLenth,totalData);
+
+                        
+                        % report how much data will be lost 
+                        fprintf('%.2f of data has no gaps larger than %s (%s / %s)\n', sum(gaps(gaps > psdDuration))./sum(gaps),psdDuration,...
+                            sum(gaps(gaps > psdDuration)), sum(gaps));
+
+                        idxGapsUse = gaps > psdDuration;
+                        gapsUse = gaps(idxGapsUse,:);
+                        idxGapStartUse = idxgapStart(idxGapsUse);
+                        idxGapEndUse = idxgapEnd(idxGapsUse);
+                        if ~isempty(gapsUse)
+                        else
+                            error('at this window size (%s), all psd chunks have gaps in them / some NaNs',psdDuration)
+                        end
+                        
+                        rawDataForPSD_Y_out = [];
+                        rawDataForPSD_X_out = [];
+                        for ccc = 1:size(chan,1) % loop on both channels
+                            
+                            rawDataForPSD_chan_x = [];
+                            rawDataForPSD_chan_y = [];
+                            % get the time from which the chunk came 
+                            if ccc == 1 % only need this info once as this loop on all coherence pairs, time is same 
+                                xTimeAverage         = []; 
+                            end
+                            for g = 1:length(idxGapStartUse)
+                                reshapeFactor = seconds(psdDuration)*sr;
+                                
+                                % get x data:
+                                x = yRaw(idxGapStartUse(g):idxGapEndUse(g),chan(ccc,1));
+                                xDatReshape = x(1:end-(mod(size(x,1), reshapeFactor)));
+                                xDataComputePSD  = reshape(xDatReshape,reshapeFactor,size(xDatReshape,1)/reshapeFactor);
+                                rawDataForPSD_chan_x = [rawDataForPSD_chan_x, xDataComputePSD];
+                                
+                                % get y data:
+                                y = yRaw(idxGapStartUse(g):idxGapEndUse(g),chan(ccc,2));
+                                yDatReshape = y(1:end-(mod(size(y,1), reshapeFactor)));
+                                yDataComputePSD  = reshape(yDatReshape,reshapeFactor,size(yDatReshape,1)/reshapeFactor);
+                                rawDataForPSD_chan_y = [rawDataForPSD_chan_y, yDataComputePSD];
+                                
+                                if ccc == 1  % only need this info once as this loop on all coherence pairs, time is same 
+                                    xTime = localTime(idxGapStartUse(g):idxGapEndUse(g));
+                                    xTimeReshape = xTime(1:end-(mod(size(xTime,1), reshapeFactor)));
+                                    xTimeComputePSDTime  = reshape(xTimeReshape,reshapeFactor,size(xTimeReshape,1)/reshapeFactor);
+                                    xTimeAverage = [xTimeAverage, xTimeComputePSDTime];
+                                end
+
+                            end
+                            rawDataForPSD_chan_x = rawDataForPSD_chan_x - mean(rawDataForPSD_chan_x);
+                            rawDataForPSD_chan_y = rawDataForPSD_chan_y - mean(rawDataForPSD_chan_y);
+                            
+                            % compute coherence for these channel pairs 
+                            Fs = sr;
+                            [Cxy,F] = mscohere(rawDataForPSD_chan_x,rawDataForPSD_chan_y,...
+                                2^(nextpow2(Fs)),...
+                                2^(nextpow2(Fs/2)),...
+                                2^(nextpow2(Fs)),...
+                                Fs);
+                            if sum(unique(Cxy==1))== 1
+                                warning('you have a channel pair that is either the same, or disabled'); 
+                            end
+                            
+                            % save output 
+                            cohData.data(:,:,ccc) = Cxy;
+                            cohData.freqs = F;
+                            cohData.cohTimes = median(xTimeAverage,1)'; % median time for the psd - so window is centered;
+                        end
+                        
+                        % get time domain settings
+                        chanout = [];
+                        for ccc = 1:size(chan,1) % loop on both channels
+                            chanoutfn = sprintf('coh_pair%d',ccc);% this just counts int - corresponds to data matrix last dimension
+                            % x
+                            chanfn1 = sprintf('chan%d',chan(ccc,1));
+                            chanstr_x = obj.Data(i).timeDomainSettings.(chanfn1){1}(1:5);
+                            chanstrFull_x = obj.Data(i).timeDomainSettings.(chanfn1){1};
+                            cohData.(chanoutfn){1,1} = chanstr_x;
+                            
+                            % y
+                            chanfn2 = sprintf('chan%d',chan(ccc,2));
+                            chanstr_y = obj.Data(i).timeDomainSettings.(chanfn2){1}(1:5);
+                            chanstrFull_y = obj.Data(i).timeDomainSettings.(chanfn2){1};
+                            cohData.(chanoutfn){1,2} = chanstr_y;
+                            
+                            all_td_pairs{ccc,1}  = chanstrFull_x;
+                            all_td_pairs{ccc,2}  = chanstrFull_y;
+                            
+                            % get time domain pairs in int (for later,
+                            % easier searching / matching across pairs in
+                            % large data sets)
+                            
+                            chanout(ccc,:,1) = sort(cellfun(@(x) str2num(x),regexp(chanstr_x,'[0-9]+','match')));
+                            chanout(ccc,:,2) = sort(cellfun(@(x) str2num(x),regexp(chanstr_y,'[0-9]+','match')));
+                        end
+                        
+                        
+                        cohData.all_td_pairs = all_td_pairs;
+                        cohData.duration = psdDuration;
+                        cohData.dataFormat = 'coh freqx x times x coh pairs';
+                        cohData.chan_int = chanout;
+                        cohData.chan_int_format = 'first two dimensions bipolar pairs (int) last dimension (rows) is what coh computed between';
+                        
+                        
+                        %% save data 
+                        folderPath = obj.Data(i).folder;
+                        dur = cohData.duration;
+                        dur.Format = 'mm:ss';
+                        durPrint = strrep(sprintf('_%s',dur),':','-');
+                        fnuse = sprintf('%s%s.mat','AllDataCOH',durPrint);
+                        outputFileName = fullfile(folderPath,fnuse);
+                        save(outputFileName,'cohData');
+
+                    end
+                end
+            end
+        end
+        
+        
         
         
         
@@ -1314,13 +1570,20 @@ classdef rcsPlotter < handle
         % save time domain data  - psd - all channels 
         %
         %%%%%%        
-        function saveTdChannelPsd(obj)
+        function saveTdChannelPsd(obj,varargin)
             %% save RC+S PSD of td data  
             %
             % 
             %% input:
-            %       1. none - loops and saves spectral data 
+            %       1. none - loops and saves spectral data from all (4
+            %       possible) time stream data 
             %          for down stream analysis 
+            %
+            %       2. duration (optional) 
+            %               e.g. seconds(30) or minutes(1) 
+            %               duration of data chunks without gaps to split
+            %               the data into 
+            %
             %
             %% usage:
             %
@@ -1328,8 +1591,40 @@ classdef rcsPlotter < handle
             % 
             % note that default psd params are chosen 
             % this will divide data into two minutes chunks to compute psds
+            %
+            %% output:
+            % .mat of psd's  in each folder in which .json
+            % files exist (if multiple folders loaded will save there) 
+            % 
+            % will not compute psd if a gap exist in data chunk 
+            % if many chunks in data this may result in very few psd's
+            % given duration of recording 
+            %
+            % to specify duration of data input into each psd computation:
+            % computation: 
+            %
+            % rc.saveTdChannelPsd(seconds(30));
+            % or 
+            % rc.saveTdChannelPsd(minutes(10));
+            %
+            % note that if sampling rate was changed within session this
+            % function will error out 
             
-            psdDuration = minutes(2); 
+            
+            if nargin == 1
+                warning('default psd size of 30 seconds chosen');
+                psdDuration = seconds(30);
+            end
+            if nargin == 2
+                psdDuration =  varargin{1};
+                if ~isduration(psdDuration)
+                    psdDuration = seconds(psdDuration);
+                    warning('assuming %s seconds in future pass variable seconds(30) as duration',psdDuration);
+                end
+            end
+            if nargin > 2
+                error('too many inputs');
+            end
        
             for i = 1:obj.NumberOfSessions
                 if ~isempty(obj.Data(i))
@@ -1453,10 +1748,14 @@ classdef rcsPlotter < handle
                     psdData.data = dataOut;
                     psdData.freqs = ff;
                     psdData.psdTimes = psdtimes;
+                    psdData.duration = psdDuration;
                     % save data
                     folderPath = obj.Data(i).folder;
-                    outputFileName = fullfile(folderPath,'AllDataPSD.mat');
-%                     outputFileName = fullfile(folderPath,'AllDataTables.mat');
+                    dur = psdData.duration;
+                    dur.Format = 'mm:ss';
+                    durPrint = strrep(sprintf('_%s',dur),':','-');
+                    fnuse = sprintf('%s%s.mat','AllDataPSD',durPrint);
+                    outputFileName = fullfile(folderPath,fnuse);
                     save(outputFileName,'psdData');
                 end 
             end
@@ -1844,26 +2143,31 @@ classdef rcsPlotter < handle
                     % plot output
                     x = datenum(dt.localTime);
                     chanfn = sprintf('Adaptive_CurrentAdaptiveState');
-                    ystateRaw = dt.(chanfn);
-                    idxstates = cellfun(@(x) isstr(x), ystateRaw);
-                    
-                    statesStrings = ystateRaw(idxstates);
-                    xuse = x(idxstates);
-                    
-                    % only choose states that "exists" (e.g. get rid of "no
-                    % state"
-                    idxkeepStates = ~cellfun(@(x) strcmp(x,'No State'), statesStrings);
-                    statesStringsStatesOnly = statesStrings(idxkeepStates);
-                    xusePlot = xuse(idxkeepStates);
-                    
-                    if ~isempty(xusePlot)
-                        statesNum = cellfun(@(x) x(end), statesStringsStatesOnly);
-                        stateInts = str2num(statesNum);
+                    if sum(ismember(dt.Properties.VariableNames,chanfn)) % check if adaptive data exists
                         
-                        hplt = plot(xusePlot,stateInts,'Parent',hAxes);
-                        hplt.LineWidth = 2;
-                        hplt.Color = [0 0.8 0 0.5];
-                        obj.addLocalTimeDataTip(hplt,datetime(xusePlot,'ConvertFrom','datenum'));
+                        ystateRaw = dt.(chanfn);
+                        idxstates = cellfun(@(x) isstr(x), ystateRaw);
+                        
+                        statesStrings = ystateRaw(idxstates);
+                        xuse = x(idxstates);
+                        
+                        % only choose states that "exists" (e.g. get rid of "no
+                        % state"
+                        idxkeepStates = ~cellfun(@(x) strcmp(x,'No State'), statesStrings);
+                        statesStringsStatesOnly = statesStrings(idxkeepStates);
+                        xusePlot = xuse(idxkeepStates);
+                        
+                        if ~isempty(xusePlot)
+                            statesNum = cellfun(@(x) x(end), statesStringsStatesOnly);
+                            stateInts = str2num(statesNum);
+                            
+                            hplt = plot(xusePlot,stateInts,'Parent',hAxes);
+                            hplt.LineWidth = 2;
+                            hplt.Color = [0 0.8 0 0.5];
+                            obj.addLocalTimeDataTip(hplt,datetime(xusePlot,'ConvertFrom','datenum'));
+                        end
+                    else
+                        warning('adaptive data does not exist for file %s',obj.Data(i).folder);
                     end
                 end
             end
@@ -2343,7 +2647,7 @@ classdef rcsPlotter < handle
         
         %%%%%%
         %
-        % plot time domain data psds
+        % report data quality for time domain data as well as gaps
         %
         %%%%%%
         function reportDataQualityAndGaps(obj,varargin)
@@ -2568,12 +2872,17 @@ classdef rcsPlotter < handle
                 strSearch = '*';
                 eval('help rcsPlotter.Help');
                 methods(obj);
+                fprintf('____________\n');
+                fprintf('____________\n');
+                fprintf('general help for rcsPlotter:\n');
+                fprintf('____________\n');
+                fprintf('____________\n');
+                eval('help rcsPlotter');
             end
             if nargin == 2 
                 strSearch = varargin{1};
                 eval(sprintf('help rcsPlotter.%s', strSearch));
             end
-            
            
         end
     end
@@ -2625,7 +2934,7 @@ classdef rcsPlotter < handle
         % reason is that for plotting spectral data using imagesc (fastest
         % performance, compared to pcolor etc. which is slow in
         % largedatasets) you need a numeric axes. 
-        % This utility function tries to format time on x axis in a huamn
+        % This utility function tries to format time on x axis in a human
         % readable fashion with timing in crements which make sense given
         % the size of the plotted. Can copy this in outside function to
         % produce more results that have desired outcome for plotting for
