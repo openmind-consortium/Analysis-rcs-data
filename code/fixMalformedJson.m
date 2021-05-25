@@ -28,17 +28,18 @@ if simple
 else
     disp('Simple fix failed, attempting to remove the last record')
     % Accel, Power, FFT, and TD files primarily consist of a JSON array
-    % where each entry begins with a Header field. DeviceSettings, StimLog files have
-    % a similar structure but begin with RecordInfo. Write errors can be
-    % fixed by removing the last entry in the array.
+    % where each entry begins with a Header field. DeviceSettings, AdaptiveLog, 
+    % EventLog, and StimLog files have a similar structure but begin with RecordInfo. 
+    % Write errors can be fixed by removing the last entry in the array.
     if contains(type,'Accel') || contains(type,'Power') || contains(type,'FFT') || contains(type,'TD')
+        % Assuming only one RecordInfo to start the file
         objs=split(jsonString,'{"Header"');
         info=objs{1};
         objs=objs(2:end-1);
         objs=strcat('{"Header"',objs);
         jsonStringOut=strjoin(objs);
         jsonStringOut=[info,jsonStringOut(1:end-1),']}]'];
-    elseif contains(type,'DeviceSettings') || contains(type,'StimLog')
+    elseif contains(type,'DeviceSettings') || contains(type,'StimLog') || contains(type,'Adaptive') || contains(type,'EventLog')
         objs=split(jsonString,'{"RecordInfo"');
         objs=objs(2:end-1);
         objs=strcat('{"RecordInfo"',objs);
