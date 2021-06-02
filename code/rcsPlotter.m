@@ -2353,11 +2353,18 @@ classdef rcsPlotter < handle
             %% input:
             %       1. channel (int, 1-8)
             %       2. handle to subplot (optional)
+            %       3. update rate (optional) 
+            %       4. plotting params (optional, strucutre) 
+            %            e.g.: 
+            %            params.LineWidth = 2; 
+            %            params.Color = [0 0 0.8 0.5]; 
             %
             %% usage:
             %
             % rc.plotPowerRaw(1);
             %
+            params.LineWidth = 2;
+            params.Color = [0.5 0.5 0 0.5];
             if nargin == 1
                 error('select at least one program (int starts at zero)');
             end
@@ -2377,6 +2384,12 @@ classdef rcsPlotter < handle
                 powerBand  = varargin{1};
                 hAxes = varargin{2};
                 updateRate = varargin{3};
+            end
+            if nargin == 5
+                powerBand  = varargin{1};
+                hAxes = varargin{2};
+                updateRate = varargin{3};
+                params      = varargin{4};
             end
             
             hold(hAxes,'on');
@@ -2423,9 +2436,7 @@ classdef rcsPlotter < handle
                         ypowerOut = [ypowerOut; powerUseSerialized];
                         
                         if ~isempty(powerUseSerialized)
-                            hplt = plot(x,powerUseSerialized,'Parent',hAxes);
-                            hplt.LineWidth = 2;
-                            hplt.Color = [0.5 0.5 0 0.5];
+                            hplt = plot(x,powerUseSerialized,'Parent',hAxes,params);
                             obj.addLocalTimeDataTip(hplt,datetime(x,'ConvertFrom','datenum'));
                             
                             % get band
