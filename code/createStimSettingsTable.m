@@ -7,7 +7,7 @@ function [stimLogSettings] = createStimSettingsTable(folderPath,stimMetaData)
 % Output: stimLogSettings
 %%
 % Load in StimLog.json file
-stimLog = jsondecode(fixMalformedJson(fileread([folderPath filesep 'StimLog.json']),'StimLog'));
+stimLog = deserializeJSON([folderPath filesep 'StimLog.json']);
 if isstruct(stimLog)
     stimLog = {stimLog};
 end
