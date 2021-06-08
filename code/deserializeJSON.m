@@ -16,20 +16,18 @@ try
     data = json.load(filename);
     fprintf('File loaded in %.2f seconds\n',toc(start));
 catch
-    warning('Not able to open file - attempting fix');
-    fprintf('Defective file %s\n',filename);
     [~,jsonFileName,~]=fileparts(filename);
     
     try
         % First attempt to fix by simply adding missing curly and square braces
         data = jsondecode(fixMalformedJson(fileread(filename),jsonFileName));
     catch
-        try 
+        try
             % If this fix fails, attempt to remove last record in JSON array
             data = jsondecode(fixMalformedJson(fileread(filename),jsonFileName,false));
         catch
             data = [];
-            warning('Failed to fix')
+            warning('Failed to load %s\n', filename);
         end
     end
 end
