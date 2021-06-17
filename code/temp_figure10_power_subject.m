@@ -91,10 +91,12 @@ end
 
 % ROOT MEAN SQUARE ERROR
 RMSE = sqrt((sum((px-py).^2))/length(px)); % or RMSE = sqrt(mean((px-py).^2));
+NRMSE = RMSE/(max(py)-min(py));
 
 % Percentage difference, "percentage difference" is via the standard
 % Euclidean norm (% assuming they're sampled uniformly over the interval)
 % the difference between two series divided by the average of the two series. Shown as a percentage.
+% see: https://dsp.stackexchange.com/questions/14306/percentage-difference-between-two-signals
 PERC_DIFF = 100 * (dot(px-py, px-py)/sqrt(dot(px,px)*dot(py,py)));
 
 fig2 = figure
@@ -105,5 +107,16 @@ text(1000,7000,['RMSE = ', num2str(RMSE,5), ' (rcs units)'],'FontSize',14)
 text(1000,6500,['Percentage difference = ', num2str(PERC_DIFF,3), '%'],'FontSize',14)
 set(gca,'FontSize',14)
 
-firname = 'Figure10b';
+firname = 'Figure10b1';
 saveas(fig2,fullfile(savedir,firname),'epsc')
+
+fig3 = figure
+scatter(px/(max(px)-min(px)),py/(max(py)-min(py)))
+xlabel('Power on-device (rcs units)')
+ylabel('Power off-device (rcs units)')
+text(1000/(max(px)-min(px)),7000/(max(py)-min(py)),['NRMSE = ', num2str(NRMSE,2), ' (normalized)'],'FontSize',14)
+text(1000/(max(px)-min(px)),6500/(max(py)-min(py)),['Percentage difference = ', num2str(PERC_DIFF,3), '%'],'FontSize',14)
+set(gca,'FontSize',14)
+
+firname = 'Figure10b2';
+saveas(fig3,fullfile(savedir,firname),'epsc')
