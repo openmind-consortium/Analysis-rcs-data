@@ -112,8 +112,8 @@ saveas(fig2,fullfile(savedir,firname),'epsc')
 
 fig3 = figure
 scatter(px/(max(px)-min(px)),py/(max(py)-min(py)))
-xlabel('Power on-device (rcs units)')
-ylabel('Power off-device (rcs units)')
+xlabel('Power on-device (normalized units)')
+ylabel('Power off-device (normalized units)')
 text(1000/(max(px)-min(px)),7000/(max(py)-min(py)),['NRMSE = ', num2str(NRMSE,2), ' (normalized)'],'FontSize',14)
 text(1000/(max(px)-min(px)),6500/(max(py)-min(py)),['Percentage difference = ', num2str(PERC_DIFF,3), '%'],'FontSize',14)
 set(gca,'FontSize',14)
