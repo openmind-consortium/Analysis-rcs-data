@@ -83,7 +83,7 @@ for ii=1:length(y)
     idx = find(tx >= tynext,1);    
     txnext = tx(idx);
     tdiff = abs(milliseconds(tynext-txnext));
-    if tdiff < 50
+    if tdiff < 100
         px(ii) = x(idx);
         py(ii) = y(ii);
     end
@@ -111,10 +111,12 @@ firname = 'Figure10b1';
 saveas(fig2,fullfile(savedir,firname),'epsc')
 
 fig3 = figure
-scatter(px/(max(px)-min(px)),py/(max(py)-min(py)))
+scatter(px/(max(px)-min(px)),py/(max(py)-min(py)),'filled','AlphaData',0.01,'SizeData',1)
+hold on
+hline = refline(1,0)
 xlabel('Power on-device (normalized units)')
 ylabel('Power off-device (normalized units)')
-text(1000/(max(px)-min(px)),7000/(max(py)-min(py)),['NRMSE = ', num2str(NRMSE,2), ' (normalized)'],'FontSize',14)
+text(1000/(max(px)-min(px)),7000/(max(py)-min(py)),['NRMSE = ', num2str(NRMSE,2), ' (normalized RMSE)'],'FontSize',14)
 text(1000/(max(px)-min(px)),6500/(max(py)-min(py)),['Percentage difference = ', num2str(PERC_DIFF,3), '%'],'FontSize',14)
 set(gca,'FontSize',14)
 
