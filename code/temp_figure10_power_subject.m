@@ -44,7 +44,8 @@ plot(combinedDataTable.localTime(idxPowerRCS),...
 
 % on-device
 % time domain channel (1, 2, 3 or 4) for a chosen power band [X,Y]Hz
-[newPowerFromTimeDomain, newSettings] = calculateNewPower(combinedDataTable, fftSettings, powerSettings, metaData, 1, [8 12.1]);
+freqBand = [powerSettings.powerBands.lowerBound(1) powerSettings.powerBands.upperBound(1)]
+[newPowerFromTimeDomain, newSettings] = calculateNewPower(combinedDataTable, fftSettings, powerSettings, metaData, 1, freqBand);
 idxPowerNewCalc = ~isnan(newPowerFromTimeDomain.calculatedPower);  
 
 % plot the result
@@ -56,7 +57,7 @@ plot(newPowerFromTimeDomain.localTime(idxPowerNewCalc),...
 ylabel('Power (rcs units)')
 
 % save dir for paper
-savedir = '/Users/juananso/Dropbox (Personal)/Work/UCSF/starrlab_local/2.Reporting/Manuscripts/DBS Think Tank/Figures';
+savedir = '/Users/juananso/Dropbox (Personal)/Work/UCSF/starrlab_local/2.Reporting/Manuscripts/DBS Think Tank/Figures/';
 firname = 'Figure10a';
 saveas(fig1,fullfile(savedir,firname),'epsc')
 
@@ -83,7 +84,7 @@ for ii=1:length(y)
     idx = find(tx >= tynext,1);    
     txnext = tx(idx);
     tdiff = abs(milliseconds(tynext-txnext));
-    if tdiff < 100
+    if tdiff < 50
         px(ii) = x(idx);
         py(ii) = y(ii);
     end

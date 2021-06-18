@@ -82,11 +82,11 @@ totalTimeWindows = ceil(length(td_rcs)/L/(1-overlap));
 counter = 1; % initialize counter
 while counter <= totalTimeWindows % loop through time singal
     if stime+L <= length(t) % check at least one time window available before reach end signal
-        X = fft(td_rcs(stime:stime+L-1)'.*hann_win,fftSize); % fft of the next window
+        X = fft(td_rcs(stime:stime+L-1)'.*hann_win,fftSizeActual); % fft of the next window
         SSB = X(1:L/2); % from double to single sided FFT
         SSB(2:end) = 2*SSB(2:end); % scaling step 1, multiply by 2 bins 2 to end (all except DC)
         YFFT = abs(SSB/(L/2)); % scaling step 2, dividing by fft buffer size (L/2)
-        fftPower = 2*(YFFT.^2); % this factor 2 is necessary to match power values from RCS
+        fftPower = 1.95*(YFFT.^2); % this factor 2 is necessary to match power values from RCS
         newPower.calculatedPower(stime+L-1) = sum(fftPower(binStart:binEnd));
     end
     counter = counter + 1;
