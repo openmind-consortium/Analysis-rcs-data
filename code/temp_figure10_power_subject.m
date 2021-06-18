@@ -57,7 +57,7 @@ plot(newPowerFromTimeDomain.localTime(idxPowerNewCalc),...
 ylabel('Power (rcs units)')
 
 % save dir for paper
-savedir = '/Users/juananso/Dropbox (Personal)/Work/UCSF/starrlab_local/2.Reporting/Manuscripts/DBS Think Tank/Figures/';
+savedir = '/Users/juananso/Dropbox (Personal)/Work/UCSF/starrlab_local/2.Reporting/Manuscripts/DBS Think Tank/Figures/temp_Fig10b_Human';
 firname = 'Figure10a';
 saveas(fig1,fullfile(savedir,firname),'epsc')
 
@@ -104,8 +104,8 @@ fig2 = figure
 scatter(px,py)
 xlabel('Power on-device (rcs units)')
 ylabel('Power off-device (rcs units)')
-text(1000,7000,['RMSE = ', num2str(RMSE,5), ' (rcs units)'],'FontSize',14)
-text(1000,6500,['Percentage difference = ', num2str(PERC_DIFF,3), '%'],'FontSize',14)
+text(0.1*max(px),0.9*max(py),['RMSE = ', num2str(RMSE,5), ' (rcs units)'],'FontSize',14)
+text(0.1*max(px),0.85*max(py),['Percentage difference = ', num2str(PERC_DIFF,3), '%'],'FontSize',14)
 set(gca,'FontSize',14)
 
 firname = 'Figure10b1';
@@ -117,8 +117,8 @@ hold on
 hline = refline(1,0)
 xlabel('Power on-device (normalized units)')
 ylabel('Power off-device (normalized units)')
-text(1000/(max(px)-min(px)),7000/(max(py)-min(py)),['NRMSE = ', num2str(NRMSE,2), ' (normalized RMSE)'],'FontSize',14)
-text(1000/(max(px)-min(px)),6500/(max(py)-min(py)),['Percentage difference = ', num2str(PERC_DIFF,3), '%'],'FontSize',14)
+text(0.1*max(px)/(max(px)-min(px)),0.9*max(py)/(max(py)-min(py)),['NRMSE = ', num2str(NRMSE,2), ' (normalized RMSE)'],'FontSize',14)
+text(0.1*max(px)/(max(px)-min(px)),0.85*max(py)/(max(py)-min(py)),['Percentage difference = ', num2str(PERC_DIFF,3), '%'],'FontSize',14)
 set(gca,'FontSize',14)
 
 firname = 'Figure10b2';

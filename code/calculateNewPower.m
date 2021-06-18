@@ -75,7 +75,7 @@ end
 keych = combinedDataTable.(['TD_key',num2str(newSettings.tdChannel-1)]); % next channel
 td_rcs = transformTDtoRCS(keych,ampGains.(['Amp',num2str(newSettings.tdChannel)])); % transform TD signal to rcs internal values
 overlap = 1-((sr*interval/1e3)/fftSizeActual); % time window parameters
-L = fftSize; % timeWin is now named L, number of time window points
+L = fftSizeActual; % timeWin is now named L, number of time window points (fft size)
 hann_win = hannWindow(L,fftSettings.fftConfig.windowLoad);
 stime = 1; % sample 1 of data set where window starts
 totalTimeWindows = ceil(length(td_rcs)/L/(1-overlap)); 
@@ -86,7 +86,7 @@ while counter <= totalTimeWindows % loop through time singal
         SSB = X(1:L/2); % from double to single sided FFT
         SSB(2:end) = 2*SSB(2:end); % scaling step 1, multiply by 2 bins 2 to end (all except DC)
         YFFT = abs(SSB/(L/2)); % scaling step 2, dividing by fft buffer size (L/2)
-        fftPower = 1.95*(YFFT.^2); % this factor 2 is necessary to match power values from RCS
+        fftPower = 2*(YFFT.^2); % To minimize error between off-device and on-device power, FFT Gain needs to be calibrated per dataset
         newPower.calculatedPower(stime+L-1) = sum(fftPower(binStart:binEnd));
     end
     counter = counter + 1;
