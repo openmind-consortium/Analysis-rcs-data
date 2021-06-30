@@ -186,9 +186,9 @@ Examples of calculation of Power from time domain signals using an equivalent (s
 
 The `getPowerfromTimeDomain()` calculates the 'off-device' power using exactly the same fft and power settings as in the recording. It creates power outputs for all time domain channels and power bands using the harmonized times from combinedDataTable. In case there were changes on settings during recording session it gives user the option to also create a separate output that accounts for that information (first column 'recNum').
 
-The `calculateNewPower()` calculates 1 power output from 1 time domain channel given, either same fft settings as in the recording session or a new set of fft settings (fft interval, fft size, hann window), and passing the new frequency band limits [Lower Bin, Upper Bin].
+The `calculateNewPower()` calculates 1 power output from 1 time domain channel given, either same fft settings as in the recording session or a new set of fft settings (fft interval, fft size, hann window), and passing the new frequency band limits [Lower Bound, Upper Bound].
 
-The `DEMO_CalculatePowerRCS.m` serves as an example of usability of these two functions (find example benchtop dataset attached in the top of the script).
+The `DEMO_CalculatePowerRCS.m` serves as an example of usability of these two functions (find example benchtop dataset on [testDataset](https://github.com/openmind-consortium/Analysis-rcs-data/tree/master/testDataSets/Benchtop/ToTestPowerCalc/DeviceNPC700378H).
 
 ## What is the RC+S native data format?
 The Medtronic API saves data into a session directory. There are 11 .json files which are created for each session, which contain both meta-data and numerical data. Out of the box, the size/duration of these files is limited by the battery powering the CTM. Unmodified, this battery lasts for 4-5 hours. The CTM can be modified to be powered with an external battery, leading to recording duration being limited by the INS (implanted neurostimulator) battery. The INS battery can stream for up to ~30 hours. 
