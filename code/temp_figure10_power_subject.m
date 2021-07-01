@@ -44,7 +44,7 @@ plot(combinedDataTable.localTime(idxPowerRCS),...
 
 % on-device
 % time domain channel (1, 2, 3 or 4) for a chosen power band [X,Y]Hz
-freqBand = [powerSettings.powerBands.lowerBound(1) powerSettings.powerBands.upperBound(1)]
+freqBand = [powerSettings.powerBands(1).lowerBound(1) powerSettings.powerBands(1).upperBound(1)]
 [newPowerFromTimeDomain, newSettings] = calculateNewPower(combinedDataTable, fftSettings, powerSettings, metaData, 1, freqBand);
 idxPowerNewCalc = ~isnan(newPowerFromTimeDomain.calculatedPower);  
 
@@ -57,7 +57,7 @@ plot(newPowerFromTimeDomain.localTime(idxPowerNewCalc),...
 ylabel('Power (rcs units)')
 
 % save dir for paper
-savedir = '/Users/juananso/Dropbox (Personal)/Work/UCSF/starrlab_local/2.Reporting/Manuscripts/DBS Think Tank/Figures/temp_Fig10b_Human';
+savedir = '/Users/juananso/Dropbox (Personal)/Work/UCSF/starrlab_local/2.Reporting/Manuscripts/DBS Think Tank/Figures/temp_Fig10b_Human_testing';
 firname = 'Figure10a';
 saveas(fig1,fullfile(savedir,firname),'epsc')
 
@@ -84,7 +84,7 @@ for ii=1:length(y)
     idx = find(tx >= tynext,1);    
     txnext = tx(idx);
     tdiff = abs(milliseconds(tynext-txnext));
-    if tdiff < 50
+    if tdiff < 100
         px(ii) = x(idx);
         py(ii) = y(ii);
     end
@@ -100,8 +100,9 @@ NRMSE = RMSE/(max(py)-min(py));
 % see: https://dsp.stackexchange.com/questions/14306/percentage-difference-between-two-signals
 PERC_DIFF = 100 * (dot(px-py, px-py)/sqrt(dot(px,px)*dot(py,py)));
 
+% Figures
 fig2 = figure
-scatter(px,py)
+scatter(px,py,'filled','AlphaData',0.01,'SizeData',1)
 xlabel('Power on-device (rcs units)')
 ylabel('Power off-device (rcs units)')
 text(0.1*max(px),0.9*max(py),['RMSE = ', num2str(RMSE,5), ' (rcs units)'],'FontSize',14)
