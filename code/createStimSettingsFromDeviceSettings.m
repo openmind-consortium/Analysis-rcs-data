@@ -11,7 +11,7 @@ function [stimSettingsOut, stimMetaData] = createStimSettingsFromDeviceSettings(
 stimSettingsOut = table();
 
 %%
-DeviceSettings = jsondecode(fixMalformedJson(fileread([folderPath filesep 'DeviceSettings.json']),'DeviceSettings'));
+DeviceSettings = deserializeJSON([folderPath filesep 'DeviceSettings.json']);
 %%
 % Fix format - Sometimes device settings is a struct or cell array
 if isstruct(DeviceSettings)

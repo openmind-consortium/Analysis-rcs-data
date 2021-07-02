@@ -2,7 +2,7 @@ function AmpGains = getActualAmplifierGains(folderPath)
 % gets the gain of the amplifier (Amp channel: 1,2,3,4)
 
 % Load in DeviceSettings.json file
-DeviceSettings = jsondecode(fixMalformedJson(fileread([folderPath filesep 'DeviceSettings.json']),'DeviceSettings'));
+DeviceSettings = deserializeJSON([folderPath filesep 'DeviceSettings.json']);
 
 %%
 % Fix format - Sometimes device settings is a struct or cell array

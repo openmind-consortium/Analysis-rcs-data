@@ -8,8 +8,9 @@ srates = getSampleRate([TDdat.TimeDomainData.SampleRate]');
 
 % Determine number of channels per packet
 tdtmp = TDdat.TimeDomainData;
-for p = 1:size(tdtmp,2)
-    nChans(p,1) = size(tdtmp(p).ChannelSamples,2);
+nChans=zeros(length(tdtmp),1);
+for p = 1:length(tdtmp)
+    nChans(p,1) = length(tdtmp(p).ChannelSamples);
 end
 
 % Determine number of samples per packet
