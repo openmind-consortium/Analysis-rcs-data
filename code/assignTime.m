@@ -346,6 +346,12 @@ if exist('correctedAlignTime','var')
     multiples = floor(((correctedAlignTime - correctedAlignTime(1))/deltaTime) + 0.5);
     correctedAlignTime_shifted = correctedAlignTime(1) + (multiples * deltaTime);
     
+    % Note: In some instances, the correctedAlignTime_shifted times will go
+    % backwards in time. We do not exclude at this point (because we do not
+    % want to exclude ALL data in that chunk). Below, we remove the
+    % offending samples (which should be group offending in sets of ~packet
+    % size)
+    
     % Full form data table
     outputDataTable = inputDataTable;
     clear inputDataTable
@@ -402,6 +408,31 @@ if exist('correctedAlignTime','var')
             correctedAlignTime_shifted(iChunk) - elapsedTime_before : 1000/currentFs : correctedAlignTime_shifted(iChunk) + elapsedTime_after;
     end
     
+    % Identify samples which have DerivedTime that goes backwards in time -
+    % flag those samples for removal
+    currentValue = DerivedTime(1);
+    nextValue = DerivedTime(2);
+    indicesToRemove = [];
+    
+    for iSample = 1:length(DerivedTime)-1
+        if currentValue < nextValue
+            % Checks if the current value is smaller than the next value - if
+            % yes, keep this value and iterate currentValue and nextValue
+            % for next loop
+            currentValue = DerivedTime(iSample + 1);
+        else
+            % if the currentValue is not smaller than nextValue, collect
+            % the index of nextValue to later remove
+            indicesToRemove = [indicesToRemove iSample + 1];
+            % currentValue does not iterate
+        end
+        
+        % Iterate nextValue regardless of condition above
+        if iSample < length(DerivedTime) - 1
+            nextValue = DerivedTime(iSample + 2);
+        end
+    end
+    
     % Check to ensure that the same DerivedTime was not assigned to multiple
     % samples; if yes, flag the second instance for removal; note: in matlab, nans
     % are not equal
@@ -411,12 +442,15 @@ if exist('correctedAlignTime','var')
     else
         duplicateIndices = [];
     end
+
+    % Combine indicesToRemove and duplicateIndices
+    combinedToRemove = union(indicesToRemove, duplicateIndices);
     
     % All samples which do not have a derivedTime should be removed from final
     % data table, along with those with duplicate derivedTime values
     disp('Cleaning up output table')
     outputDataTable.DerivedTime = DerivedTime;
-    rowsToRemove = [find(isnan(DerivedTime)); duplicateIndices'];
+    rowsToRemove = [find(isnan(DerivedTime)); combinedToRemove'];
     outputDataTable(rowsToRemove,:) = [];
     
     % Make timing/metadata variables consistent across data streams

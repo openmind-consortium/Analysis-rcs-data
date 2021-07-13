@@ -9,6 +9,9 @@ Matlab functions and scripts to facilitate raw data extraction and subsequent vi
 
 **Policy**: Master will contain functions that have been tested in branch and pushed after pull request reviewers have approved. The collaborator doing the initial development and testing of a function in a testing branch (e.g. in 'importRawData') will make a pull request and assign 1-2 reviewers of the group who will review the code structure and the output of each function.
 
+Note: If you have reached this repository from the [Nature Biotechnology paper](https://www.nature.com/articles/s41587-021-00897-5), please be advised that this repository has been greatly enhanced since the paper was submitted in December 2020 and represents a “second-generation” code base that is actively maintained. For the “first-generation” code used to process data in the paper see [this repository](https://github.com/starrlab/rcsviz). Note that this first-generation repository is no longer maintained. New users that wish to process Summit RC+S data should use the current “second-generation” repository. A citable publication describing this new(er) work is forthcoming.
+
+
 ## Table of Contents
 - [Installation Instructions](#installation-instructions)
 - [Structure of Repository](#structure-of-repository)
@@ -31,8 +34,8 @@ Matlab functions and scripts to facilitate raw data extraction and subsequent vi
 - [Overview of Adaptive Stimulation](#overview-of-adaptive-stimulation)
 
 ## Installation Instructions:
-- Compatibility - Mac or PC (Linux test pending). We rely on a toolbox (https://github.com/JimHokanson/turtle_json) to open .json files - many thanks to Jim Hokanson for additional development, now permitting functionality with all versions of Matlab.
-- Clone this repository and add to Matlab path. 
+- Compatibility - Mac or PC (Linux test pending). We rely on a toolbox (https://github.com/JimHokanson/turtle_json) to open .json files - many thanks to Jim Hokanson for additional development, now permitting functionality with all versions of Matlab. Note that this toolbox relies on compiled Mex files and is not compatible with the new M1 chip macs for now. We include the turtle_json toolbox in our repository, so do not clone separately.
+- Clone tehe Analysis-rcs-data repository and add to Matlab path. 
 
 ## Structure of Repository
 - **code**
@@ -51,7 +54,10 @@ Matlab functions and scripts to facilitate raw data extraction and subsequent vi
     - e.g. `getPowerfromTimeDomain`
 
 ## Usage
-**Part 1**
+
+The goal of Parts 1 and 2 are to provide (a) a table (`combinedDataTable`) with timeseries data from all data streams with a calculated `DerivedTime` value for each sample, and (b) tables with relevant metadata and settings which can be applied to select periods of interest in `combinedDataTable`. `DerivedTime` is created from the beginning of the first data stream to the end of the last data stream, in steps of 1/Fs of the time domain data stream (Fs = 250, 500, or 1000Hz). `CombinedDataTable` is filled with data from all datastreams; if there is not a sample for a given time step, the entry is filled with a NaN. Thus, this neuroscience-analysis-ready table can be quite large to store on disk (leading to prohibitively long read/write times for long recordings). Therefore, we have broken up processing into Part 1 and Part 2:
+
+**Part 1** Run `ProcessRCS.m`, which produces many outputs – a separate sparse matrix contains the numerical data for each data stream, a cell array with the column labels for each sparse matrix, a table for each data stream with the remaining non-numerical data that cannot be included in the sparse matrix, and tables with meta data and settings. By creating these sparse matrices, we drastically reduce file size for writing and subsequent reading from disk. If saving is indicated when running `ProcessRCS.m` (the default option), `AllDataTables.mat` is written to disk with all the output arguments. *However, we recommend users execute Part 2 prior to interacting with these data*. 
 
 ```[unifiedDerivedTimes, timeDomainData, timeDomainData_onlyTimeVariables, timeDomain_timeVariableNames, AccelData, AccelData_onlyTimeVariables, Accel_timeVariableNames,  PowerData, PowerData_onlyTimeVariables, Power_timeVariableNames, FFTData, FFTData_onlyTimeVariables, FFT_timeVariableNames, AdaptiveData, AdaptiveData_onlyTimeVariables, Adaptive_timeVariableNames, timeDomainSettings, powerSettings, fftSettings, eventLogTable, metaData, stimSettingsOut, stimMetaData, stimLogSettings, DetectorSettings, AdaptiveStimSettings, AdaptiveEmbeddedRuns_StimSettings] = ProcessRCS(pathName, processFlag, shortGaps_systemTick)```
 
@@ -81,6 +87,8 @@ Currently, time domain data are REQUIRED for processing to work. Other time seri
 
 See example scripts DEMO_LoadRCS.m and DEMO_LoadDebugTable.m
 
+`DerivedTime` and `localTime` in `combinedDataTable` are our best estimate to be compatible with `HostUnixTime` found in other tables (e.g. `stimLogSettings`, `stimSettingsOut`, `eventLogTable`, `DetectorSettings`, `Adaptive_StimSettings`, `AdaptiveEmbeddedRuns_StimSettings`), and can be used for subsequent analysis to extract data segments of interest.
+
 **Part 3**
 
 Plotting helper for RC+S files<br/>
@@ -98,6 +106,35 @@ There are 2 main "type" of methods in this function:<br/>
 Usage / Philosophy:<br/>
   
 This function creats an object of type "rcsPlotter" with several associated methods. Each type of data stream can be plotted without arguments in a new figure. However, the main utilty of the function is in stringing together several folders of RC+S data (for example recorded throughout a day) and easily plotting requested data streams (such as time domain, power and adaptive) in subplots. This is acheived by passing the subplot hanlde to the function.<br/>
+
+To get a list of 'rcsPlotter' methods type the command: <br/>
+```
+methods(rcsPlotter)
+```
+The primary reason for writing a class rather than a set of functions is to streamline intreracting with the data and common plotting functions. The basic usage consists of 3 steps:<br/>
+- 1: Initiate object: 
+```
+rc = rcsPlotter()
+```
+- 2: Add session folder (or folders) with RC+S .json data: 
+```
+rc.addFolder('/path/to/folder1'); 
+rc.addFolder('/path/to/folder2'); 
+```
+- 3: Load data (or folders): 
+```
+rc.loadData() 
+```
+All other plotting functions will then mostly consists of simple one-liner functions to plot common aspects of the data. 
+
+To print a full list of all available methods (plotting and reporting methods) associated with this class:
+```
+methods(rcsPlotter)
+```
+And for usage on any specific method (in example below, how to plot a time domain channel): 
+```
+rc.Help('plotTdChannel')
+```
         
  Some usage examples: 
  
@@ -139,7 +176,19 @@ Usage:
 
 **Part 4**
 
-Coming soon
+Analysis functions which rely on the data structure output from (Part 1) and (Part 2). The phylosophy here is to create functions that can be used for data analysis independent of the specific protocol / use case. A first example is presented with a subset of functions that can be used to calculate power from time domain neural data, by using using an equivalent (~same) fft process as the device (RC+S).
+
+***Part 4.1***
+Examples of calculation of Power from time domain signals using an equivalent (similar) fft process as the device (RC+S).
+- `getPowerfromTimeDomain`
+- `calculateNewPower`
+- `DEMO_CalculatePowerRCS.m`
+
+The `getPowerfromTimeDomain()` calculates the 'off-device' power using exactly the same fft and power settings as in the recording. It creates power outputs for all time domain channels and power bands using the harmonized times from combinedDataTable. In case there were changes on settings during recording session it gives user the option to also create a separate output that accounts for that information (first column 'recNum').
+
+The `calculateNewPower()` calculates 1 power output from 1 time domain channel given, either same fft settings as in the recording session or a new set of fft settings (fft interval, fft size, hann window), and passing the new frequency band limits [Lower Bound, Upper Bound].
+
+The `DEMO_CalculatePowerRCS.m` serves as an example of usability of these two functions (find example benchtop dataset on [testDataset](https://github.com/openmind-consortium/Analysis-rcs-data/tree/master/testDataSets/Benchtop/ToTestPowerCalc/DeviceNPC700378H).
 
 ## What is the RC+S native data format?
 The Medtronic API saves data into a session directory. There are 11 .json files which are created for each session, which contain both meta-data and numerical data. Out of the box, the size/duration of these files is limited by the battery powering the CTM. Unmodified, this battery lasts for 4-5 hours. The CTM can be modified to be powered with an external battery, leading to recording duration being limited by the INS (implanted neurostimulator) battery. The INS battery can stream for up to ~30 hours. 

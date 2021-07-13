@@ -15,7 +15,7 @@ function [TD_SettingsOut, Power_SettingsOut, FFT_SettingsOut, metaData] = create
 % Requires convertTDcodes.m
 %%
 % Load in DeviceSettings.json file
-DeviceSettings = jsondecode(fixMalformedJson(fileread([folderPath filesep 'DeviceSettings.json']),'DeviceSettings'));
+DeviceSettings = deserializeJSON([folderPath filesep 'DeviceSettings.json']);
 %%
 % Fix format - Sometimes device settings is a struct or cell array
 if isstruct(DeviceSettings)
@@ -33,6 +33,10 @@ metaData.batteryLevelPercent = DeviceSettings{1}.BatteryStatus.batteryLevelPerce
 metaData.batteryVoltage = DeviceSettings{1}.BatteryStatus.batteryVoltage;
 metaData.estimatedCapacity = DeviceSettings{1}.BatteryStatus.estimatedCapacity;
 metaData.batterySOC = DeviceSettings{1}.BatteryStatus.batterySOC;
+
+% Get actual amplifier gains
+ampGains = getActualAmplifierGains(folderPath);
+metaData.ampGains = ampGains;
 
 %%
 TD_SettingsTable = table(); % Initalize table
