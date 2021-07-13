@@ -20,16 +20,18 @@
 clear
 clc
 
-PATIENTID = 'CPRCS01'
+PATIENTID = 'RCS04L'
 % 'RCS02R'
 % 'CPRCS01';
-rootdir = '/Volumes/Prasad_X5/' ;
+% rootdir = '/Volumes/Prasad_X5/' ; 
+rootdir= '/Users/pshirvalkar/Desktop/';
 github_dir = '/Users/pshirvalkar/Documents/GitHub/UCSF-rcs-data-analysis';
 
 %%
 localrootdir = fullfile(rootdir,char(regexp(PATIENTID,'\w*\d\d','match'))); %match the PATIENTID up to 2 digits: ie RCS02
 scbsdir = fullfile(localrootdir,'/SummitData/SummitContinuousBilateralStreaming/', PATIENTID);
 aDBSdir = fullfile(localrootdir, '/SummitData/StarrLab/', PATIENTID);
+
 
 cd(github_dir)
 addpath(genpath(github_dir))
@@ -43,7 +45,7 @@ D = sorted_database;
 
 % find the rec # to load
 % recs_to_load = (381:392);
-recs_to_load= 421:423
+recs_to_load= 205:220;
 
 %% Process and load all data 
 
@@ -68,9 +70,9 @@ for d = recs_to_load
     else % process the data
         try
             clear combinedDataTable timeDomainData AccelData PowerData FFTData AdaptiveData *Settings
-%             [combinedDataTable, debugTable, timeDomainSettings,powerSettings,...
-%                 fftSettings,eventLogTable, metaData,stimSettingsOut,stimMetaData,stimLogSettings,...
-%                 DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = ProcessRCS(diruse,2);
+            [combinedDataTable, debugTable, timeDomainSettings,powerSettings,...
+                fftSettings,eventLogTable, metaData,stimSettingsOut,stimMetaData,stimLogSettings,...
+                DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = ProcessRCS(diruse,2);
 %        do not save  
 
 load(fullfile(diruse,'AllDataTables.mat'));
