@@ -6,7 +6,7 @@ clc
 
 % Input User Parameters
 saveFigure = 1;
-stringTitleInputSignal = 'Clay example XXX' % 'Benchtop sinusoidal s(n), 50 \muV, 20Hz';
+stringTitleInputSignal = 'Human Subject Dataset' % 'Benchtop sinusoidal s(n), 50 \muV, 20Hz';
 savedir = '~/Box/UCSF-RCS_Test_Datasets_Analysis-rcs-data-Code/For-Internal-Debugging/Benchtop/Power/DEBUGGING';
 firname = 'Figure_DS4';
 td_ch = 1
