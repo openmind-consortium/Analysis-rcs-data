@@ -12,7 +12,7 @@ clc
 PATIENTID = 'RCS02R'
 % 'RCS02R'
 % 'CPRCS01';
-rootdir = '/Volumes/Prasad_X5/' ;
+rootdir = '/Volumes/DBS Pain 3/' ;
 github_dir = '/Users/pshirvalkar/Documents/GitHub/UCSF-rcs-data-analysis';
 
 

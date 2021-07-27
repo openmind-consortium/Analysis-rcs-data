@@ -45,7 +45,7 @@ D = sorted_database;
 
 % find the rec # to load
 % recs_to_load = (381:392);
-recs_to_load= 205:220;
+recs_to_load= 205:206
 
 %% Process and load all data 
 
@@ -63,19 +63,26 @@ idx=1;
 for d = recs_to_load
     diruse = D.path{d};
 
-    fprintf('\n \n Reading Session Folder %d of %d  \n',d,size(D,1));
+    fprintf('\n \n Reading Session Folder %d of %d  \n',d,recs_to_load(end));
     if isempty(diruse) % no data exists inside
         fprintf('No data...\n');
         
     else % process the data
         try
             clear combinedDataTable timeDomainData AccelData PowerData FFTData AdaptiveData *Settings
-            [combinedDataTable, debugTable, timeDomainSettings,powerSettings,...
-                fftSettings,eventLogTable, metaData,stimSettingsOut,stimMetaData,stimLogSettings,...
-                DetectorSettings,AdaptiveStimSettings,AdaptiveRuns_StimSettings] = ProcessRCS(diruse,2);
+[unifiedDerivedTimes,...
+    timeDomainData, timeDomainData_onlyTimeVariables, timeDomain_timeVariableNames,...
+    AccelData, AccelData_onlyTimeVariables, Accel_timeVariableNames,...
+    PowerData, PowerData_onlyTimeVariables, Power_timeVariableNames,...
+    FFTData, FFTData_onlyTimeVariables, FFT_timeVariableNames,...
+    AdaptiveData, AdaptiveData_onlyTimeVariables, Adaptive_timeVariableNames,...
+    timeDomainSettings, powerSettings, fftSettings, eventLogTable,...
+    metaData, stimSettingsOut, stimMetaData, stimLogSettings,...
+    DetectorSettings, AdaptiveStimSettings, AdaptiveEmbeddedRuns_StimSettings,...
+    versionInfo] = ProcessRCS(diruse,2);
 %        do not save  
 
-load(fullfile(diruse,'AllDataTables.mat'));
+% load(fullfile(diruse,'AllDataTables.mat'));
 
 % Create unified table with selected data streams -- use timeDomain data as
 % time base
