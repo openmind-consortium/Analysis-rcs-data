@@ -82,7 +82,7 @@ td_rcs = transformTDtoRCS(keych,ampGains.(['Amp',num2str(newSettings.tdChannel)]
 % calcualte window overlap
 overlap = 1-((sr*interval/1e3)/fftSizeActual);
 % timeWin is now named L, number of time window points
-L = fftSizeActual; 
+L = fftSize; 
 % create Hann window points
 hann_win = hannWindow(L,fftSettings.fftConfig.windowLoad);
 % sample 1 of data set where window starts
@@ -97,14 +97,14 @@ while counter <= totalTimeWindows
     % check at least one time window available before reach end signal
     if stime+L <= length(t)
         % Apply fft of the next signal window
-        X = fft(td_rcs(stime:stime+L-1)'.*hann_win,fftSizeActual); 
+        X = fft(td_rcs(stime:stime+L-1)'.*hann_win,fftSize); 
         % From double to single sided FFT
         SSB = X(1:L/2); 
         % scaling step 1 (multiply by 2 bins 2 to end)
         SSB(2:end) = 2*SSB(2:end); 
         % scaling step 2 (scaling step 2, dividing by 1/2 fft size (L/2))
         YFFT = abs(SSB/(L/2));
-        % scaling step 3 (FFT Gain factor for a closer match to on-device power values)
+        % scaling ste 3 (for a closer match to on-device power values)
         fftPower = 2*(YFFT.^2); 
         % New values into output power variable (vector indexing is important for time alignment)
         newPower.calculatedPower(stime+L-1) = sum(fftPower(binStart:binEnd));

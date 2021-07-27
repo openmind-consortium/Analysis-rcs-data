@@ -1,5 +1,5 @@
 # Analysis-rcs-data
-Matlab functions and scripts to facilitate raw data extraction and subsequent visualizations and computations on data from Summit RC+S device. Initial processing includes extraction of .json raw data, transformation to .mat format, and combining multiple data streams and meta-data sources. This repo also contains plotting functionality which relies on this combined data structure, and additional processing modules (e.g. calculate power domain data from time domain). 
+Matlab functions and scripts to facilitate raw data extraction and subsequent visualizations and computations on data from Summit RC+S device. Initial processing includes extraction of .json raw data, transformation to .mat format, and combining multiple data streams and meta-data sources. This repo also contains plotting functionality which relies on this combined data structure, and additional processing modules (e.g. calculate power domain data from time domain). See published paper for more information about this repository: https://www.frontiersin.org/articles/10.3389/fnhum.2021.714256/full. Please cite this paper when using code from this repository.
 
 **Background**: UCSF teams are working with Summit RC+S (RCS) devices for adaptive neurostimulation and need a validated data analysis framework to further the research. 
 
