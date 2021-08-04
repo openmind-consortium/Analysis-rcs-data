@@ -11,7 +11,7 @@ eventLogTable = table();
 if ~isempty(eventLog)
     
     eventLogTable = table();
-    numRecords = size(eventLog,1);
+    numRecords = size(eventLog,2);
     for iRecord = 1:numRecords
         clear newEntry
         
