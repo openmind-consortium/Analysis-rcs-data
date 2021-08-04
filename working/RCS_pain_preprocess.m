@@ -4,33 +4,72 @@
 %
 % MUST USE MATLAB 2019a or earlier (given JSON issue)
 %
-% Prasad Shirvalkar Nov 11, 2020
+% Prasad Shirvalkar July 29 2021
 
 clear
 clc
 
-PATIENTID = 'RCS02R'
+PATIENTIDside =  'RCS04R'
 % 'RCS02R'
 % 'CPRCS01';
 rootdir = '/Volumes/DBS Pain 3/' ;
 github_dir = '/Users/pshirvalkar/Documents/GitHub/UCSF-rcs-data-analysis';
-
-
-%%
-localrootdir = fullfile(rootdir,char(regexp(PATIENTID,'\w*\d\d','match'))); %match the PATIENTID up to 2 digits: ie RCS02
-scbsdir = fullfile(localrootdir,'/SummitData/SummitContinuousBilateralStreaming/', PATIENTID);
-aDBSdir = fullfile(localrootdir, '/SummitData/StarrLab/', PATIENTID);
+patientrootdir = fullfile(rootdir,char(regexp(PATIENTIDside,'\w*\d\d','match'))); %match the PATIENTID up to 2 digits: ie RCS02
+scbsdir = fullfile(patientrootdir,'/SummitData/SummitContinuousBilateralStreaming/', PATIENTIDside);
+adbsdir = fullfile(patientrootdir, '/SummitData/StarrLab/', PATIENTIDside);
 
 cd(github_dir)
 addpath(genpath(github_dir))
 
 %% make database of all files
-D = makeDataBaseRCSdata(scbsdir,aDBSdir);
+[database_out,badsessions] = makeDataBaseRCSdata(patientrootdir,PATIENTIDside); % add AdaptiveData.Ld0_output
 
-%%  LOAD Database
-load(fullfile(scbsdir,[PATIENTID 'database_summary.mat'])) 
-D = sorted_database;
+%% compile text logs of all Adaptive/ Stim changes
+[textlog] = RCS_logs(rootdir,PATIENTIDside);
+ 
 
+%%  LOAD Database and Textlogs 
+load(fullfile(patientrootdir,[PATIENTIDside '_database.mat'])) 
+D = RCSdatabase_out;
+load(fullfile(patientrootdir,[PATIENTIDside '_textlogs.mat'])) 
+
+
+%% now search for when  program D was activated 
+% get time stamps for then, and switch to next program.  
+% then plot adaptive stim events between those  times 
+  textlog.adaptive.time.TimeZone = 'America/Los_Angeles';
+  close all
+for a = 1:height(textlog.groupchange)-1
+    
+   if strcmp(textlog.groupchange.group{a},'D')
+  
+       time1  = textlog.groupchange.time(a);
+       time2 = textlog.groupchange.time(a+1);
+  	
+        adbsIDX{a} = textlog.adaptive.time>= time1 & textlog.adaptive.time < time2;
+        if sum(adbsIDX{a})>0
+            disp(sum(adbsIDX{a}))
+%        plot(textlog.adaptive.detectionStatus(adbsIDX{a}));
+%        pause(1)
+%        close
+%         a
+        end
+        
+   end
+   
+    
+    
+end
+
+
+
+% Plot
+% 1. distribution of powers, with percentiles (with actual threshold over)
+% 2. percent of time stim on  
+% 3. TEED
+% 4. Avg time above and below threshold
+% 5. pain scores reported during each segment (group D but also other
+% groups/ sessions)
 %% Process and load all data - skip if mat already exists
 
 dirsdata = findFilesBVQX(scbsdir,'Sess*',struct('dirs',1,'depth',1));
@@ -59,7 +98,10 @@ for d = 1:numel(dirsdata)
 end
 
     disp('DONE!')
-%%  Get files from DB load raw data and concatenate 
+%%  Get files from DB and find where group D is active during recording, 
+% load raw data and concatenate and plot
+
+
 load(fullfile(scbsdir,[PATIENTID 'database_summary.mat'])) 
 D = database_out;
 
