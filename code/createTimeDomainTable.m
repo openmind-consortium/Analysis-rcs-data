@@ -36,7 +36,7 @@ for p = 1:size(dataSizes,1)
     packetidx = currentIndex;  % the time is always associated with the last sample in the packet
     samples = TDdat.TimeDomainData(p).ChannelSamples;
     nchan =  nChans(p,1);
-    for c = 1:size(samples,2)
+    for c = 1:length(samples)
         idxuse = samples(c).Key+1;% bcs keys (channels) are zero indexed
         outdat(rowidx,idxuse) = samples(c).Value;
     end
