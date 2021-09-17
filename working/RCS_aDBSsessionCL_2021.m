@@ -3,7 +3,7 @@
 % RCS
 %
 % This script performs the following basic analyses of power channel data
-% for RCS data
+% for RCS data using aDBS single sessions
 %
 % 1. Load data
 % 2. plot or image the actual power channels recorded in the session (PWR)

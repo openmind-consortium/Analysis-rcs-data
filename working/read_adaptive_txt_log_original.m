@@ -1,4 +1,4 @@
-function [adaptiveLogTable, rechargeSessions, groupChanges,adaptiveDetectionEvents] = read_adaptive_txt_log(fn)
+function [adaptiveLogTable, rechargeSessions, groupChanges,adaptiveDetectionEvents] = read_adaptive_txt_log_original(fn)
 % clc; close all;
 % initialize table
 adaptiveLogTable = table();

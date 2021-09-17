@@ -1231,7 +1231,7 @@ classdef rcsPlotter < handle
                     % only plot the gaps 
                     imAlpha=ones(size(idxnan'));
                     imAlpha(~idxnan')=0;                    
-                    hImg = imagesc(idxnan','AlphaData',imAlpha,'XData',x);
+                    hImg = imagesc(hAxes,idxnan','AlphaData',imAlpha,'XData',x);
 
                     
                     % get settings
@@ -1291,7 +1291,11 @@ classdef rcsPlotter < handle
             % rc.plotTdChannelSpectral(1); 
             % 
             % note that default spect params are chosen 
-            % and missing data is handeled in specific manner 
+            % and missing data is handeled in specific manner
+            %
+            % Update Sep 14, 2021 - Prasad
+            %             I eliminated Gaps in plotted spectrogram plots as this
+            %             eliminates useful data when gaps very small (< 200msec)
             
             %% XXXX function not ready yet 
             if nargin == 1
@@ -1373,12 +1377,17 @@ classdef rcsPlotter < handle
                     spectTimes = dt.localTime(1) + seconds(ttt);
                     
                     localTime = dt.localTime;
-                    for te = 1:size(idxgapStart,1)
-                        timeGap(te,1) = localTime(idxgapStart(te)) - (windowInSec + params.paddingGap);
-                        timeGap(te,2) = localTime(idxgapEnd(te))   + (windowInSec + params.paddingGap);
-                        idxBlank = spectTimes >= timeGap(te,1) & spectTimes <= timeGap(te,2);
-                        ppp(:,idxBlank) = NaN;
-                    end
+                    
+%                     The following adds white gaps to the spectrogram,
+%                     which eliminates useful data if gaps are very small
+
+% COMMENTED OUT (can comment in to plot gaps)
+%                     for te = 1:size(idxgapStart,1)
+%                         timeGap(te,1) = localTime(idxgapStart(te)) - (windowInSec + params.paddingGap);
+%                         timeGap(te,2) = localTime(idxgapEnd(te))   + (windowInSec + params.paddingGap);
+%                         idxBlank = spectTimes >= timeGap(te,1) & spectTimes <= timeGap(te,2);
+%                         ppp(:,idxBlank) = NaN;
+%                     end
                     
                     imAlpha=ones(size(ppp'));
                     imAlpha(isnan(ppp'))=0;
@@ -1392,26 +1401,14 @@ classdef rcsPlotter < handle
                     size(isnan(ppp(:,1)))
                     
                     allPCS = ppp(:,~isnan(ppp(1,:)));
-                    
-%                     hImg = imagesc(hAxes, log10(IblurY2));
-%                     caxis(hAxes,log10([min(allPCS(:)) max(allPCS(:))]));
-                    % add a datatip 
-%                     hfig = get(hAxes,'Parent');
-%                     h = datacursormode(hfig);
-%                     set(h, 'Enable', 'on')
-                    
-                    % Here I have to pass the `clims` because I can't fetch them inside
-%                     h.UpdateFcn = @addDataTipSpectral;
-
-                    
-%                     shading(hAxes,'interp');
+         
                     % get settings
                     tdSettings = obj.Data(i).timeDomainSettings;
                     chanfn = sprintf('chan%d',chan);
                     title(tdSettings.(chanfn){1},'Parent',hAxes);
                     
                     set(hAxes,'YDir','normal')
-                    yticks = [4 12 30 50 60 65 70 75 80 100];
+                    yticks = [4 12 30 50 60 70 80 100];
                     tickLabels = {};
                     ticksuse = [];
                     for yy = 1:length(yticks)
@@ -2135,7 +2132,7 @@ classdef rcsPlotter < handle
             if nargin == 2
                 hAxes = varargin{1};
             end
-            hold(hAxes,'on');
+            hold(hAxes,'on');   
             hold(hAxes,'on');
             for i = 1:obj.NumberOfSessions
                 if ~isempty(obj.Data)
@@ -2198,17 +2195,20 @@ classdef rcsPlotter < handle
             %
             %% usage:
             %
-            % rc.plotActigraphyRms(1); 
-            % 
-
+            % rc.plotActigraphyRms(1);
+            %
             if nargin == 1
+                error('select at least one program (int starts at zero)');
+            end
+            if nargin == 2
                 hfig = figure;
                 hfig.Color = 'w';
                 hAxes = subplot(1,1,1);
             end
-            if nargin == 2
-                hAxes = varargin{1};
+            if nargin == 3
+                hAxes = varargin{2};
             end
+            hold(hAxes,'on');
             hold(hAxes,'on');
             for i = 1:obj.NumberOfSessions
                 if ~isempty(obj.Data(i))
@@ -2969,42 +2969,42 @@ classdef rcsPlotter < handle
                 timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','minute');
                 xticks = datenum(timeStart : seconds(15) : timeEnd);
                 hax.XTick = xticks;
-                datetick('x','HH:MM:SS.FFF','keepticks','keeplimits');
+                datetick(hax,'x','HH:MM:SS.FFF','keepticks','keeplimits');
                 
             elseif plottedDuration >= minutes(1) & plottedDuration < minutes(5)
                 timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','minute');
                 timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','minute');
                 xticks = datenum(timeStart : minutes(1) : timeEnd);
                 hax.XTick = xticks;
-                datetick('x','HH:MM:SS','keepticks','keeplimits');
+                datetick(hax,'x','HH:MM:SS','keepticks','keeplimits');
                 
             elseif plottedDuration >= minutes(5) & plottedDuration < minutes(20)
                 timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','hour');
                 timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','hour');
-                xticks = datenum(timeStart : minutes(2) : timeEnd);
+                xticks = datenum(timeStart : minutes(1) : timeEnd);
                 hax.XTick = xticks;
-                datetick('x','HH:MM','keepticks','keeplimits');
+                datetick(hax,'x','HH:MM:SS','keepticks','keeplimits');
                 
             elseif plottedDuration >= minutes(20) & plottedDuration < minutes(60)
                 timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','hour');
                 timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','hour');
                 xticks = datenum(timeStart : minutes(10) : timeEnd);
                 hax.XTick = xticks;
-                datetick('x','HH:MM','keepticks','keeplimits');
+                datetick(hax,'x','HH:MM','keepticks','keeplimits');
                 
             elseif plottedDuration >= minutes(60) & plottedDuration < minutes(60*2)
                 timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','hour');
                 timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','hour');
                 xticks = datenum(timeStart : minutes(15) : timeEnd);
                 hax.XTick = xticks;
-                datetick('x','HH:MM','keepticks','keeplimits');
+                datetick(hax,'x','HH:MM','keepticks','keeplimits');
                 
             elseif plottedDuration > minutes(60*2)
                 timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','hour');
                 timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','hour');
                 xticks = datenum(timeStart : minutes(30) : timeEnd);
                 hax.XTick = xticks;
-                datetick('x','HH:MM','keepticks','keeplimits');    
+                datetick(hax,'x','HH:MM','keepticks','keeplimits');    
             end
             
             

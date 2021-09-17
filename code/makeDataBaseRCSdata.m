@@ -7,48 +7,67 @@ function [RCSdatabase_out,varargout] = makeDataBaseRCSdata(dirname,PATIENTIDside
 % INPUT:   DIRNAME should be the root folder of the Session Files (e.g. SCBS folder)
 %               e.g. DIRNAME = '/Desktop/[PATIENTID]/'
 %               e.g. DIRNAME = '/Volumes/Prasad_X5/RCS02/;
-%          
+%
 %          (OPTIONAL)
 %           DIRNAME2 can be input if there is another folder location to use (e.g. 'aDBS folder')
-% 
-% 
+%
+%
 % OUTPUT:   sorted_database is a table with fields ordered in importance, which will
 %            be saved as a mat file and csv to DIRNAME
-%   
+%
 %           (OPTIONAL)
 %           SECOND OUTPUT could be provided to collect list of bad sessions
 %           (e.g. those with no data in Jsons)
 %
 %          Included fields are:
-%    [{'rec'}; {'time'}; {'sessname'  };  {'duration'  }; ...
-%     {'battery'   };{'TDfs'      };{'TDchan0'};{'TDchan1'};{'TDchan2'};{'TDchan3'};{'fft'};
-%     {'power'     };{'stim'    };   {'stimName'  }; ...
-%     {'stimparams'};   {'matExist'  };  {'path'};  {'powerbands'}];
+%     'rec',[],...
+%     'time',[],...
+%     'sessname',[],...
+%     'duration',[],...
+%     'battery',[],...
+%     'TDfs',[],...
+%     'fft',[],...
+%     'power',[],...
+%     'stim',[],...
+%     'stimName',[],...
+%     'stimparams',[],...
+%     'matExist',[],...
+%     'path',[],...
+%     'powerbands',[],...
+%     'aDBS',[],...
+%     'adaptive_threshold',[],...
+%     'adaptive_onset_dur',[],...
+%     'adaptive_termination_dur',[],...
+%     'adaptive_states',[],...
+%     'adaptive_weights',[],...
+%     'adaptive_updaterate',[],...
+%     'adaptive_pwrinputchan',[]);
+% % 
+% ***** NOTE THAT ONLY LD0 data is populated in the adaptive fields ******
 %
 %
-% 
 %  USING CELL DATA IN THE TABLE:
 %       to concatenate all cell variables in the table (such as duration)
 %       use:
 %           alldurations =cat(1,database_out.duration{:})
 %
-% 
-% 
-% 
-% 
+%
+%
 % Depedencies:
 % https://github.com/JimHokanson/turtle_json
 % in the a folder called "toolboxes" in the same directory as the processing scripts
 %
 %
-% Prasad Shirvalkar July 29 2021
+% Prasad Shirvalkar Sep 13,2021
 % For OpenMind
+
+
 tic
 
-%  Define the directories to search in (SCBS and aDBS) 
+%  Define the directories to search in (SCBS and aDBS)
 scbsdir = fullfile(dirname,'/SummitData/SummitContinuousBilateralStreaming/', PATIENTIDside);
 adbsdir = fullfile(dirname, '/SummitData/StarrLab/', PATIENTIDside);
-    
+
 dirsdata1 = findFilesBVQX(scbsdir,'Sess*',struct('dirs',1,'depth',1));
 dirsdata2 =  findFilesBVQX(adbsdir,'Sess*',struct('dirs',1,'depth',1));
 dirsdata = [dirsdata1;dirsdata2];
@@ -68,35 +87,41 @@ dbout = struct('rec',[],...
     'matExist',[],...
     'path',[],...
     'powerbands',[],...
-'aDBS',[]);
-    
+    'aDBS',[],...
+    'adaptive_threshold',[],...
+    'adaptive_onset_dur',[],...
+    'adaptive_termination_dur',[],...
+    'adaptive_states',[],...
+    'adaptive_weights',[],...
+    'adaptive_pwrinputchan',[],...
+    'adaptive_updaterate',[]);
 
 %%
 % insert section here to load old database, and just add rows to it if
-% needed, so as not to replicate whole thing.  
-% Can be turned off with third input 'ignoreold' 
+% needed, so as not to replicate whole thing.
+% Can be turned off with third input 'ignoreold'
 
 
 
-%% 
+%%
 for d = 1:length(dirsdata)
     diruse = findFilesBVQX(dirsdata{d},'Device*',struct('dirs',1,'depth',1));
     
-   if nargin==2 &&  d > numel(dirsdata1)
-       dbout(d).aDBS = 1;
-   else 
-       dbout(d).aDBS= 0;
-   end
-   
+    if nargin==2 &&  d > numel(dirsdata1)
+        dbout(d).aDBS = 1;
+    else
+        dbout(d).aDBS= 0;
+    end
+    
     fprintf('Reading folder %d of %d  \n',d,length(dirsdata))
     if isempty(diruse) % no data exists inside
-%         dbout(d).rec = d;
+        %         dbout(d).rec = d;
         dbout(d).time = [];
         dbout(d).matExist  = 0;
         [~,fn] = fileparts(dirsdata{d});
         dbout(d).sessname = fn;
     else % data may exist, check for time domain data
-%         dbout(d).rec = d;
+        %         dbout(d).rec = d;
         
         tdfile = findFilesBVQX(dirsdata{d},'EventLog.json');
         tdir = dir(tdfile{1});
@@ -117,6 +142,9 @@ for d = 1:length(dirsdata)
                 [devicepath,~,~]= fileparts(settingsfile{1});
                 [timeDomainSettings, powerSettings, fftSettings, metaData] = createDeviceSettingsTable(devicepath);
                 
+                
+                
+                
                 %                 Get recording start time/ duration
                 startTime = timeDomainSettings.timeStart;
                 timeFormat = sprintf('%+03.0f:00',metaData.UTCoffset);
@@ -124,7 +152,10 @@ for d = 1:length(dirsdata)
                 dbout(d).time = startTimeDt;
                 dbout(d).duration = duration(seconds(timeDomainSettings.duration/1000),'Format','hh:mm:ss.SSS');
                 
-                %                 Get time domain info
+                
+                
+                
+                %                 Get time domain sensing info
                 dbout(d).TDfs = timeDomainSettings.samplingRate;
                 dbout(d).TDchan0= timeDomainSettings.chan1{1};
                 dbout(d).TDchan1= timeDomainSettings.chan2{1};
@@ -132,7 +163,10 @@ for d = 1:length(dirsdata)
                 dbout(d).TDchan3= timeDomainSettings.chan4{1};
                 dbout(d).battery = metaData.batteryLevelPercent;
                 
-                %                  Get FFT info
+                
+                
+                
+                %                  Get FFT length info
                 try
                     if ~isnan(fftSettings.recNum)
                         dbout(d).fft = fftSettings.fftConfig.size;
@@ -141,7 +175,8 @@ for d = 1:length(dirsdata)
                 end
                 
                 
-                %               Get power info
+                
+                %               Get powerbands and whether recorded info
                 try
                     if ~isnan(powerSettings.recNum)
                         dbout(d).power = 1 ;
@@ -152,9 +187,31 @@ for d = 1:length(dirsdata)
                 
                 
                 
+                %             get Adaptive settings info
+                [DetectorSettings,~,AdaptiveEmbeddedRuns_StimSettings] = createAdaptiveSettingsfromDeviceSettings(devicepath);
+                
+                % Look for sessions where the embedded was turned on in the
+                % last subsession
+                any_embed = strcmp('Embedded',AdaptiveEmbeddedRuns_StimSettings.adaptiveMode(end));
+                
+                if any_embed
+                    dbout(d).adaptive_states=AdaptiveEmbeddedRuns_StimSettings.states(end);
+                    dbout(d).adaptive_onset_dur = DetectorSettings.Ld0.onsetDuration;
+                    dbout(d).adaptive_termination_dur = DetectorSettings.Ld0.terminationDuration;
+                    dbout(d).adaptive_weights(1:4) = cat(1,DetectorSettings.Ld0.features.weightVector);
+                    dbout(d).adaptive_pwrinputchan = DetectorSettings.Ld0.detectionInputs_BinaryCode  ;
+                    dbout(d).adaptive_threshold = DetectorSettings.Ld0.biasTerm;
+                    dbout(d).adaptive_updaterate = DetectorSettings.Ld0.updateRate;
+                end
+                
+                
+                
                 %             get stim settings
                 [stimSettingsOut, stimMetaData] = createStimSettingsFromDeviceSettings(devicepath);
                 dbout(d).stim = stimSettingsOut.therapyStatus;
+                
+                
+                
                 
             catch
             end
@@ -179,8 +236,6 @@ for d = 1:length(dirsdata)
                 
             catch
             end
-            
-            
             
             
             
@@ -210,7 +265,7 @@ end
 database_out = struct2table(dbout,'AsArray',true);
 sorted_database = sortrows(database_out,3); %sorting by session name
 sorted_database.rec = (1:size(sorted_database,1))';
-  
+
 %% clear empty session rows and assign to new variable 'badsessions'
 loc = cellfun('isempty', sorted_database{:,'time'});
 badsessions = sorted_database(loc,:);
@@ -231,7 +286,7 @@ for rowidx = 1:size(sorted_database, 1)
             end
             
             expanded_database.rec(end) = tmp_row.rec + (new_row/10); %(this will make the entry numbered for subsessions like 2.1,2.2 etc.)
-     
+            
         end
     else  % print the single value  if only one entry per session\
         
@@ -240,8 +295,8 @@ for rowidx = 1:size(sorted_database, 1)
             expanded_database{end, col_name}{1} = expanded_database{end, col_name}{1}(1);
         end
         
-
-
+        
+        
     end
 end
 
@@ -258,7 +313,7 @@ RCSdatabase_out = table2timetable(expanded_database); % rename output for clarit
 if nargout == 2
     varargout{1} = badsessions;
 end
-% 
+%
 
 % Rename file to include patient ID
 [~,PtIDside]=fileparts(scbsdir);
