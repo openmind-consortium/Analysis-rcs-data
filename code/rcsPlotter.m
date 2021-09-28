@@ -2124,16 +2124,17 @@ classdef rcsPlotter < handle
             %
             % rc.plotAdaptiveState(1); 
 
-            if nargin == 1
+            if nargin <= 2
                 hfig = figure;
                 hfig.Color = 'w';
                 hAxes = subplot(1,1,1);
             end
-            if nargin == 2
-                hAxes = varargin{1};
+            if nargin == 3
+                hAxes = varargin{2};
             end
             hold(hAxes,'on');   
             hold(hAxes,'on');
+            
             for i = 1:obj.NumberOfSessions
                 if ~isempty(obj.Data)
                     dt = obj.Data(i).combinedDataTable;

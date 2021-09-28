@@ -1,4 +1,4 @@
-function [RCSdatabase_out,varargout] = makeDataBaseRCSdata(dirname,PATIENTIDside)
+function [RCSdatabase_out,varargout] = makeDataBaseRCSdata(dirname,PATIENTIDside,varargin)
 % function database_out = makeDataBaseRCSdata(dirname)
 %
 %
@@ -8,11 +8,16 @@ function [RCSdatabase_out,varargout] = makeDataBaseRCSdata(dirname,PATIENTIDside
 %               e.g. DIRNAME = '/Desktop/[PATIENTID]/'
 %               e.g. DIRNAME = '/Volumes/Prasad_X5/RCS02/;
 %
-%          (OPTIONAL)
-%           DIRNAME2 can be input if there is another folder location to use (e.g. 'aDBS folder')
+%
+%           PATIENTIDside = should specify what the Patient ID name is, and
+%           should be same as subfolder (e.g. 'RCS02R')
+% 
+%           (OPTIONAL INPUT) 'ignoreold' will ignore old databases and
+%           start fresh
+% 
 %
 %
-% OUTPUT:   sorted_database is a table with fields ordered in importance, which will
+% OUTPUT:   RCSdatabase_out is a table with fields ordered in importance, which will
 %            be saved as a mat file and csv to DIRNAME
 %
 %           (OPTIONAL)
@@ -42,7 +47,7 @@ function [RCSdatabase_out,varargout] = makeDataBaseRCSdata(dirname,PATIENTIDside
 %     'adaptive_weights',[],...
 %     'adaptive_updaterate',[],...
 %     'adaptive_pwrinputchan',[]);
-% % 
+% %
 % ***** NOTE THAT ONLY LD0 data is populated in the adaptive fields ******
 %
 %
@@ -52,6 +57,11 @@ function [RCSdatabase_out,varargout] = makeDataBaseRCSdata(dirname,PATIENTIDside
 %           alldurations =cat(1,database_out.duration{:})
 %
 %
+%  **** This will check to see if there is an existing database, if so, it will
+%  update that database table.
+%  *****
+%
+%
 %
 % Depedencies:
 % https://github.com/JimHokanson/turtle_json
@@ -59,7 +69,7 @@ function [RCSdatabase_out,varargout] = makeDataBaseRCSdata(dirname,PATIENTIDside
 %
 %
 % Prasad Shirvalkar Sep 13,2021
-% For OpenMind
+
 
 
 tic
@@ -100,6 +110,24 @@ dbout = struct('rec',[],...
 % insert section here to load old database, and just add rows to it if
 % needed, so as not to replicate whole thing.
 % Can be turned off with third input 'ignoreold'
+[~,PtIDside]=fileparts(scbsdir);
+outputFileName = fullfile(dirname,[PtIDside '_database.mat']);
+
+
+if isfile(outputFileName) && nargin<3
+    disp('Loading previously saved database');
+    D = load(outputFileName,'RCSdatabase_out','badsessions');
+    old_database = D.RCSdatabase_out;
+    oldsess = D.RCSdatabase_out.sessname;
+    oldbadsess = D.badsessions.sessname;
+    olddirs = contains(dirsdata,oldsess) | contains(dirsdata,oldbadsess) ;
+    dirsdata(olddirs)= [];
+    
+else
+    old_database= [];
+end
+
+
 
 
 
@@ -120,19 +148,24 @@ for d = 1:length(dirsdata)
         dbout(d).matExist  = 0;
         [~,fn] = fileparts(dirsdata{d});
         dbout(d).sessname = fn;
+        disp('no data.. moving on');
+        
     else % data may exist, check for time domain data
         %         dbout(d).rec = d;
         
         tdfile = findFilesBVQX(dirsdata{d},'EventLog.json');
-        tdir = dir(tdfile{1});
         
-        [pn,fn] = fileparts(dirsdata{d});
-        dbout(d).sessname = fn;
-        [path,~,~] = fileparts(tdfile{1});
-        dbout(d).path = path;
         
-        if isempty(tdfile) || tdir.bytes < 300 % time data file doesn't exist or no data
-        else
+        %         tdir = dir(tdfile{1});
+        
+        
+        if ~isempty(tdfile)  % time data file doesn't exists and real data
+            
+            %
+            [~,fn] = fileparts(dirsdata{d});
+            dbout(d).sessname = fn;
+            [path,~,~] = fileparts(tdfile{1});
+            dbout(d).path = path;
             
             
             % extract times and .mat status
@@ -263,6 +296,8 @@ for d = 1:length(dirsdata)
 end
 
 database_out = struct2table(dbout,'AsArray',true);
+% delete all rows with empty session names ( WHY DOES THIS OCCUR?)
+database_out = database_out(cellfun(@(x) ~isempty(x),database_out.sessname),:);
 sorted_database = sortrows(database_out,3); %sorting by session name
 sorted_database.rec = (1:size(sorted_database,1))';
 
@@ -303,11 +338,24 @@ end
 % expand all variables for each row
 expanded_database.time = transpose([expanded_database.time{:, 1}]);
 expanded_database.duration = transpose([expanded_database.duration{:, 1}]);
-expanded_database.TDfs = transpose([expanded_database.TDfs{:, 1}]);
-
+% expanded_database.TDfs = transpose([expanded_database.TDfs{:, 1}]);
 expanded_database = movevars(expanded_database, {'TDchan0', 'TDchan1', 'TDchan2', 'TDchan3'}, 'After', 'TDfs');
 
 RCSdatabase_out = table2timetable(expanded_database); % rename output for clarity
+
+%% COMBINE WITH OLD DATABASE
+% IF the old database existed, recombine with new database and sort it
+if ~isempty(old_database)
+    new_database_out = [old_database;RCSdatabase_out];
+    new_sorted_database = sortrows(new_database_out,2); %sorting by session name
+    new_sorted_database.rec = (1:size(new_sorted_database,1))';
+    
+    badsessions = [D.badsessions;badsessions];
+    
+    clear RCSdatabase_out
+    RCSdatabase_out = new_sorted_database;  %already a timetable
+    
+end
 
 
 if nargout == 2
@@ -316,8 +364,7 @@ end
 %
 
 % Rename file to include patient ID
-[~,PtIDside]=fileparts(scbsdir);
-writetable(expanded_database,fullfile(dirname,[PtIDside '_database.csv']))
+writetimetable(RCSdatabase_out,fullfile(dirname,[PtIDside '_database.csv']))
 save(fullfile(dirname,[PtIDside '_database.mat']),'RCSdatabase_out','badsessions')
 fprintf('csv and mat of database saved as %s to %s \n',[PtIDside '_database.mat'],dirname);
 

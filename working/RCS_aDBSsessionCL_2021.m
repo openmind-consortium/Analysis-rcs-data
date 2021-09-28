@@ -13,56 +13,58 @@
 % spent ABOVE and BELOW threshold are (to help determine ONSET and OFFSET
 % times)
 %
-% Prasad FEB 2021
-% 
+% Prasad SEP 2021
+%
 
 % DECLARE YOUR PERSONAL PATHS HERE YO!
+
 clear
 clc
 
-PATIENTID = 'RCS04L'
+PATIENTIDside =  'RCS02R'
 % 'RCS02R'
 % 'CPRCS01';
-% rootdir = '/Volumes/Prasad_X5/' ; 
-rootdir= '/Users/pshirvalkar/Desktop/';
+rootdir = '/Volumes/PrasadX5/' ;
 github_dir = '/Users/pshirvalkar/Documents/GitHub/UCSF-rcs-data-analysis';
-
-%%
-localrootdir = fullfile(rootdir,char(regexp(PATIENTID,'\w*\d\d','match'))); %match the PATIENTID up to 2 digits: ie RCS02
-scbsdir = fullfile(localrootdir,'/SummitData/SummitContinuousBilateralStreaming/', PATIENTID);
-aDBSdir = fullfile(localrootdir, '/SummitData/StarrLab/', PATIENTID);
-
+patientrootdir = fullfile(rootdir,char(regexp(PATIENTIDside,'\w*\d\d','match'))); %match the PATIENTID up to 2 digits: ie RCS02
+scbsdir = fullfile(patientrootdir,'/SummitData/SummitContinuousBilateralStreaming/', PATIENTIDside);
+adbsdir = fullfile(patientrootdir, '/SummitData/StarrLab/', PATIENTIDside);
 
 cd(github_dir)
 addpath(genpath(github_dir))
 
 %% make database of all files
-D = makeDataBaseRCSdata(scbsdir,aDBSdir);
+[database_out,badsessions] = makeDataBaseRCSdata(patientrootdir,PATIENTIDside); % add AdaptiveData.Ld0_output
 
 %%  LOAD Database
-load(fullfile(scbsdir,[PATIENTID 'database_summary.mat'])) 
-D = sorted_database;
+load(fullfile(patientrootdir,[PATIENTIDside '_database.mat']))
+D = RCSdatabase_out;
+%%  LOAD DATA of interest, Concatenate it, and KEEP in temporary Variables
+ 
 
 % find the rec # to load
 % recs_to_load = (381:392);
-recs_to_load= 205:206
+recs_to_load= 913
 
-%% Process and load all data 
+
 
 
 % find out if a mat file was already created in this folder
 % if so, just an update is needed and will not recreate mat file
-catPWR.ch1=[];
-catPWR.ch2=[];
+clear cat* ch* Pwr*
 catPWR.time=[];
 catPWRmeta=[];
 catLD0 = [];
 catLD0time = [];
 catstate = [];
+for p1=1:8
+    catPWR.(['ch' num2str(p1)]) = [];
+end
+
 idx=1;
 for d = recs_to_load
     diruse = D.path{d};
-
+    
     fprintf('\n \n Reading Session Folder %d of %d  \n',d,recs_to_load(end));
     if isempty(diruse) % no data exists inside
         fprintf('No data...\n');
@@ -70,81 +72,105 @@ for d = recs_to_load
     else % process the data
         try
             clear combinedDataTable timeDomainData AccelData PowerData FFTData AdaptiveData *Settings
-[unifiedDerivedTimes,...
-    timeDomainData, timeDomainData_onlyTimeVariables, timeDomain_timeVariableNames,...
-    AccelData, AccelData_onlyTimeVariables, Accel_timeVariableNames,...
-    PowerData, PowerData_onlyTimeVariables, Power_timeVariableNames,...
-    FFTData, FFTData_onlyTimeVariables, FFT_timeVariableNames,...
-    AdaptiveData, AdaptiveData_onlyTimeVariables, Adaptive_timeVariableNames,...
-    timeDomainSettings, powerSettings, fftSettings, eventLogTable,...
-    metaData, stimSettingsOut, stimMetaData, stimLogSettings,...
-    DetectorSettings, AdaptiveStimSettings, AdaptiveEmbeddedRuns_StimSettings,...
-    versionInfo] = ProcessRCS(diruse,2);
-%        do not save  
-
-% load(fullfile(diruse,'AllDataTables.mat'));
-
-% Create unified table with selected data streams -- use timeDomain data as
-% time base
-dataStreams = {timeDomainData, AccelData, PowerData, FFTData, AdaptiveData};
-[combinedDataTable] = createCombinedTable(dataStreams,unifiedDerivedTimes,metaData);
- 
+            [unifiedDerivedTimes,...
+                timeDomainData, timeDomainData_onlyTimeVariables, timeDomain_timeVariableNames,...
+                AccelData, AccelData_onlyTimeVariables, Accel_timeVariableNames,...
+                PowerData, PowerData_onlyTimeVariables, Power_timeVariableNames,...
+                FFTData, FFTData_onlyTimeVariables, FFT_timeVariableNames,...
+                AdaptiveData, AdaptiveData_onlyTimeVariables, Adaptive_timeVariableNames,...
+                timeDomainSettings, powerSettings, fftSettings, eventLogTable,...
+                metaData, stimSettingsOut, stimMetaData, stimLogSettings,...
+                DetectorSettings, AdaptiveStimSettings, AdaptiveEmbeddedRuns_StimSettings,...
+                versionInfo] = ProcessRCS(diruse,3);
+            %        do not save
             
-               
-        catPWRmeta(idx).bands=powerSettings.powerBands.powerBandsInHz;
-        catPWRmeta(idx).ch = {timeDomainSettings.chan1{1},timeDomainSettings.chan2{1},timeDomainSettings.chan3{1},timeDomainSettings.chan4{1}};
-        catPWR.ch1 = [catPWR.ch1;combinedDataTable.Power_Band1(~isnan(combinedDataTable.Power_Band1))];
-        catPWR.ch2 = [catPWR.ch2;combinedDataTable.Power_Band2(~isnan(combinedDataTable.Power_Band1))];
-        catPWR.time = [catPWR.time;combinedDataTable.localTime(~isnan(combinedDataTable.Power_Band1))];
-        catLD0 = [catLD0;combinedDataTable.Adaptive_Ld0_output(~isnan(combinedDataTable.Power_Band1))];
-        catLD0time= [catLD0time;combinedDataTable.localTime(~isnan(combinedDataTable.Power_Band1))];
-        catstate = [catstate;combinedDataTable.Adaptive_CurrentAdaptiveState(~isnan(combinedDataTable.Power_Band1))];
-         
-           idx=idx+1;
-           disp('file read')
+            % load(fullfile(diruse,'AllDataTables.mat'));
+            
+            % Create unified table with selected data streams -- use timeDomain data as
+            % time base
+            dataStreams = {timeDomainData, AccelData, PowerData, FFTData, AdaptiveData};
+            [combinedDataTable] = createCombinedTable(dataStreams,unifiedDerivedTimes,metaData);
+
+            catPWRmeta(idx).bands=powerSettings.powerBands.powerBandsInHz;
+            catPWRmeta(idx).ch = {timeDomainSettings.chan1{1},timeDomainSettings.chan2{1},timeDomainSettings.chan3{1},timeDomainSettings.chan4{1}};
+            catPWR.time = [catPWR.time;combinedDataTable.localTime(~isnan(combinedDataTable.Power_Band1))];
+            catLD0 = [catLD0;combinedDataTable.Adaptive_Ld0_output(~isnan(combinedDataTable.Power_Band1))];
+            catLD0time= [catLD0time;combinedDataTable.localTime(~isnan(combinedDataTable.Power_Band1))];
+            catstate = [catstate;combinedDataTable.Adaptive_CurrentAdaptiveState(~isnan(combinedDataTable.Power_Band1))];
+            
+            catPWR.ld0 = catLD0;
+            catPWR.ld0time = catLD0time;
+            catPWR.state = catstate; %convert this to numbers and nan for no state
+            
+            chpat  = '^(+)\d*-\d*';
+            chidx = [1,1,2,2,3,3,4,4];
+            
+            for p1 = 1:8
+                
+                catPWR.(['ch' num2str(p1)]) = [catPWR.(['ch' num2str(p1)]);combinedDataTable.(['Power_Band' num2str(p1)])(~isnan(combinedDataTable.Power_Band1))];
+                ch_name = regexp(catPWRmeta.ch{chidx(p1)},chpat,'match');
+                PwrChan{p1}  = [ch_name{1} '  ' catPWRmeta.bands{p1}];
+                
+                if p1 < 5 % first four power bands
+                 chloc{p1} = [metaData.leadLocations{1}(1:5) ' '  metaData.leadTargets{1}];
+                else
+                  chloc{p1} = [metaData.leadLocations{3}(1:5) ' '  metaData.leadTargets{3}];  
+                end
+                
+                 
+            end
+            
+            PwrChan = cellstr(PwrChan');
+            chloc = cellstr(chloc');
+            catPWRmeta(idx).chpwr = PwrChan;
+            catPWRmeta(idx).chloc = chloc;
+            
+            idx=idx+1;
+            disp('file read')
         catch
             idx=idx+1;
         end
     end
 end
 
-    disp('DONE!')
-% 
-% 
-% for r = recs_to_load
-%     
-%     DT(r) = load(fullfile(database_out.path{r},'combinedDataTable.mat'))
-%     
-% end
+disp('DONE!')
+
 %%
 % Show channel and power settings
-fprintf('Ch settings: \n ')
-cat(1,catPWRmeta.ch)
-disp('Power settings:')
-cat(2,catPWRmeta.bands)
-%% 1.0 find all channels
-close all
+fprintf('Power Ch settings: \n')  
 
-featurechannel= 'ch1';
-stimchannel = 'ch2';
-channels={featurechannel,stimchannel}; 
-chname= {'feature';'stim'};
-chdetails = {catPWRmeta(end).bands{1},catPWRmeta(end).bands{2}};
+for x= 1:length(catPWRmeta) 
+chdisp = table((1:8)',string(catPWRmeta(end).chpwr),string(catPWRmeta).chloc),'VariableNames',{'Channel','contact/pwr','location'})
+end 
+
+%% 1.0 define the FEATURE and STIM channels and plot them
+%  *** YOU can technically do all of this with RCSplotter ***
+% just feed it the session of interest and then do the stim on /off analysis below!
+
+% =================
+featurechannel = 5;
+stimchannel = 4;
+% =================
+
+channels=[featurechannel,stimchannel];
+chname = {'Feature';'Stim'};
+pwrdetails = catPWRmeta(end).chpwr(channels);
+chloc = catPWRmeta(end).chloc(channels);
 
 % 2.0 Plotting of concatenated raw power over REAL time
+
+for f = 1: numel(channels) 
+    %     hasdata = find(arrayfun(@(PWR) any(PWR.(fnames{f})),PWR));
     
-for f = 1: numel(channels)
-%     hasdata = find(arrayfun(@(PWR) any(PWR.(fnames{f})),PWR));
     
-
-subplot(2,1,f)
-        plot(catPWR.time,catPWR.(channels{f}));
-        hold on
-        xlabel('time')
-
-
-titlestr = [chname{f} '-' chdetails{f}];
-title(titlestr);
+    subplot(2,1,f)
+    plot(catPWR.time,catPWR.(['ch' num2str(channels(f))]));
+    hold on
+    xlabel('time')
+    
+    
+    titlestr = [chname{f} pwrdetails(f) chloc(f)];
+    title(titlestr);
 end
 
 
@@ -195,15 +221,16 @@ idx=1;
 for s=1:2
     stimidx = catPWR.ch2 > stim_thresh;
     holdpwr = [];
+    
     for f = 1:numel(channels)
-        holdpwr=catPWR.(channels{f});
+        holdpwr=catPWR.(['ch' num2str(channels{f})]);
         %create separate vars for stimOFF and stimON data
         if s==1
             holdpwr(stimidx)=nan; %only no stim data
-            nostim.(channels{f}) = holdpwr;
+            nostim.(['ch' num2str(channels{f})]) = holdpwr;
         elseif s==2
             holdpwr(~stimidx)=nan; %only stim data
-            stim.(channels{f}) = holdpwr;
+            stim.(['ch' num2str(channels{f})]) = holdpwr;
         end
         ss= subplot(numel(channels),2,idx); idx=idx+1;
         h=histogram(ss,holdpwr,100,'Normalization','probability');
@@ -215,7 +242,7 @@ for s=1:2
         statinfo = {['median = ' num2str(nanmedian(holdpwr))]; ['Range = ' num2str(min(holdpwr)) ' to ' num2str(max(holdpwr))]};
         text(0.5,0.5,statinfo,'Units','normalized');
         
-        titlestr=[stimQ{s} '-' chdetails{f}]
+        titlestr=[stimQ{s} '-' pwrdetails{f}]
         title(titlestr);
     end
     
@@ -240,9 +267,9 @@ UpdateRate = 10;
 
 
 
-    input1 = [catPWR.ch1,catPWR.ch2];
+input1 = [catPWR.ch1,catPWR.ch2];
 %     detect = cell2mat(cellfun(@(x) regexp(x,'\d'),catstate,'UniformOutput',false));
-    
+
 % Calculate LDA
 mvinput1 = movmean(input1,[UpdateRate 0]);
 calcLDA = calc_lda(mvinput1,weights,norm_const,Threshold);
