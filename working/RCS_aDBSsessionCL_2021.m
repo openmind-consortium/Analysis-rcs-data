@@ -21,7 +21,7 @@
 clear
 clc
 
-PATIENTIDside =  'RCS02R'
+PATIENTIDside =  'RCS04R'
 % 'RCS02R'
 % 'CPRCS01';
 rootdir = '/Volumes/PrasadX5/' ;
@@ -43,10 +43,12 @@ D = RCSdatabase_out;
  
 
 % find the rec # to load
-% recs_to_load = (381:392);
-recs_to_load= 913
 
 
+%%%%%%%%%%%%%%
+% recs_to_load =   D.rec(end-60:end-30)
+recs_to_load =  [357]
+%%%%%%%%%%%%%%
 
 
 % find out if a mat file was already created in this folder
@@ -62,8 +64,9 @@ for p1=1:8
 end
 
 idx=1;
-for d = recs_to_load
-    diruse = D.path{d};
+for d = 1:numel(recs_to_load)  %find the row indices corresponding to rec#
+    d_idx =  find(D.rec == recs_to_load(d))
+    diruse = [D.path{d_idx} '/'];
     
     fprintf('\n \n Reading Session Folder %d of %d  \n',d,recs_to_load(end));
     if isempty(diruse) % no data exists inside
@@ -140,7 +143,7 @@ disp('DONE!')
 fprintf('Power Ch settings: \n')  
 
 for x= 1:length(catPWRmeta) 
-chdisp = table((1:8)',string(catPWRmeta(end).chpwr),string(catPWRmeta).chloc),'VariableNames',{'Channel','contact/pwr','location'})
+chdisp = table((1:8)',string(catPWRmeta(1).chpwr),string(catPWRmeta(1).chloc),'VariableNames',{'Channel','contact/pwr','location'})
 end 
 
 %% 1.0 define the FEATURE and STIM channels and plot them
@@ -212,8 +215,10 @@ end
 
 %% 4.0 Power Distribution Histograms - - separate stim on and stim off data - generates STIM and NOSTIM
 
+% % DONT USE STIM THRESHOLD, use actual STIM Current! 
+
 close all
-stim_thresh = 10000; %value above which stim is occurring on the stim channel (including the ramp time)
+stim_thresh = 1000; %value above which stim is occurring on the stim channel (including the ramp time)
 % filter out stim data, and then include only stim data
 stimQ={'stimOFF','stimON'};
 channels={featurechannel,stimchannel};

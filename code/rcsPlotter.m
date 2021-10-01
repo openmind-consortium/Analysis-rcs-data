@@ -1296,6 +1296,11 @@ classdef rcsPlotter < handle
             % Update Sep 14, 2021 - Prasad
             %             I eliminated Gaps in plotted spectrogram plots as this
             %             eliminates useful data when gaps very small (< 200msec)
+            %             
+            % Update Sep 30, 2021 - Prasad
+            % I added a feature to downsample higher sample rate data to
+            % lowest sample rate chunk, if there are multiple chunks with
+            % different sample rates
             
             %% XXXX function not ready yet 
             if nargin == 1
@@ -1316,21 +1321,61 @@ classdef rcsPlotter < handle
                 if ~isempty(obj.Data(i))
                     dt = obj.Data(i).combinedDataTable;
                     idxnanSampleRate = isnan(dt.TD_samplerate);
-                    uniqueSampleRate = unique(dt.TD_samplerate(~idxnanSampleRate));
+                    loc_samplerates = find(~idxnanSampleRate); % location of sample rates from original data corresponding to samplerates below
+                    samplerates = dt.TD_samplerate(~idxnanSampleRate);
+                    
+                    uniqueSampleRate = unique(samplerates);
+                    
                     if length(uniqueSampleRate) >1
-                        error('can only perform psd anlaysis on data in which sample rate is the same');
+                        %         downsample the chunks/ sections in dt with higher sampling rate to
+                        %         the lowest one in session
+
+                        minFs = min(samplerates);
+                        idx_hiFs01 = (~(samplerates==minFs));
+                        fprintf('%d chunks have different sample rates. \n Smallest sample rate is %d.. downsampling all chunks to %d Hz \n',sum(idx_hiFs01),minFs, minFs);
+
+                        while length(uniqueSampleRate) >1
+                            idx_hiFs01 = (~(samplerates==minFs));
+                            start_hiFs = find(idx_hiFs01,1,'first'); %get start of  first instance of high samplerate chunk in samplerate space
+                            Fsval = samplerates(start_hiFs); %should be example of high sample rate
+                            idxminFs = find(samplerates == minFs); %find sample after start where sample rate = minFs minimum and take that chunk
+                            end_hiFs = idxminFs(find(idxminFs > start_hiFs,1,'first')) -1 ; %sample of end of chunk in samplerate space
+                            idxstart = loc_samplerates(start_hiFs); %start in data space
+                            idxend = loc_samplerates(end_hiFs); %end in data space
+
+                            hold_datachunk = dt(idxstart:idxend,:);
+                            dt(idxstart:idxend,:) = [];
+                            % Downsample that chunk for TD data
+                            dnsample_factor = round(Fsval/minFs);
+                            downsampled_datachunk = downsample(hold_datachunk,dnsample_factor);
+                            downsampled_datachunk.TD_samplerate(~isnan(downsampled_datachunk.TD_samplerate))=minFs;
+
+                            % Replace the chunk into corresponding
+                            % position in the dt.
+                            chunkheight = size(downsampled_datachunk,1);
+                            dt(idxstart+chunkheight:end+chunkheight,:)=  dt(idxstart:end,:); % copy the existing data down to make space for chunk
+                            dt(idxstart:idxstart+chunkheight-1,:) = downsampled_datachunk;
+
+
+                            idxnanSampleRate = isnan(dt.TD_samplerate);
+                            samplerates = dt.TD_samplerate(~idxnanSampleRate);
+                            uniqueSampleRate = unique(samplerates);
+
+                        end
+
+                        sr = minFs;
+
                     else
                         sr = uniqueSampleRate;
                     end
 
-                    dt = obj.Data(i).combinedDataTable;
+                    
                     x = datenum(dt.localTime);
                     chanfn = sprintf('TD_key%d',chan-1);
                     y = dt.(chanfn);
                     y = y - nanmean(y);
                     y = y.*1e3;
-                    
-                    
+                                  
                     
                     yFilled = fillmissing(y,'constant',0);
 
@@ -1480,7 +1525,7 @@ classdef rcsPlotter < handle
                         chanfn = sprintf('TD_key%d',c-1);
                         y = dt.(chanfn);
                         y = y - nanmean(y);
-                        y = y.*1e3;
+                       y = y.*1e3;
                         
                         
                         

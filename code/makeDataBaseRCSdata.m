@@ -11,10 +11,10 @@ function [RCSdatabase_out,varargout] = makeDataBaseRCSdata(dirname,PATIENTIDside
 %
 %           PATIENTIDside = should specify what the Patient ID name is, and
 %           should be same as subfolder (e.g. 'RCS02R')
-% 
+%
 %           (OPTIONAL INPUT) 'ignoreold' will ignore old databases and
 %           start fresh
-% 
+%
 %
 %
 % OUTPUT:   RCSdatabase_out is a table with fields ordered in importance, which will
@@ -122,7 +122,14 @@ if isfile(outputFileName) && nargin<3
     oldbadsess = D.badsessions.sessname;
     olddirs = contains(dirsdata,oldsess) | contains(dirsdata,oldbadsess) ;
     dirsdata(olddirs)= [];
-    
+
+    if isempty(dirsdata)
+        fprintf("No new data to add!  Existing database returned \n")
+        RCSdatabase_out = old_database;
+        varargout{1}= oldbadsess;
+        return
+    end
+
 else
     old_database= [];
 end
@@ -263,7 +270,7 @@ for d = 1:length(dirsdata)
                     dbout(d).stimparams = stimLogSettings.stimParams_prog1;
                     stimnamegroup={'A','B','C','D'; '1' , '5', '9','13'};
                     [~,j]= find(contains(stimnamegroup,stimLogSettings.activeGroup));
-                    stimname =  metaData.stimProgramNames(str2num(stimnamegroup{2,j}));
+                    stimname =  metaData.stimProgramNames(str2double(stimnamegroup{2,j}));
                     dbout(d).stimName =  stimname{1};
                 end
                 
@@ -302,7 +309,12 @@ sorted_database = sortrows(database_out,3); %sorting by session name
 sorted_database.rec = (1:size(sorted_database,1))';
 
 %% clear empty session rows and assign to new variable 'badsessions'
-loc = cellfun('isempty', sorted_database{:,'time'});
+if iscell(sorted_database.time)
+    loc = cellfun('isempty', sorted_database{:,'time'});
+else
+    loc= isempty(sorted_database.time);
+end
+
 badsessions = sorted_database(loc,:);
 sorted_database(loc,:) = [];
 
@@ -311,7 +323,7 @@ sorted_database(loc,:) = [];
 expanded_database = [];
 
 for rowidx = 1:size(sorted_database, 1)
-    tmp_row = sorted_database(rowidx,:);
+    tmp_row = sorted_database(rowidx,:);  %tmp_row is the row with multiple entries
     if size(tmp_row.time{1}, 1) > 1  % duplicating entire row if there are multiple entries per session
         
         for new_row = 1:size(tmp_row.time{1}, 1)
@@ -320,14 +332,21 @@ for rowidx = 1:size(sorted_database, 1)
                 expanded_database{end, col_name}{1} = expanded_database{end, col_name}{1}(new_row);
             end
             
-            expanded_database.rec(end) = tmp_row.rec + (new_row/10); %(this will make the entry numbered for subsessions like 2.1,2.2 etc.)
+            
+                %make the first subsession an integer (like 2), and  all subsessions
+                %decimals like  2.01, 2.02, etc.
+            if new_row ==1
+                expanded_database.rec(end) = tmp_row.rec;
+            else
+                expanded_database.rec(end) = tmp_row.rec + ((new_row-1)/100); 
+            end
             
         end
-    else  % print the single value  if only one entry per session\
+    else  % print the single value  if only one entry per session
         
         expanded_database = [expanded_database; tmp_row];
         for col_name = ["time", "duration", "TDfs"]
-            expanded_database{end, col_name}{1} = expanded_database{end, col_name}{1}(1);
+            expanded_database{end, col_name}(1) = expanded_database{end, col_name}(1);
         end
         
         
@@ -335,25 +354,53 @@ for rowidx = 1:size(sorted_database, 1)
     end
 end
 
-% expand all variables for each row
-expanded_database.time = transpose([expanded_database.time{:, 1}]);
-expanded_database.duration = transpose([expanded_database.duration{:, 1}]);
-% expanded_database.TDfs = transpose([expanded_database.TDfs{:, 1}]);
+% expand all variables for each row and make 'Disabled' values in TDfs to NaN
+idx_disabled=strcmp(expanded_database.TDfs,'Disabled');
+expanded_database.TDfs(idx_disabled)={nan};
+
+idx_emptyfft = cellfun(@isempty, expanded_database.fft);
+expanded_database.fft(idx_emptyfft)={nan};
+
+%  convert cells to string or double to remove cell structure
+cellvars = {'time', 'duration', 'TDfs','battery','fft'};
+for n = 1:numel(cellvars)
+    
+    if n >= 4
+        expanded_database.(cellvars{n}) = cell2mat(expanded_database.(cellvars{n}));
+    else
+        expanded_database.(cellvars{n}) =[expanded_database.(cellvars{n}){:}]';
+    end
+    
+end
+
 expanded_database = movevars(expanded_database, {'TDchan0', 'TDchan1', 'TDchan2', 'TDchan3'}, 'After', 'TDfs');
 
 RCSdatabase_out = table2timetable(expanded_database); % rename output for clarity
 
+
+
 %% COMBINE WITH OLD DATABASE
 % IF the old database existed, recombine with new database and sort it
 if ~isempty(old_database)
-    new_database_out = [old_database;RCSdatabase_out];
-    new_sorted_database = sortrows(new_database_out,2); %sorting by session name
-    new_sorted_database.rec = (1:size(new_sorted_database,1))';
+    disp('combining with old database...');
+    if iscell(RCSdatabase_out.matExist)
+        % format some columns so they are not cells
+        RCSdatabase_out.matExist = cell2mat(RCSdatabase_out.matExist);
+        badsessions.matExist = cell2mat(badsessions.matExist);
+    end
     
-    badsessions = [D.badsessions;badsessions];
+    
+    RCSdatabase_out.rec = RCSdatabase_out.rec + old_database.rec(end);
+    new_database_out = [old_database;RCSdatabase_out];
+    
+    if ~isempty(badsessions)
+        badsessions = [D.badsessions;badsessions];
+    else
+        badsessions = D.badsessions;
+    end
     
     clear RCSdatabase_out
-    RCSdatabase_out = new_sorted_database;  %already a timetable
+    RCSdatabase_out = new_database_out;  %already a timetable
     
 end
 
