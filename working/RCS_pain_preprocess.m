@@ -11,11 +11,13 @@
 % 2019a or earlier)
 %
 % Prasad Shirvalkar Sep 13, 2021
+% Prasad - Updated Dec 20, 2021 - makeDatabaseRCS needed fixing of how it handles
+%           cell variables....
 
 clear
 clc
 
-PATIENTIDside =  'RCS04L'
+PATIENTIDside =  'RCS05R'
 % 'RCS02R'
 % 'CPRCS01';
 rootdir = '/Volumes/PrasadX5/' ;
@@ -28,7 +30,7 @@ cd(github_dir)
 addpath(genpath(github_dir))
 
 %% make database of all files
-[database_out,badsessions] = makeDataBaseRCSdata(patientrootdir,PATIENTIDside); % add AdaptiveData.Ld0_output
+[database_out,badsessions] = makeDataBaseRCSdata(patientrootdir,PATIENTIDside); % can add AdaptiveData.Ld0_output
 
 %% compile text logs of all Adaptive/ Stim changes
 [textlog] = RCS_logs(rootdir,PATIENTIDside);

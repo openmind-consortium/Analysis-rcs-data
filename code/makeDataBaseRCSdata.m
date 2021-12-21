@@ -13,7 +13,7 @@ function [RCSdatabase_out,varargout] = makeDataBaseRCSdata(dirname,PATIENTIDside
 %           should be same as subfolder (e.g. 'RCS02R')
 %
 %           (OPTIONAL INPUT) 'ignoreold' will ignore old databases and
-%           start fresh
+%           start fresh. Third input should be lowercase as written.
 %
 %
 %
@@ -131,8 +131,8 @@ if isfile(outputFileName) && nargin<3
         return
     end
 
-else
-    disp('Compiling database from sratch...')
+elseif isfile(outputFileName) && nargin<3 && strcmp(varargin{1},'ignoreold')
+    disp('Compiling database from scratch...')
     old_database= [];
 end
 
@@ -160,10 +160,10 @@ for d = 1:length(dirsdata)
         disp('no data.. moving on');
 
     else % data may exist, check for time domain data
-
+clear devicepath settingsfile 
         tdfile = findFilesBVQX(dirsdata{d},'EventLog.json');
-
-        if ~isempty(tdfile)  % time data file doesn't exist
+        devfile = findFilesBVQX(dirsdata{d},'DeviceSettings.json');
+        if ~isempty(tdfile) && ~isempty(devfile)  % time data file doesn't exist
 
             %
             [~,fn] = fileparts(dirsdata{d});
