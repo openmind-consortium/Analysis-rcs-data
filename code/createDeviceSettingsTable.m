@@ -22,8 +22,11 @@ if isstruct(DeviceSettings)
     DeviceSettings = {DeviceSettings};
 end
 %%
+
 % Convert metaData variables into human readable
+if isfield(DeviceSettings{1},'SubjectInfo') %add by Prasad Oct 8 2021 due to some file errors
 metaData = convertMetadataCodes(DeviceSettings{1}.SubjectInfo);
+end
 
 % UTC offset to determine timezone conversion
 metaData.UTCoffset = DeviceSettings{1,1}.UtcOffset;

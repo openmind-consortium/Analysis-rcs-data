@@ -118,6 +118,7 @@ if isfile(outputFileName) && nargin<3
     disp('Loading previously saved database');
     D = load(outputFileName,'RCSdatabase_out','badsessions');
     old_database = D.RCSdatabase_out;
+    old_badsessions = D.badsessions;
     oldsess = D.RCSdatabase_out.sessname;
     oldbadsess = D.badsessions.sessname;
     olddirs = contains(dirsdata,oldsess) | contains(dirsdata,oldbadsess) ;
@@ -126,11 +127,12 @@ if isfile(outputFileName) && nargin<3
     if isempty(dirsdata)
         fprintf("No new data to add!  Existing database returned \n")
         RCSdatabase_out = old_database;
-        varargout{1}= oldbadsess;
+        varargout{1}= old_badsessions;
         return
     end
 
 else
+    disp('Compiling database from sratch...')
     old_database= [];
 end
 
@@ -141,156 +143,147 @@ end
 %%
 for d = 1:length(dirsdata)
     diruse = findFilesBVQX(dirsdata{d},'Device*',struct('dirs',1,'depth',1));
-    
+
     if nargin==2 &&  d > numel(dirsdata1)
         dbout(d).aDBS = 1;
     else
         dbout(d).aDBS= 0;
     end
-    
+
     fprintf('Reading folder %d of %d  \n',d,length(dirsdata))
     if isempty(diruse) % no data exists inside
-        %         dbout(d).rec = d;
+
         dbout(d).time = [];
         dbout(d).matExist  = 0;
         [~,fn] = fileparts(dirsdata{d});
         dbout(d).sessname = fn;
         disp('no data.. moving on');
-        
+
     else % data may exist, check for time domain data
-        %         dbout(d).rec = d;
-        
+
         tdfile = findFilesBVQX(dirsdata{d},'EventLog.json');
-        
-        
-        %         tdir = dir(tdfile{1});
-        
-        
-        if ~isempty(tdfile)  % time data file doesn't exists and real data
-            
+
+        if ~isempty(tdfile)  % time data file doesn't exist
+
             %
             [~,fn] = fileparts(dirsdata{d});
             dbout(d).sessname = fn;
             [path,~,~] = fileparts(tdfile{1});
             dbout(d).path = path;
-            
-            
+
+
             % extract times and .mat status
             % load device settings file
             try
                 settingsfile = findFilesBVQX(dirsdata{d},'DeviceSettings.json');
                 [devicepath,~,~]= fileparts(settingsfile{1});
                 [timeDomainSettings, powerSettings, fftSettings, metaData] = createDeviceSettingsTable(devicepath);
-                
-                
-                
-                
-                %                 Get recording start time/ duration
-                startTime = timeDomainSettings.timeStart;
-                timeFormat = sprintf('%+03.0f:00',metaData.UTCoffset);
-                startTimeDt = datetime(startTime/1000,'ConvertFrom','posixTime','TimeZone',timeFormat,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
-                dbout(d).time = startTimeDt;
-                dbout(d).duration = duration(seconds(timeDomainSettings.duration/1000),'Format','hh:mm:ss.SSS');
-                
-                
-                
-                
-                %                 Get time domain sensing info
-                dbout(d).TDfs = timeDomainSettings.samplingRate;
-                dbout(d).TDchan0= timeDomainSettings.chan1{1};
-                dbout(d).TDchan1= timeDomainSettings.chan2{1};
-                dbout(d).TDchan2= timeDomainSettings.chan3{1};
-                dbout(d).TDchan3= timeDomainSettings.chan4{1};
-                dbout(d).battery = metaData.batteryLevelPercent;
-                
-                
-                
-                
-                %                  Get FFT length info
-                try
+
+
+                %IF there is time/ power domain data
+                if ~isempty(timeDomainSettings) && ~isempty(powerSettings)
+
+
+                    %   Get recording start time/ duration
+                    startTime = timeDomainSettings.timeStart;
+                    timeFormat = sprintf('%+03.0f:00',metaData.UTCoffset);
+                    startTimeDt = datetime(startTime/1000,'ConvertFrom','posixTime','TimeZone',timeFormat,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
+                    dbout(d).time = startTimeDt;
+                    dbout(d).duration = duration(seconds(timeDomainSettings.duration/1000),'Format','hh:mm:ss.SSS');
+
+
+
+
+                    % Get time domain sensing info
+                    dbout(d).TDfs = timeDomainSettings.samplingRate;
+                    dbout(d).TDchan0= timeDomainSettings.chan1{1};
+                    dbout(d).TDchan1= timeDomainSettings.chan2{1};
+                    dbout(d).TDchan2= timeDomainSettings.chan3{1};
+                    dbout(d).TDchan3= timeDomainSettings.chan4{1};
+                    dbout(d).battery = metaData.batteryLevelPercent;
+
+
+
+                    %  Get FFT length info
                     if ~isnan(fftSettings.recNum)
                         dbout(d).fft = fftSettings.fftConfig.size;
                     end
-                catch
-                end
-                
-                
-                
-                %               Get powerbands and whether recorded info
-                try
+
+
+                    % Get powerbands and whether recorded info
+
                     if ~isnan(powerSettings.recNum)
                         dbout(d).power = 1 ;
                         dbout(d).powerbands = powerSettings.powerBands.powerBandsInHz;
                     end
-                catch
+
+
+
                 end
-                
-                
-                
-                %             get Adaptive settings info
+            catch
+            end
+
+
+
+
+
+
+
+            try
+
+                % Get Adaptive settings info
                 [DetectorSettings,~,AdaptiveEmbeddedRuns_StimSettings] = createAdaptiveSettingsfromDeviceSettings(devicepath);
-                
-                % Look for sessions where the embedded was turned on in the
-                % last subsession
-                any_embed = strcmp('Embedded',AdaptiveEmbeddedRuns_StimSettings.adaptiveMode(end));
-                
-                if any_embed
+
+                % Look for adaptive Embedded Run
+                if ~isempty(AdaptiveEmbeddedRuns_StimSettings)
                     dbout(d).adaptive_states=AdaptiveEmbeddedRuns_StimSettings.states(end);
-                    dbout(d).adaptive_onset_dur = DetectorSettings.Ld0.onsetDuration;
-                    dbout(d).adaptive_termination_dur = DetectorSettings.Ld0.terminationDuration;
-                    dbout(d).adaptive_weights(1:4) = cat(1,DetectorSettings.Ld0.features.weightVector);
-                    dbout(d).adaptive_pwrinputchan = DetectorSettings.Ld0.detectionInputs_BinaryCode  ;
-                    dbout(d).adaptive_threshold = DetectorSettings.Ld0.biasTerm;
-                    dbout(d).adaptive_updaterate = DetectorSettings.Ld0.updateRate;
                 end
-                
-                
-                
-                %             get stim settings
+
+                dbout(d).adaptive_onset_dur = DetectorSettings.Ld0.onsetDuration;
+                dbout(d).adaptive_termination_dur = DetectorSettings.Ld0.terminationDuration;
+                dbout(d).adaptive_weights{1}(1:4) = cat(1,DetectorSettings.Ld0.features.weightVector);
+                dbout(d).adaptive_pwrinputchan = DetectorSettings.Ld0.detectionInputs_BinaryCode  ;
+                dbout(d).adaptive_threshold = DetectorSettings.Ld0.biasTerm;
+                dbout(d).adaptive_updaterate = DetectorSettings.Ld0.updateRate;
+            catch
+            end
+
+
+
+            try
+
+                % Get stim settings
                 [stimSettingsOut, stimMetaData] = createStimSettingsFromDeviceSettings(devicepath);
                 dbout(d).stim = stimSettingsOut.therapyStatus;
-                
-                
-                
-                
+
             catch
             end
-            
-            
+
+
+
             %Get stim information if STIM is on
-            try
-                
-                if sum(dbout(d).stim)>0
-                    
-                    stimfile =  findFilesBVQX(dirsdata{d},'StimLog.json');
-                    [stimpath,~,~]= fileparts(stimfile{1});
-                    [stimLogSettings] = createStimSettingsTable(stimpath,stimMetaData);
-                    
-                    dbout(d).stim = stimLogSettings.activeGroup{1};
-                    dbout(d).stimparams = stimLogSettings.stimParams_prog1;
-                    stimnamegroup={'A','B','C','D'; '1' , '5', '9','13'};
-                    [~,j]= find(contains(stimnamegroup,stimLogSettings.activeGroup));
-                    stimname =  metaData.stimProgramNames(str2double(stimnamegroup{2,j}));
-                    dbout(d).stimName =  stimname{1};
-                end
-                
-            catch
+            if sum(dbout(d).stim)>0
+
+                stimfile =  findFilesBVQX(dirsdata{d},'StimLog.json');
+                [stimpath,~,~]= fileparts(stimfile{1});
+                [stimLogSettings] = createStimSettingsTable(stimpath,stimMetaData);
+
+                dbout(d).stim = stimLogSettings.activeGroup(1);
+                dbout(d).stimparams = stimLogSettings.stimParams_prog1;
+                stimnamegroup={'A','B','C','D'; '1' , '5', '9','13'};
+                [~,j]= find(contains(stimnamegroup,stimLogSettings.activeGroup));
+                stimname =  metaData.stimProgramNames(str2double(stimnamegroup{2,j(1)}));
+                dbout(d).stimName =  stimname{1};
             end
-            
-            
-            
-            % load event file
-            try
-                evFile = findFilesBVQX(dirsdata{d},'EventLog.json');
-                eventData = loadEventLog(dbout(d).eventFile{1});
-                dbout(d).eventData = eventData;
-            catch
-            end
-            
-            
-            
+
+            % load event file - not in use for now (PS)
+            %             eventData = createEventLogTable(tdfile{1});
+            %             dbout(d).eventData = eventData;
+
+
             % does mat file exist?
             matfile = findFilesBVQX(dirsdata{d},'combinedDataTable.mat');
+
             if isempty(matfile) % no matlab data loaded
                 dbout(d).matExist = false;
                 %                 dbout(d).fnm = [];
@@ -325,32 +318,27 @@ expanded_database = [];
 for rowidx = 1:size(sorted_database, 1)
     tmp_row = sorted_database(rowidx,:);  %tmp_row is the row with multiple entries
     if size(tmp_row.time{1}, 1) > 1  % duplicating entire row if there are multiple entries per session
-        
         for new_row = 1:size(tmp_row.time{1}, 1)
             expanded_database = [expanded_database; tmp_row];
             for col_name = ["time", "duration", "TDfs"]
                 expanded_database{end, col_name}{1} = expanded_database{end, col_name}{1}(new_row);
             end
-            
-            
-                %make the first subsession an integer (like 2), and  all subsessions
-                %decimals like  2.01, 2.02, etc.
+
+            %make the first subsession an integer (like 2), and  all subsessions
+            %decimals like  2.01, 2.02, etc.
             if new_row ==1
                 expanded_database.rec(end) = tmp_row.rec;
             else
-                expanded_database.rec(end) = tmp_row.rec + ((new_row-1)/100); 
+                expanded_database.rec(end) = tmp_row.rec + ((new_row-1)/100);
             end
-            
+
         end
     else  % print the single value  if only one entry per session
-        
+
         expanded_database = [expanded_database; tmp_row];
         for col_name = ["time", "duration", "TDfs"]
             expanded_database{end, col_name}(1) = expanded_database{end, col_name}(1);
         end
-        
-        
-        
     end
 end
 
@@ -364,45 +352,84 @@ expanded_database.fft(idx_emptyfft)={nan};
 %  convert cells to string or double to remove cell structure
 cellvars = {'time', 'duration', 'TDfs','battery','fft'};
 for n = 1:numel(cellvars)
-    
+
     if n >= 4
         expanded_database.(cellvars{n}) = cell2mat(expanded_database.(cellvars{n}));
     else
         expanded_database.(cellvars{n}) =[expanded_database.(cellvars{n}){:}]';
     end
-    
+
 end
 
 expanded_database = movevars(expanded_database, {'TDchan0', 'TDchan1', 'TDchan2', 'TDchan3'}, 'After', 'TDfs');
-
 RCSdatabase_out = table2timetable(expanded_database); % rename output for clarity
-
 
 
 %% COMBINE WITH OLD DATABASE
 % IF the old database existed, recombine with new database and sort it
+% but first fix cell/ mat class issues
+
 if ~isempty(old_database)
     disp('combining with old database...');
+
+    %make cells to mat for some fields
     if iscell(RCSdatabase_out.matExist)
         % format some columns so they are not cells
         RCSdatabase_out.matExist = cell2mat(RCSdatabase_out.matExist);
         badsessions.matExist = cell2mat(badsessions.matExist);
     end
-    
-    
-    RCSdatabase_out.rec = RCSdatabase_out.rec + old_database.rec(end);
-    new_database_out = [old_database;RCSdatabase_out];
-    
-    if ~isempty(badsessions)
-        badsessions = [D.badsessions;badsessions];
-    else
-        badsessions = D.badsessions;
+
+    if iscell(old_database.matExist)
+        old_database.matExist = cell2mat(old_database.matExist);
+        old_badsessions.matExist = cell2mat(old_badsessions.matExist);
     end
-    
+
+
+    if iscell(old_database.TDfs)
+        idx_disabled=strcmp(old_database.TDfs,'Disabled');
+        old_database.TDfs(idx_disabled)={nan};
+
+
+        old_database.TDfs = cell2mat(old_database.TDfs);
+
+    end
+
+
+    if isa(RCSdatabase_out.adaptive_onset_dur,'double')
+        RCSdatabase_out.adaptive_onset_dur =  num2cell(RCSdatabase_out.adaptive_onset_dur);
+        RCSdatabase_out.adaptive_termination_dur =  num2cell(RCSdatabase_out.adaptive_termination_dur);
+        RCSdatabase_out.adaptive_updaterate =  num2cell(RCSdatabase_out.adaptive_updaterate);
+
+
+        badsessions.adaptive_onset_dur =  num2cell(badsessions.adaptive_onset_dur);
+        badsessions.adaptive_termination_dur =  num2cell(badsessions.adaptive_termination_dur);
+        badsessions.adaptive_updaterate =  num2cell(badsessions.adaptive_updaterate);
+
+
+    end
+
+
+    %     COMBINE HERE
+    RCSdatabase_out.rec = RCSdatabase_out.rec + old_database.rec(end);
+
+    new_database_out = [old_database;RCSdatabase_out];
+
+    if ~isempty(badsessions)
+        badsessions = [old_badsessions;badsessions];
+    else
+        badsessions = old_badsessions;
+    end
+
     clear RCSdatabase_out
     RCSdatabase_out = new_database_out;  %already a timetable
-    
+
 end
+
+
+
+
+% ======================================
+% OUTPUTS!
 
 
 if nargout == 2

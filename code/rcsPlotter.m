@@ -2267,7 +2267,7 @@ classdef rcsPlotter < handle
                         idxkeep = ~isnan( dt.Accel_samplerate ); 
                         tuse = dt.localTime(idxkeep); 
                         unqSampleRates = unique(dt.Accel_samplerate(idxkeep));
-                        sampleRateUse = max(unqSampleRates); % average using window from largest sample rate
+                        sampleRateUse = round(max(unqSampleRates)); % average using window from largest sample rate
                         accXraw = dt.Accel_XSamples(idxkeep);
                         accYraw = dt.Accel_YSamples(idxkeep);
                         accZraw = dt.Accel_ZSamples(idxkeep);
@@ -2520,7 +2520,10 @@ classdef rcsPlotter < handle
             %% set limits;
             ylims(1) = prctile(ypowerOut,5);
             ylims(2) = prctile(ypowerOut,95);
-            hAxes.YLim = ylims;
+            if ylims(2)>ylims(1)
+                hAxes.YLim = ylims;
+            end
+            
         end
         
         %%%%%%
