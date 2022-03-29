@@ -2,7 +2,9 @@
 % This will make databases and then help to visualize data and combine it
 % to analyze the power bands/ FFT bands of interest. 
 % 
-% 
+%  March 2022
+%  Use this version
+% Prasad Shirvalkar
 
 clear
 clc
@@ -18,7 +20,7 @@ cd(github_dir)
 addpath(genpath(github_dir))
 
 %% make database of all files
-[RCSdatabase_out,badsessions] = makeDataBaseRCSdata(patientrootdir,PATIENTIDside,1); % add AdaptiveData.Ld0_output
+[RCSdatabase_out,badsessions] = makeDataBaseRCSdata(patientrootdir,PATIENTIDside,'ignoreold'); % add AdaptiveData.Ld0_output
 
 %%  LOAD Database
 load(fullfile(patientrootdir,[PATIENTIDside '_database.mat']))
@@ -36,7 +38,7 @@ RCSdatabase_out(end-100:end,:)
 % load subsessions (e.g. 201.2) as these are all loaded automatically.
 
 % recs_to_load =   D.rec(end-60:end-30)
-recs_to_load =  [928]
+recs_to_load =  [1000:1008]
 %%%%%%%%%%%%%%
 
 rc = rcsPlotter();

@@ -40,7 +40,7 @@ addpath(genpath(github_dir))
 load(fullfile(patientrootdir,[PATIENTIDside '_database.mat']))
 load(fullfile(patientrootdir,[PATIENTIDside '_textlogs.mat']))
 %% Import Painscores
-% painscores = RCS_redcap_painscores();
+painscores = RCS_redcap_painscores([],1);
 pain.VAS = painscores.(PATIENTIDside(1:5)).painVAS;
 pain.NRS = painscores.(PATIENTIDside(1:5)).mayoNRS;
 pain.time = painscores.(PATIENTIDside(1:5)).time;
