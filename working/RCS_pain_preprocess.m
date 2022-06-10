@@ -17,7 +17,7 @@
 clear
 clc
 
-PATIENTIDside =  'RCS05R'
+PATIENTIDside =  'RCS04L'
 % 'RCS02R'
 % 'CPRCS01';
 rootdir = '/Volumes/PrasadX5/' ;
