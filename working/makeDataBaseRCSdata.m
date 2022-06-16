@@ -131,7 +131,7 @@ if isfile(outputFileName) && nargin<3
         return
     end
 
-elseif isfile(outputFileName) && strcmp(varargin{1},'ignoreold')
+elseif strcmp(varargin{1},'ignoreold')
     disp('Compiling database from scratch...')
     old_database= [];
 end
@@ -160,7 +160,7 @@ for d = 1:length(dirsdata)
         disp('no data.. moving on');
 
     else % data may exist, check for time domain data
-clear devicepath settingsfile 
+        clear devicepath settingsfile
         tdfile = findFilesBVQX(dirsdata{d},'EventLog.json');
         devfile = findFilesBVQX(dirsdata{d},'DeviceSettings.json');
         if ~isempty(tdfile) && ~isempty(devfile)  % time data file doesn't exist
@@ -268,12 +268,18 @@ clear devicepath settingsfile
                 [stimpath,~,~]= fileparts(stimfile{1});
                 [stimLogSettings] = createStimSettingsTable(stimpath,stimMetaData);
 
-                dbout(d).stim = stimLogSettings.activeGroup(1);
-                dbout(d).stimparams = stimLogSettings.stimParams_prog1;
-                stimnamegroup={'A','B','C','D'; '1' , '5', '9','13'};
-                [~,j]= find(contains(stimnamegroup,stimLogSettings.activeGroup));
-                stimname =  metaData.stimProgramNames(str2double(stimnamegroup{2,j(1)}));
-                dbout(d).stimName =  stimname{1};
+                try
+                    dbout(d).stim = stimLogSettings.activeGroup(1);
+                    dbout(d).stimparams = stimLogSettings.stimParams_prog1;
+                    stimnamegroup={'A','B','C','D'; '1' , '5', '9','13'};
+                    [~,j]= find(contains(stimnamegroup,stimLogSettings.activeGroup));
+                    stimname =  metaData.stimProgramNames(str2double(stimnamegroup{2,j(1)}));
+                    dbout(d).stimName =  stimname{1};
+                catch
+                    disp(' . . . STIM is on, but failed to extract all stim settings from this file . . . ')
+                end
+
+
             end
 
             % load event file - not in use for now (PS)
