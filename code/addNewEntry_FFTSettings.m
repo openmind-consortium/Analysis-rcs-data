@@ -4,6 +4,7 @@ function [newEntry,fftConfig] = addNewEntry_FFTSettings(actionType,recNum,curren
 % FFT_SettingsTable; ensures that all table fields are filled for each
 % entry (otherwise warning will print)
 %
+
 %%
 HostUnixTime = currentSettings.RecordInfo.HostUnixTime;
 
@@ -14,7 +15,8 @@ newEntry.time = HostUnixTime;
 % Get fftConfig info if updated
 if isfield(currentSettings,'SensingConfig') && isfield(currentSettings.SensingConfig,'fftConfig')
     fftConfig = convertFFTCodes(currentSettings.SensingConfig.fftConfig);
-end
+end 
+
 newEntry.fftConfig = fftConfig;
 
 % Get sample rate for each TD channel; all TD channels have

@@ -24,31 +24,32 @@ function [RCSdatabase_out,varargout] = makeDataBaseRCSdata(dirname,PATIENTIDside
 %           SECOND OUTPUT could be provided to collect list of bad sessions
 %           (e.g. those with no data in Jsons)
 %
-%          Included fields are:
+% %          Included fields include + more:
 %     'rec',[],...
 %     'time',[],...
 %     'sessname',[],...
 %     'duration',[],...
 %     'battery',[],...
 %     'TDfs',[],...
-%     'fft',[],...
-%     'power',[],...
+%     'fftbin',[],...
+%     'fft_chan',[],...
+%     'fft_interval',[],...
 %     'stim',[],...
 %     'stimName',[],...
 %     'stimparams',[],...
-%     'matExist',[],...
+%     'cycleOn',[],...
+%     'cycleOff',[],...
 %     'path',[],...
 %     'powerbands',[],...
-%     'aDBS',[],...
 %     'adaptive_threshold',[],...
 %     'adaptive_onset_dur',[],...
 %     'adaptive_termination_dur',[],...
 %     'adaptive_states',[],...
 %     'adaptive_weights',[],...
-%     'adaptive_updaterate',[],...
-%     'adaptive_pwrinputchan',[]);
+%     'adaptive_pwrinputchan',[],...
+%     'adaptive_updaterate',[]);
 % %
-% ***** NOTE THAT ONLY LD0 data is populated in the adaptive fields ******
+% ***** NOTE THAT ONLY LD0 data is populated in the adaptive fields (not LD1)******
 %
 %
 %  USING CELL DATA IN THE TABLE:
@@ -69,6 +70,8 @@ function [RCSdatabase_out,varargout] = makeDataBaseRCSdata(dirname,PATIENTIDside
 %
 %
 % Prasad Shirvalkar Sep 13,2021
+%  updated july 2022, to remove duplicate sessions between aDBS And SCBS based on SessionID and
+%  updated  fields to add fftchan and cycleOnSec, cycleOffsec
 
 
 
@@ -80,8 +83,16 @@ adbsdir = fullfile(dirname, '/SummitData/StarrLab/', PATIENTIDside);
 
 dirsdata1 = findFilesBVQX(scbsdir,'Sess*',struct('dirs',1,'depth',1));
 dirsdata2 =  findFilesBVQX(adbsdir,'Sess*',struct('dirs',1,'depth',1));
-dirsdata = [dirsdata1;dirsdata2];
 
+ 
+% Filter the dirsdata by Session # to remove duplicate sessions between SCBS and ADBS which
+% sometimes occur  
+session1 = string(regexp(string(dirsdata1),'Session.*','match'));
+session2 = string(regexp(string(dirsdata2),'Session.*','match')); 
+dup2 = contains(session2,session1);
+dirsdata2(dup2) = [];
+% combine to form dirsdata to use
+dirsdata = [dirsdata1;dirsdata2];
 
 dbout = struct('rec',[],...
     'time',[],...
@@ -89,15 +100,16 @@ dbout = struct('rec',[],...
     'duration',[],...
     'battery',[],...
     'TDfs',[],...
-    'fft',[],...
-    'power',[],...
+    'fftbin',[],...
+    'fft_chan',[],...
+    'fft_interval',[],...
     'stim',[],...
     'stimName',[],...
     'stimparams',[],...
-    'matExist',[],...
+    'cycleOn',[],...
+    'cycleOff',[],...
     'path',[],...
     'powerbands',[],...
-    'aDBS',[],...
     'adaptive_threshold',[],...
     'adaptive_onset_dur',[],...
     'adaptive_termination_dur',[],...
@@ -115,7 +127,7 @@ outputFileName = fullfile(dirname,[PtIDside '_database.mat']);
 
 
 if isfile(outputFileName) && nargin<3
-    disp('Loading previously saved database');
+    disp(['Loading previously saved database for ' PtIDside]);
     D = load(outputFileName,'RCSdatabase_out','badsessions');
     old_database = D.RCSdatabase_out;
     old_badsessions = D.badsessions;
@@ -131,8 +143,8 @@ if isfile(outputFileName) && nargin<3
         return
     end
 
-elseif strcmp(varargin{1},'ignoreold')
-    disp('Compiling database from scratch...')
+else
+    disp(['Compiling database from scratch... ' PtIDside])
     old_database= [];
 end
 
@@ -141,20 +153,20 @@ end
 
 
 %%
-for d = 1:length(dirsdata)
+for d = 500:700
+%     length(dirsdata)
     diruse = findFilesBVQX(dirsdata{d},'Device*',struct('dirs',1,'depth',1));
 
-    if nargin==2 &&  d > numel(dirsdata1)
-        dbout(d).aDBS = 1;
-    else
-        dbout(d).aDBS= 0;
-    end
+%     if nargin==2 &&  d > numel(dirsdata1)
+%         dbout(d).aDBS = 1;
+%     else
+%         dbout(d).aDBS= 0;
+%     end
 
     fprintf('Reading folder %d of %d  \n',d,length(dirsdata))
     if isempty(diruse) % no data exists inside
 
         dbout(d).time = [];
-        dbout(d).matExist  = 0;
         [~,fn] = fileparts(dirsdata{d});
         dbout(d).sessname = fn;
         disp('no data.. moving on');
@@ -176,7 +188,8 @@ for d = 1:length(dirsdata)
             % load device settings file
             try
                 settingsfile = findFilesBVQX(dirsdata{d},'DeviceSettings.json');
-                [devicepath,~,~]= fileparts(settingsfile{1});
+                [devicepath,~,~]= fileparts(settingsfile{1}); 
+ 
                 [timeDomainSettings, powerSettings, fftSettings, metaData] = createDeviceSettingsTable(devicepath);
 
 
@@ -188,32 +201,34 @@ for d = 1:length(dirsdata)
                     startTime = timeDomainSettings.timeStart;
                     timeFormat = sprintf('%+03.0f:00',metaData.UTCoffset);
                     startTimeDt = datetime(startTime/1000,'ConvertFrom','posixTime','TimeZone',timeFormat,'Format','dd-MMM-yyyy HH:mm:ss.SSS');
-                    dbout(d).time = startTimeDt;
-                    dbout(d).duration = duration(seconds(timeDomainSettings.duration/1000),'Format','hh:mm:ss.SSS');
+                    dbout(d).time = startTimeDt(1); %take the first value of all subsessions
+                    dbout(d).duration = sum(duration(seconds(timeDomainSettings.duration/1000),'Format','hh:mm:ss.SSS')); %take the sum of all durations
 
 
 
 
                     % Get time domain sensing info
-                    dbout(d).TDfs = timeDomainSettings.samplingRate;
-                    dbout(d).TDchan0= timeDomainSettings.chan1{1};
-                    dbout(d).TDchan1= timeDomainSettings.chan2{1};
-                    dbout(d).TDchan2= timeDomainSettings.chan3{1};
-                    dbout(d).TDchan3= timeDomainSettings.chan4{1};
+                    dbout(d).TDfs = timeDomainSettings.samplingRate(1);
+                    dbout(d).chan0= timeDomainSettings.chan1{1};
+                    dbout(d).chan1= timeDomainSettings.chan2{1};
+                    dbout(d).chan2= timeDomainSettings.chan3{1};
+                    dbout(d).chan3= timeDomainSettings.chan4{1};
                     dbout(d).battery = metaData.batteryLevelPercent;
 
 
 
                     %  Get FFT length info
                     if ~isnan(fftSettings.recNum)
-                        dbout(d).fft = fftSettings.fftConfig.size;
+                        dbout(d).fftbin = fftSettings.fftConfig.size;
+                        dbout(d).fft_chan = metaData.fftstreamChan;
+                        dbout(d).fft_interval = fftSettings.fftConfig.interval;
                     end
 
 
                     % Get powerbands and whether recorded info
 
                     if ~isnan(powerSettings.recNum)
-                        dbout(d).power = 1 ;
+             
                         dbout(d).powerbands = powerSettings.powerBands.powerBandsInHz;
                     end
 
@@ -266,6 +281,7 @@ for d = 1:length(dirsdata)
 
                 stimfile =  findFilesBVQX(dirsdata{d},'StimLog.json');
                 [stimpath,~,~]= fileparts(stimfile{1});
+%                 Need to extract cycle on / off time from below
                 [stimLogSettings] = createStimSettingsTable(stimpath,stimMetaData);
 
                 try
@@ -275,6 +291,8 @@ for d = 1:length(dirsdata)
                     [~,j]= find(contains(stimnamegroup,stimLogSettings.activeGroup));
                     stimname =  metaData.stimProgramNames(str2double(stimnamegroup{2,j(1)}));
                     dbout(d).stimName =  stimname{1};
+                    dbout(d).cycleOn = stimSettingsOut.cycleOnSec;
+                    dbout(d).cycleOff = stimSettingsOut.cycleOffSec;
                 catch
                     disp(' . . . STIM is on, but failed to extract all stim settings from this file . . . ')
                 end
@@ -287,16 +305,16 @@ for d = 1:length(dirsdata)
             %             dbout(d).eventData = eventData;
 
 
-            % does mat file exist?
-            matfile = findFilesBVQX(dirsdata{d},'combinedDataTable.mat');
-
-            if isempty(matfile) % no matlab data loaded
-                dbout(d).matExist = false;
-                %                 dbout(d).fnm = [];
-            else
-                dbout(d).matExist = true;
-                %                 dbout(d).fnm = matfile{1};
-            end
+            % does mat file exist? DEPRECATED
+%             matfile = findFilesBVQX(dirsdata{d},'combinedDataTable.mat');
+% 
+%             if isempty(matfile) % no matlab data loaded
+%                 dbout(d).matExist = false;
+%                 %                 dbout(d).fnm = [];
+%             else
+%                 dbout(d).matExist = true;
+%                 %                 dbout(d).fnm = matfile{1};
+%             end
         end
     end
 end
@@ -317,59 +335,88 @@ end
 badsessions = sorted_database(loc,:);
 sorted_database(loc,:) = [];
 
-%% expanding all fields within each struct
+%% expanding all fields within each struct  - DEPRECATED
+% %  This is used to list out all subsessions within a session in case there are different stimulation
+% %  conditions / settings associated with the subsessions 
+% 
+% 
+% expanded_database = [];
+% 
+% for rowidx = 1:size(sorted_database, 1)
+%     tmp_row = sorted_database(rowidx,:);  %tmp_row is the row with multiple entries
+%     if size(tmp_row.time{1}, 1) > 1  % duplicating entire row if there are multiple entries per session
+%         for new_row = 1:size(tmp_row.time{1}, 1)
+%             expanded_database = [expanded_database; tmp_row];
+%             for col_name = ["time", "duration", "TDfs"]
+%                 expanded_database{end, col_name}{1} = expanded_database{end, col_name}{1}(new_row);
+%             end
+% 
+% 
+% 
+% 
+%             %make the first subsession an integer (like 2), and  all subsessions
+%             %decimals like  2.01, 2.02, etc.
+%             if new_row ==1
+%                 expanded_database.rec(end) = tmp_row.rec;
+%             else
+%                 expanded_database.rec(end) = tmp_row.rec + ((new_row-1)/100);
+%             end
+% 
+%         end
+%     else  % print the single value  if only one entry per session
+% 
+%         expanded_database = [expanded_database; tmp_row];
+%         for col_name = ["time", "duration", "TDfs"]
+%             expanded_database{end, col_name}(1) = expanded_database{end, col_name}(1);
+%         end
+%     end
+% end
+% 
+% % expand all variables for each row and make 'Disabled' values in TDfs to NaN
+% idx_disabled=strcmp(expanded_database.TDfs,'Disabled');
+% expanded_database.TDfs(idx_disabled)={nan};
+% 
+% idx_emptyfft = cellfun(@isempty, expanded_database.fft);
+% expanded_database.fft(idx_emptyfft)={nan};
+% 
+% %  convert cells to string or double to remove cell structure
+% cellvars = {'time', 'duration', 'TDfs','battery','fft'};
+% for n = 1:numel(cellvars)
+% 
+%     if n >= 4
+%         expanded_database.(cellvars{n}) = cell2mat(expanded_database.(cellvars{n}));
+%     else
+%         expanded_database.(cellvars{n}) =[expanded_database.(cellvars{n}){:}]';
+%     end
+% 
+% end
+% 
+% expanded_database = movevars(expanded_database, {'TDchan0', 'TDchan1', 'TDchan2', 'TDchan3'}, 'After', 'TDfs');
+% RCSdatabase_out = table2timetable(expanded_database); % rename output for clarity
+ 
+%% CLEAN UP THE VARIABLES BY GROUPING THEM showing most important ones visually
 
-expanded_database = [];
-
-for rowidx = 1:size(sorted_database, 1)
-    tmp_row = sorted_database(rowidx,:);  %tmp_row is the row with multiple entries
-    if size(tmp_row.time{1}, 1) > 1  % duplicating entire row if there are multiple entries per session
-        for new_row = 1:size(tmp_row.time{1}, 1)
-            expanded_database = [expanded_database; tmp_row];
-            for col_name = ["time", "duration", "TDfs"]
-                expanded_database{end, col_name}{1} = expanded_database{end, col_name}{1}(new_row);
-            end
-
-            %make the first subsession an integer (like 2), and  all subsessions
-            %decimals like  2.01, 2.02, etc.
-            if new_row ==1
-                expanded_database.rec(end) = tmp_row.rec;
-            else
-                expanded_database.rec(end) = tmp_row.rec + ((new_row-1)/100);
-            end
-
-        end
-    else  % print the single value  if only one entry per session
-
-        expanded_database = [expanded_database; tmp_row];
-        for col_name = ["time", "duration", "TDfs"]
-            expanded_database{end, col_name}(1) = expanded_database{end, col_name}(1);
-        end
-    end
-end
-
-% expand all variables for each row and make 'Disabled' values in TDfs to NaN
-idx_disabled=strcmp(expanded_database.TDfs,'Disabled');
-expanded_database.TDfs(idx_disabled)={nan};
-
-idx_emptyfft = cellfun(@isempty, expanded_database.fft);
-expanded_database.fft(idx_emptyfft)={nan};
 
 %  convert cells to string or double to remove cell structure
-cellvars = {'time', 'duration', 'TDfs','battery','fft'};
+cellvars = {'time', 'duration','TDfs','battery'};
+% ,'fft_chan','fft_interval'};
 for n = 1:numel(cellvars)
 
     if n >= 4
-        expanded_database.(cellvars{n}) = cell2mat(expanded_database.(cellvars{n}));
+        sorted_database.(cellvars{n}) = cell2mat(sorted_database.(cellvars{n}));
     else
-        expanded_database.(cellvars{n}) =[expanded_database.(cellvars{n}){:}]';
+        sorted_database.(cellvars{n}) =[sorted_database.(cellvars{n}){:}]';
     end
 
 end
 
-expanded_database = movevars(expanded_database, {'TDchan0', 'TDchan1', 'TDchan2', 'TDchan3'}, 'After', 'TDfs');
-RCSdatabase_out = table2timetable(expanded_database); % rename output for clarity
+sorted_database = movevars(sorted_database, {'chan0', 'chan1', 'chan2', 'chan3'}, 'After', 'TDfs');
+RCSdatabase_out = table2timetable(sorted_database); % rename output for clarity
+% RCSdatabase_out = mergevars(RCSdatabase_out,
+% {'fftFs','fft_chan','fft_interval'},'NewVariableName','fft','MergeAsTable',true 
 
+% Reorder the columns for usability
+RCSdatabase_out = RCSdatabase_out(:,[1:3,13:17,4:12,19:26,18]);
 
 %% COMBINE WITH OLD DATABASE
 % IF the old database existed, recombine with new database and sort it
@@ -379,16 +426,16 @@ if ~isempty(old_database)
     disp('combining with old database...');
 
     %make cells to mat for some fields
-    if iscell(RCSdatabase_out.matExist)
-        % format some columns so they are not cells
-        RCSdatabase_out.matExist = cell2mat(RCSdatabase_out.matExist);
-        badsessions.matExist = cell2mat(badsessions.matExist);
-    end
+%     if iscell(RCSdatabase_out.matExist)
+%         % format some columns so they are not cells
+%         RCSdatabase_out.matExist = cell2mat(RCSdatabase_out.matExist);
+%         badsessions.matExist = cell2mat(badsessions.matExist);
+%     end
 
-    if iscell(old_database.matExist)
-        old_database.matExist = cell2mat(old_database.matExist);
-        old_badsessions.matExist = cell2mat(old_badsessions.matExist);
-    end
+%     if iscell(old_database.matExist)
+%         old_database.matExist = cell2mat(old_database.matExist);
+%         old_badsessions.matExist = cell2mat(old_badsessions.matExist);
+%     end
 
 
     if iscell(old_database.TDfs)
@@ -413,6 +460,10 @@ if ~isempty(old_database)
 
 
     end
+
+        idx_disabled = strcmp(RCSdatabase_out.TDfs,'Disabled');
+        RCSdatabase_out.TDfs(idx_disabled) = {nan};
+RCSdatabase_out.TDfs = cell2mat(RCSdatabase_out.TDfs);
 
 
     %     COMBINE HERE
@@ -442,10 +493,10 @@ if nargout == 2
     varargout{1} = badsessions;
 end
 %
-
+eval(sprintf('%s = %s',[PtIDside '_database'],'RCSdatabase_out')); 
 % Rename file to include patient ID
 writetimetable(RCSdatabase_out,fullfile(dirname,[PtIDside '_database.csv']))
-save(fullfile(dirname,[PtIDside '_database.mat']),'RCSdatabase_out','badsessions')
+save(fullfile(dirname,[PtIDside '_database.mat']),[PtIDside '_database'],'badsessions')
 fprintf('csv and mat of database saved as %s to %s \n',[PtIDside '_database.mat'],dirname);
 
 

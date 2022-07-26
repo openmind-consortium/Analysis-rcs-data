@@ -6,7 +6,8 @@ function [stimSettingsOut, stimMetaData] = createStimSettingsFromDeviceSettings(
 %
 % Output: stimSettingsOut table, stimMetaData containing info about
 % groups/programs which were active and which contacts were used for stim
-%
+% 
+% Updated 7/24/22 - Prasad added cycling on/ off duration outut in stimSettingsOut for Active Group
 %%
 stimSettingsOut = table();
 
@@ -84,8 +85,9 @@ end
 %%
 % Set up output table (stimSettingsOut) with initial settings
 entryNumber = 1;
+activegroupnum  = currentSettings.GeneralData.therapyStatusData.activeGroup;
 
-switch currentSettings.GeneralData.therapyStatusData.activeGroup
+switch activegroupnum
     case 0
         activeGroup = 'A';
     case 1
@@ -101,6 +103,13 @@ stimSettingsOut.HostUnixTime(entryNumber) = HostUnixTime;
 stimSettingsOut.activeGroup{entryNumber} = activeGroup;
 stimSettingsOut.therapyStatus(entryNumber) = therapyStatus;
 stimSettingsOut.therapyStatusDescription{entryNumber} = convertTherapyStatus(therapyStatus);
+
+% Collect  the cycling stim info (units 0,1,2  = 0.1s, 1s , 10s, so need to add +1 to index units from 1-3)
+cycleunits = [0.1,1,10]; 
+OnUnits = currentSettings.(['TherapyConfigGroup' num2str(activegroupnum)]).cycleOnTime.units + 1;
+OffUnits = currentSettings.(['TherapyConfigGroup' num2str(activegroupnum)]).cycleOffTime.units + 1;
+stimSettingsOut.cycleOnSec(entryNumber)  = currentSettings.(['TherapyConfigGroup' num2str(activegroupnum)]).cycleOnTime.time * cycleunits(OnUnits);
+stimSettingsOut.cycleOffSec(entryNumber)  = currentSettings.(['TherapyConfigGroup' num2str(activegroupnum)]).cycleOffTime.time * cycleunits(OffUnits);
 
 previousActiveGroup = activeGroup;
 previousTherapyStatus = therapyStatus;

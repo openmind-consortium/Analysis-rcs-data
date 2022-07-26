@@ -3,31 +3,56 @@
 % to analyze the power bands/ FFT bands of interest. 
 % 
 %  March 2022
-%  Use this version
-% Prasad Shirvalkar
+%  updated July 2022 to combine L / R and add more variales (cycling, fftchan, etc)
+% Prasad Shirvalkar mdphd
 
 clear
-clc
+clc 
 
-PATIENTIDside =  ['RCS06L']
-% 'RCS02R'
-% 'CPRCS01';
-rootdir = '/Volumes/PrasadX5/' ;
+
+PATIENTIDs = [2,4,5,6];
+
+% Current patients: 
+% CPRCS01R
+% RCS02R (L has data but was explanted)
+% RCS04L/R
+% RCS05L/R
+% RCS06L/R
+
+
+% rootdir = '/Volumes/PrasadX5/' ;
+rootdir = '/Users/pshirvalkar/Desktop/';
 github_dir = '/Users/pshirvalkar/Documents/GitHub/UCSF-rcs-data-analysis';
-patientrootdir = fullfile(rootdir,char(regexp(PATIENTIDside,'\w*\d\d','match'))); %match the PATIENTID up to 2 digits: ie RCS02
+% patientrootdir = fullfile(rootdir,char(regexp(PATIENTIDside,'\w*\d\d','match'))); %match the PATIENTID up to 2 digits: ie RCS02
 
 cd(github_dir)
 addpath(genpath(github_dir))
 
 %% make database of all files
-[RCSdatabase_out,badsessions] = makeDataBaseRCSdata(patientrootdir,PATIENTIDside,'ignoreold'); % add AdaptiveData.Ld0_output
+for x=2 %which patient?
+patientrootdir = fullfile(rootdir,['RCS0' num2str(x) '.nosync'])
 
+[dbase.(['RCS0' num2str(x) 'L']),dbase.badL] = makeDataBaseRCSdata(patientrootdir,['RCS0' num2str(x) 'L'],'ignoreold'); 
+[dbase.(['RCS0' num2str(x) 'R']),dbase.badR] = makeDataBaseRCSdata(patientrootdir,['RCS0' num2str(x) 'R'],'ignoreold'); 
+
+% Combine 2 hemispheres into one database  
+RCSdatabaseBL = combine_Left_Right_databases(dbase.(['RCS0' num2str(x) 'L']),dbase.(['RCS0' num2str(x) 'R']),patientrootdir);
+    
+
+
+end
+
+disp('All patient databases done')
 %%  LOAD Database
-load(fullfile(patientrootdir,[PATIENTIDside '_database.mat']))
+x=2
+patientrootdir = fullfile(rootdir,['RCS0' num2str(x) '.nosync'])
+dbase1 = load(fullfile(patientrootdir,['RCS0' num2str(x) 'L_database.mat']));
+dbase2 = load(fullfile(patientrootdir,['RCS0' num2str(x) 'R_database.mat']));
 
-
+% Combine 2 hemispheres into one database  
+RCSdatabaseBL = combine_Left_Right_databases(dbase1.(['RCS0' num2str(x) 'L_database']),dbase2.(['RCS0' num2str(x) 'R_database']),patientrootdir);
 % Plot the 50 most recent subsessions
-RCSdatabase_out(end-100:end,:)
+% RCSdatabase_out(end-90:end,:)
 
 
 %%  LOAD ABOVE FILES AND PLOT CHANNELS OF INTEREST
@@ -38,7 +63,8 @@ RCSdatabase_out(end-100:end,:)
 % load subsessions (e.g. 201.2) as these are all loaded automatically.
 
 % recs_to_load =   D.rec(end-60:end-30)
-recs_to_load =  [1000:1008]
+recs_to_load =  [1360:1363]
+sprintf('%s = %s',[PATIENTIDside '_database'],'RCSdatabase_out')
 %%%%%%%%%%%%%%
 
 rc = rcsPlotter();
@@ -57,7 +83,7 @@ rc.loadData()
 rc.reportStimSettings
 rc.reportPowerBands
 rc.reportDataQualityAndGaps(1)
-%% SET your feature and stim channels
+% SET your feature and stim channels
 % ========Change below =======
 pd.feature = 5;
 pd.stim = 4;
