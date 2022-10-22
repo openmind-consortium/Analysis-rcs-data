@@ -128,10 +128,10 @@ outputFileName = fullfile(dirname,[PtIDside '_database.mat']);
 
 if isfile(outputFileName) && nargin<3
     disp(['Loading previously saved database for ' PtIDside]);
-    D = load(outputFileName,'RCSdatabase_out','badsessions');
-    old_database = D.RCSdatabase_out;
+    D = load(outputFileName);
+    old_database = D.([PtIDside '_database']);
     old_badsessions = D.badsessions;
-    oldsess = D.RCSdatabase_out.sessname;
+    oldsess = D.([PtIDside '_database']).sessname;
     oldbadsess = D.badsessions.sessname;
     olddirs = contains(dirsdata,oldsess) | contains(dirsdata,oldbadsess) ;
     dirsdata(olddirs)= [];
@@ -153,8 +153,7 @@ end
 
 
 %%
-for d = 500:700
-%     length(dirsdata)
+for d = 1:length(dirsdata)
     diruse = findFilesBVQX(dirsdata{d},'Device*',struct('dirs',1,'depth',1));
 
 %     if nargin==2 &&  d > numel(dirsdata1)
@@ -462,8 +461,8 @@ if ~isempty(old_database)
     end
 
         idx_disabled = strcmp(RCSdatabase_out.TDfs,'Disabled');
-        RCSdatabase_out.TDfs(idx_disabled) = {nan};
-RCSdatabase_out.TDfs = cell2mat(RCSdatabase_out.TDfs);
+        RCSdatabase_out.TDfs(idx_disabled) = nan;
+% RCSdatabase_out.TDfs = cell2mat(RCSdatabase_out.TDfs);
 
 
     %     COMBINE HERE

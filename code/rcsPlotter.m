@@ -160,7 +160,7 @@ classdef rcsPlotter < handle
             for i = 1:size(obj.FolderNames,1)
                 fprintf('\t[%0.2d]\t%s\n',i,obj.FolderNames{i});
                 clear combinedDataTable
-                try
+%                 try
                     
                     [unifiedDerivedTimes,...
                         timeDomainData, timeDomainData_onlyTimeVariables, timeDomain_timeVariableNames,...
@@ -170,17 +170,19 @@ classdef rcsPlotter < handle
                         AdaptiveData, AdaptiveData_onlyTimeVariables, Adaptive_timeVariableNames,...
                         timeDomainSettings, powerSettings, fftSettings, eventLogTable,...
                         metaData, stimSettingsOut, stimMetaData, stimLogSettings,...
-                        DetectorSettings, AdaptiveStimSettings, AdaptiveEmbeddedRuns_StimSettings] = ProcessRCS(obj.FolderNames{i},3);
+                        DetectorSettings, AdaptiveStimSettings, AdaptiveEmbeddedRuns_StimSettings, versionInfo] = ProcessRCS(obj.FolderNames{i},3);
+                    
                     dataStreams = {timeDomainData, AccelData, PowerData, FFTData, AdaptiveData};
-                    [combinedDataTable] = createCombinedTable(dataStreams,unifiedDerivedTimes,metaData);
 
+                    [combinedDataTable] = createCombinedTable(dataStreams,unifiedDerivedTimes,metaData);
+disp('loaded!')
                     %%
-                catch
-                    fnreport = fullfile(obj.FolderNames{i},'error_open_report.txt');
-                    fid = fopen(fnreport,'w+');
-                    fprintf(fid,'file error\n');
-                    fclose(fid);
-                end
+%                 catch
+%                     fnreport = fullfile(obj.FolderNames{i},'error_open_report.txt');
+%                     fid = fopen(fnreport,'w+');
+%                     fprintf(fid,'file error\n');
+%                     fclose(fid);
+%                 end
                 if exist('combinedDataTable','var')
                     if size(combinedDataTable,1) > 100 % this is had coded to avoid files that are really short - prob. bogus, consider changing 
                         nSession = obj.NumberOfSessions + 1;
@@ -391,6 +393,8 @@ classdef rcsPlotter < handle
             end
             datetick(hAxes,'x',15,'keepticks','keeplimits');
             obj.formatTimeXaxes(hAxes);
+                hAxes.YLim = [-200 200];
+           
         end
         
         %%%%%%
