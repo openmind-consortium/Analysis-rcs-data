@@ -66,13 +66,19 @@ else
     PATIENTID = PATIENTIDside;
 end
 
-fprintf('Compiling database for %s /n', PATIENTIDside)
+fprintf('Compiling Textlogs for %s /n', PATIENTIDside)
     
     
 scbsdir = fullfile(rootdir,PATIENTID,'/SummitData/SummitContinuousBilateralStreaming/', PATIENTIDside);
-adbsdir = fullfile(rootdir,PATIENTID,'/SummitData/StarrLab/', PATIENTIDside);
 
-filelist = dir(fullfile(scbsdir,'**/*.txt')); % all txt files contains within session files
+
+filelist= dir(fullfile(scbsdir,'**/*.txt')); % all txt files contains within session files
+%adbs does not contain txt files (but for RCS02, some text files are outside RCS02R from 2021)
+
+
+
+
+
 % remove the files that start with ._  (some icloud issue of duplicate files to ignore)
 badfiles = arrayfun(@(x) contains(x.name,'._'),filelist);
 filelist(badfiles)=[];
@@ -82,19 +88,20 @@ AppLogData = table(); % create empty tables
 GroupchangeData = table();
 RechargeData=table();
 AdaptiveDetect=table();
-for i = 1:numel(filelist)
+
+parfor i = 1:numel(filelist)
     f = filelist(i);
     if endsWith(f.name,"AppLog.txt")
         [adaptiveLogTable, ~, ~,adaptiveDetectionEvents] = read_adaptive_txt_log(fullfile(f.folder, f.name));
         AppLogData = [AppLogData; adaptiveLogTable];
         AdaptiveDetect = [AdaptiveDetect; adaptiveDetectionEvents];
-        fprintf("Done %s, %d/%d: %d\n", f.name, i, numel(filelist), size(adaptiveLogTable, 1)); 
+        fprintf("Done %s, %d of %d: %d detection changes \n", f.name, i, numel(filelist), size(adaptiveLogTable, 1)); 
         
     elseif endsWith(f.name,"EventLog.txt")
         [~, rechargeSessions, groupChanges,~] = read_adaptive_txt_log(fullfile(f.folder, f.name));
         GroupchangeData = [GroupchangeData; groupChanges];
         RechargeData =[RechargeData; rechargeSessions];
-        fprintf("Done %s, %d/%d: %d\n", f.name, i, numel(filelist), size(groupChanges, 1));
+        fprintf("Done %s, %d of %d: %d groupchanges \n", f.name, i, numel(filelist), size(groupChanges, 1));
     end
 end
 
@@ -120,7 +127,7 @@ sorted_RD = sortrows(RechargeData, 1);
 [~, ALD_ind] = unique(sorted_ALD.time);
 [~, ELD_ind] = unique(sorted_ELD.time);
 [~, AD_ind] = unique(sorted_AD.time);  %comment out if detections may occur at below 1sec timescale
-[~, RD_ind] = unique(sorted_RD.time); %ok to remove dups since we only care about recharging on minute scale.
+[~, RD_ind] = unique(sorted_RD.time); 
 
 unique_sorted_ALD = table2timetable(sorted_ALD(ALD_ind, :));
 unique_sorted_ELD = table2timetable(sorted_ELD(ELD_ind, :));
@@ -132,10 +139,11 @@ textlog.app = unique_sorted_ALD;
 textlog.groupchange = unique_sorted_ELD;
 textlog.groupchange.time.TimeZone = 'America/Los_Angeles'; % assign same time zone as ProcessRCS
 textlog.adaptive = unique_sorted_AD;
-textlog.recharge = unique_sorted_RD; 
-%% SAVE The Text Log structure
+textlog.recharge = unique_sorted_RD;   
+textlog.filelist  = filelist; % use this in the future to avoid running all old files again
 
+%% SAVE The Text Log structure
 fn = [PATIENTIDside '_textlogs.mat'];
-save(fullfile(rootdir,PATIENTID,fn),'textlog')
+save(fullfile(rootdir,PATIENTID,fn),'textlog','-v7.3','-nocompression')
 fprintf('mat of Text Logs (Log structure) saved to \n %s \n',fullfile(rootdir,PATIENTID,fn));
 
