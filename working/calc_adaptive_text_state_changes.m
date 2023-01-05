@@ -1,13 +1,20 @@
-%  PROCESS RESULTS of TEXTLOG files from RCS_logs to visualize the adapative state changes during CL stim (group D)
+%  PROCESS RESULTS of TEXTLOG files from RCS_logs to visualize the
+%   adaptive state changes during CL stim (group D)
 %
+% Calculate 
+% 1. # of state changes
+% 2. % of time with STIM ON
+% 3. TEED per hour
+% 
+% At bottom, can make time-plot of states and current for specified Closed Loop Run 
+% 
 %
-%
-% PShirvalkar 12/2022
+% PShirvalkar 1/2023
+
 clear
 close all
 
 PATIENTIDside = 'RCS02R';
-
 rootdir = '/Volumes/PrasadX5/spiritdata/raw' ;
 
 
@@ -41,13 +48,16 @@ title('Distribution of Closed Loop session durations > 1 hour')
 
 
 
-%% Long Ds
+%% sessions of Prolonged closed loop testing (Long D's)
 Dstartlongs = Dstarts(long_durations_ind);
 Dendlongs = Dends(long_durations_ind);
-statechanges  = [];
-percent_on = [];
-TEED=[];
 textlog.app.time.TimeZone = Dstartlongs.TimeZone;
+numstatechanges  = zeros(length(Dstartlongs),1);
+percent_on = zeros(length(Dstartlongs),1);
+TEED=zeros(length(Dstartlongs),1);
+CLsessions = cell(10,1);
+valid_idx = 1;
+
 
 for x= 1:length(Dstartlongs)
     %1. Use textlog.app to calculate TEED
@@ -62,15 +72,15 @@ for x= 1:length(Dstartlongs)
     currentDidx = textlog.app.time >= Dstartlongs(x) & textlog.app.time <= Dendlongs(x);
     currentapp = textlog.app(currentDidx,:);
 
-    % ****FIND # of state changes
-    statechanges(x) = sum(currentDidx);
+    % **** FIND # of state changes
+    numstatechanges(x) = sum(currentDidx);
 
 
-    on_idx = find(currentapp.prog0 >0 & ~(currentapp.newstate == 15)); % this prevents detection of state changes where stim stays on
+    on_idx = find(currentapp.prog0 >0 & ~(currentapp.newstate == 15)); %detect when stim is on but prevent detection of state changes where stim stays on
 
     %  *****  FIND % of time On
     if ~isempty(on_idx)
-clc
+
         totalduration = Dendlongs(x) - Dstartlongs(x);
 
         % if the closed loop state starts with stimulation ON, then add the time since when group D started;
@@ -86,8 +96,7 @@ clc
 
 
 
-
-        %  find TEED Per hour
+   %  ****** Find TEED Per hour
         %             TEED= (fq * pw * V^2) / R * 1s;
         %               TEED  = fq * pw * ampcurrent^2 * R * 1s 
           
@@ -99,6 +108,11 @@ clc
         amp = currentapp.prog0(fqidx);
         R= 10000; %10k ohmz, but get real impedance
         TEED(x) = (fq * pw * amp^2 * R * seconds(sum(onduration)) ) / hours(totalduration);
+
+
+% save the  currentapp variable through each loop, to visualize individual sessions 
+     CLsessions{valid_idx} = currentapp; 
+     valid_idx = valid_idx+1;
 
     else
 
@@ -114,10 +128,10 @@ end
 
 
 subplot 321
-histogram(statechanges,100)
+histogram(numstatechanges,100)
 title('statechanges')
 subplot 322
-scatter(Dstartlongs,statechanges,'filled')
+scatter(Dstartlongs,numstatechanges,'filled')
 title('statechanges')
 
 subplot 323
@@ -137,12 +151,18 @@ title('TEED per hour')
 sgtitle(PATIENTIDside)
 
 
-%% Plot the adaptive state changes/ current of stimulation for a specific Closed loop run
-subplot 211
-stairs(currentapp.time,currentapp.newstate)
+%% Plot the adaptive state changes/ current of stimulation for a specific Closed loop run 
+% WHICH CL RUN? 
+CLrun = 89;
+%%%%
+
+
+figure
+subplot 211                    
+stairs(CLsessions{CLrun}.time,CLsessions{CLrun}.newstate)
 ylabel('state')
 subplot 212
-plot(currentapp.time,currentapp.prog0)
+plot(CLsessions{CLrun}.time,CLsessions{CLrun}.prog0)
 ylabel('current')
 
 
