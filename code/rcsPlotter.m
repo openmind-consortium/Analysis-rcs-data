@@ -160,7 +160,7 @@ classdef rcsPlotter < handle
             for i = 1:size(obj.FolderNames,1)
                 fprintf('\t[%0.2d]\t%s\n',i,obj.FolderNames{i});
                 clear combinedDataTable
-                try
+%                 try
                     
                     [unifiedDerivedTimes,...
                         timeDomainData, timeDomainData_onlyTimeVariables, timeDomain_timeVariableNames,...
@@ -170,17 +170,19 @@ classdef rcsPlotter < handle
                         AdaptiveData, AdaptiveData_onlyTimeVariables, Adaptive_timeVariableNames,...
                         timeDomainSettings, powerSettings, fftSettings, eventLogTable,...
                         metaData, stimSettingsOut, stimMetaData, stimLogSettings,...
-                        DetectorSettings, AdaptiveStimSettings, AdaptiveEmbeddedRuns_StimSettings] = ProcessRCS(obj.FolderNames{i},3);
+                        DetectorSettings, AdaptiveStimSettings, AdaptiveEmbeddedRuns_StimSettings, versionInfo] = ProcessRCS(obj.FolderNames{i},3);
+                    
                     dataStreams = {timeDomainData, AccelData, PowerData, FFTData, AdaptiveData};
-                    [combinedDataTable] = createCombinedTable(dataStreams,unifiedDerivedTimes,metaData);
 
+                    [combinedDataTable] = createCombinedTable(dataStreams,unifiedDerivedTimes,metaData);
+disp('loaded!')
                     %%
-                catch
-                    fnreport = fullfile(obj.FolderNames{i},'error_open_report.txt');
-                    fid = fopen(fnreport,'w+');
-                    fprintf(fid,'file error\n');
-                    fclose(fid);
-                end
+%                 catch
+%                     fnreport = fullfile(obj.FolderNames{i},'error_open_report.txt');
+%                     fid = fopen(fnreport,'w+');
+%                     fprintf(fid,'file error\n');
+%                     fclose(fid);
+%                 end
                 if exist('combinedDataTable','var')
                     if size(combinedDataTable,1) > 100 % this is had coded to avoid files that are really short - prob. bogus, consider changing 
                         nSession = obj.NumberOfSessions + 1;
@@ -391,6 +393,8 @@ classdef rcsPlotter < handle
             end
             datetick(hAxes,'x',15,'keepticks','keeplimits');
             obj.formatTimeXaxes(hAxes);
+                hAxes.YLim = [-200 200];
+           
         end
         
         %%%%%%
@@ -1231,7 +1235,7 @@ classdef rcsPlotter < handle
                     % only plot the gaps 
                     imAlpha=ones(size(idxnan'));
                     imAlpha(~idxnan')=0;                    
-                    hImg = imagesc(idxnan','AlphaData',imAlpha,'XData',x);
+                    hImg = imagesc(hAxes,idxnan','AlphaData',imAlpha,'XData',x);
 
                     
                     % get settings
@@ -1291,7 +1295,16 @@ classdef rcsPlotter < handle
             % rc.plotTdChannelSpectral(1); 
             % 
             % note that default spect params are chosen 
-            % and missing data is handeled in specific manner 
+            % and missing data is handeled in specific manner
+            %
+            % Update Sep 14, 2021 - Prasad
+            %             I eliminated Gaps in plotted spectrogram plots as this
+            %             eliminates useful data when gaps very small (< 200msec)
+            %             
+            % Update Sep 30, 2021 - Prasad
+            % I added a feature to downsample higher sample rate data to
+            % lowest sample rate chunk, if there are multiple chunks with
+            % different sample rates
             
             %% XXXX function not ready yet 
             if nargin == 1
@@ -1312,21 +1325,61 @@ classdef rcsPlotter < handle
                 if ~isempty(obj.Data(i))
                     dt = obj.Data(i).combinedDataTable;
                     idxnanSampleRate = isnan(dt.TD_samplerate);
-                    uniqueSampleRate = unique(dt.TD_samplerate(~idxnanSampleRate));
+                    loc_samplerates = find(~idxnanSampleRate); % location of sample rates from original data corresponding to samplerates below
+                    samplerates = dt.TD_samplerate(~idxnanSampleRate);
+                    
+                    uniqueSampleRate = unique(samplerates);
+                    
                     if length(uniqueSampleRate) >1
-                        error('can only perform psd anlaysis on data in which sample rate is the same');
+                        %         downsample the chunks/ sections in dt with higher sampling rate to
+                        %         the lowest one in session
+
+                        minFs = min(samplerates);
+                        idx_hiFs01 = (~(samplerates==minFs));
+                        fprintf('%d chunks have different sample rates. \n Smallest sample rate is %d.. downsampling all chunks to %d Hz \n',sum(idx_hiFs01),minFs, minFs);
+
+                        while length(uniqueSampleRate) >1
+                            idx_hiFs01 = (~(samplerates==minFs));
+                            start_hiFs = find(idx_hiFs01,1,'first'); %get start of  first instance of high samplerate chunk in samplerate space
+                            Fsval = samplerates(start_hiFs); %should be example of high sample rate
+                            idxminFs = find(samplerates == minFs); %find sample after start where sample rate = minFs minimum and take that chunk
+                            end_hiFs = idxminFs(find(idxminFs > start_hiFs,1,'first')) -1 ; %sample of end of chunk in samplerate space
+                            idxstart = loc_samplerates(start_hiFs); %start in data space
+                            idxend = loc_samplerates(end_hiFs); %end in data space
+
+                            hold_datachunk = dt(idxstart:idxend,:);
+                            dt(idxstart:idxend,:) = [];
+                            % Downsample that chunk for TD data
+                            dnsample_factor = round(Fsval/minFs);
+                            downsampled_datachunk = downsample(hold_datachunk,dnsample_factor);
+                            downsampled_datachunk.TD_samplerate(~isnan(downsampled_datachunk.TD_samplerate))=minFs;
+
+                            % Replace the chunk into corresponding
+                            % position in the dt.
+                            chunkheight = size(downsampled_datachunk,1);
+                            dt(idxstart+chunkheight:end+chunkheight,:)=  dt(idxstart:end,:); % copy the existing data down to make space for chunk
+                            dt(idxstart:idxstart+chunkheight-1,:) = downsampled_datachunk;
+
+
+                            idxnanSampleRate = isnan(dt.TD_samplerate);
+                            samplerates = dt.TD_samplerate(~idxnanSampleRate);
+                            uniqueSampleRate = unique(samplerates);
+
+                        end
+
+                        sr = minFs;
+
                     else
                         sr = uniqueSampleRate;
                     end
 
-                    dt = obj.Data(i).combinedDataTable;
+                    
                     x = datenum(dt.localTime);
                     chanfn = sprintf('TD_key%d',chan-1);
                     y = dt.(chanfn);
                     y = y - nanmean(y);
                     y = y.*1e3;
-                    
-                    
+                                  
                     
                     yFilled = fillmissing(y,'constant',0);
 
@@ -1373,12 +1426,17 @@ classdef rcsPlotter < handle
                     spectTimes = dt.localTime(1) + seconds(ttt);
                     
                     localTime = dt.localTime;
-                    for te = 1:size(idxgapStart,1)
-                        timeGap(te,1) = localTime(idxgapStart(te)) - (windowInSec + params.paddingGap);
-                        timeGap(te,2) = localTime(idxgapEnd(te))   + (windowInSec + params.paddingGap);
-                        idxBlank = spectTimes >= timeGap(te,1) & spectTimes <= timeGap(te,2);
-                        ppp(:,idxBlank) = NaN;
-                    end
+                    
+%                     The following adds white gaps to the spectrogram,
+%                     which eliminates useful data if gaps are very small
+
+% COMMENTED OUT (can comment in to plot gaps)
+%                     for te = 1:size(idxgapStart,1)
+%                         timeGap(te,1) = localTime(idxgapStart(te)) - (windowInSec + params.paddingGap);
+%                         timeGap(te,2) = localTime(idxgapEnd(te))   + (windowInSec + params.paddingGap);
+%                         idxBlank = spectTimes >= timeGap(te,1) & spectTimes <= timeGap(te,2);
+%                         ppp(:,idxBlank) = NaN;
+%                     end
                     
                     imAlpha=ones(size(ppp'));
                     imAlpha(isnan(ppp'))=0;
@@ -1392,26 +1450,14 @@ classdef rcsPlotter < handle
                     size(isnan(ppp(:,1)))
                     
                     allPCS = ppp(:,~isnan(ppp(1,:)));
-                    
-%                     hImg = imagesc(hAxes, log10(IblurY2));
-%                     caxis(hAxes,log10([min(allPCS(:)) max(allPCS(:))]));
-                    % add a datatip 
-%                     hfig = get(hAxes,'Parent');
-%                     h = datacursormode(hfig);
-%                     set(h, 'Enable', 'on')
-                    
-                    % Here I have to pass the `clims` because I can't fetch them inside
-%                     h.UpdateFcn = @addDataTipSpectral;
-
-                    
-%                     shading(hAxes,'interp');
+         
                     % get settings
                     tdSettings = obj.Data(i).timeDomainSettings;
                     chanfn = sprintf('chan%d',chan);
                     title(tdSettings.(chanfn){1},'Parent',hAxes);
                     
                     set(hAxes,'YDir','normal')
-                    yticks = [4 12 30 50 60 65 70 75 80 100];
+                    yticks = [4 12 30 50 60 70 80 100];
                     tickLabels = {};
                     ticksuse = [];
                     for yy = 1:length(yticks)
@@ -1483,7 +1529,7 @@ classdef rcsPlotter < handle
                         chanfn = sprintf('TD_key%d',c-1);
                         y = dt.(chanfn);
                         y = y - nanmean(y);
-                        y = y.*1e3;
+                       y = y.*1e3;
                         
                         
                         
@@ -2127,16 +2173,17 @@ classdef rcsPlotter < handle
             %
             % rc.plotAdaptiveState(1); 
 
-            if nargin == 1
+            if nargin <= 2
                 hfig = figure;
                 hfig.Color = 'w';
                 hAxes = subplot(1,1,1);
             end
-            if nargin == 2
-                hAxes = varargin{1};
+            if nargin == 3
+                hAxes = varargin{2};
             end
+            hold(hAxes,'on');   
             hold(hAxes,'on');
-            hold(hAxes,'on');
+            
             for i = 1:obj.NumberOfSessions
                 if ~isempty(obj.Data)
                     dt = obj.Data(i).combinedDataTable;
@@ -2198,17 +2245,20 @@ classdef rcsPlotter < handle
             %
             %% usage:
             %
-            % rc.plotActigraphyRms(1); 
-            % 
-
+            % rc.plotActigraphyRms(1);
+            %
             if nargin == 1
+                error('select at least one program (int starts at zero)');
+            end
+            if nargin == 2
                 hfig = figure;
                 hfig.Color = 'w';
                 hAxes = subplot(1,1,1);
             end
-            if nargin == 2
-                hAxes = varargin{1};
+            if nargin == 3
+                hAxes = varargin{2};
             end
+            hold(hAxes,'on');
             hold(hAxes,'on');
             for i = 1:obj.NumberOfSessions
                 if ~isempty(obj.Data(i))
@@ -2221,7 +2271,7 @@ classdef rcsPlotter < handle
                         idxkeep = ~isnan( dt.Accel_samplerate ); 
                         tuse = dt.localTime(idxkeep); 
                         unqSampleRates = unique(dt.Accel_samplerate(idxkeep));
-                        sampleRateUse = max(unqSampleRates); % average using window from largest sample rate
+                        sampleRateUse = round(max(unqSampleRates)); % average using window from largest sample rate
                         accXraw = dt.Accel_XSamples(idxkeep);
                         accYraw = dt.Accel_YSamples(idxkeep);
                         accZraw = dt.Accel_ZSamples(idxkeep);
@@ -2474,7 +2524,10 @@ classdef rcsPlotter < handle
             %% set limits;
             ylims(1) = prctile(ypowerOut,5);
             ylims(2) = prctile(ypowerOut,95);
-            hAxes.YLim = ylims;
+            if ylims(2)>ylims(1)
+                hAxes.YLim = ylims;
+            end
+            
         end
         
         %%%%%%
@@ -2969,42 +3022,42 @@ classdef rcsPlotter < handle
                 timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','minute');
                 xticks = datenum(timeStart : seconds(15) : timeEnd);
                 hax.XTick = xticks;
-                datetick('x','HH:MM:SS.FFF','keepticks','keeplimits');
+                datetick(hax,'x','HH:MM:SS.FFF','keepticks','keeplimits');
                 
             elseif plottedDuration >= minutes(1) & plottedDuration < minutes(5)
                 timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','minute');
                 timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','minute');
                 xticks = datenum(timeStart : minutes(1) : timeEnd);
                 hax.XTick = xticks;
-                datetick('x','HH:MM:SS','keepticks','keeplimits');
+                datetick(hax,'x','HH:MM:SS','keepticks','keeplimits');
                 
             elseif plottedDuration >= minutes(5) & plottedDuration < minutes(20)
                 timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','hour');
                 timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','hour');
-                xticks = datenum(timeStart : minutes(2) : timeEnd);
+                xticks = datenum(timeStart : minutes(1) : timeEnd);
                 hax.XTick = xticks;
-                datetick('x','HH:MM','keepticks','keeplimits');
+                datetick(hax,'x','HH:MM:SS','keepticks','keeplimits');
                 
             elseif plottedDuration >= minutes(20) & plottedDuration < minutes(60)
                 timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','hour');
                 timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','hour');
                 xticks = datenum(timeStart : minutes(10) : timeEnd);
                 hax.XTick = xticks;
-                datetick('x','HH:MM','keepticks','keeplimits');
+                datetick(hax,'x','HH:MM','keepticks','keeplimits');
                 
             elseif plottedDuration >= minutes(60) & plottedDuration < minutes(60*2)
                 timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','hour');
                 timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','hour');
                 xticks = datenum(timeStart : minutes(15) : timeEnd);
                 hax.XTick = xticks;
-                datetick('x','HH:MM','keepticks','keeplimits');
+                datetick(hax,'x','HH:MM','keepticks','keeplimits');
                 
             elseif plottedDuration > minutes(60*2)
                 timeStart = dateshift(datetime(datevec(hax.XLim(1))) ,'start','hour');
                 timeEnd   = dateshift(datetime(datevec(hax.XLim(2))) ,'end','hour');
                 xticks = datenum(timeStart : minutes(30) : timeEnd);
                 hax.XTick = xticks;
-                datetick('x','HH:MM','keepticks','keeplimits');    
+                datetick(hax,'x','HH:MM','keepticks','keeplimits');    
             end
             
             
