@@ -16,20 +16,18 @@ github_dir = '/Users/pshirvalkar/Documents/GitHub/UCSF-rcs-data-analysis';
 cd(github_dir)
 addpath(genpath(github_dir))
  
-for x = 1
+
+for x=1:9
 
 
 PATIENTIDside  = ALLPATIENTS{x};
 
-
+% % make database of all files
 % patientrootdir = fullfile(rootdir,char(regexp(PATIENTIDside,'\w*\d\d','match'))); %match the PATIENTID up to 2 digits: ie RCS02
-
-
-% make database of all files
 % [database_out,badsessions] = makeDataBaseRCSdata(patientrootdir,PATIENTIDside); % can add AdaptiveData.Ld0_output (but not necessary for database per se) 
 
 
-% compile text logs of all Adaptive/ Stim changes
+% % compile text logs of all Adaptive/ Stim changes
 %CHANGE THE SAVE FILE LOCATION TO PROCESSED FOLDER
 [textlog] = RCS_logs(rootdir,PATIENTIDside);
 
