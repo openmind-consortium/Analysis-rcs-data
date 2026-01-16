@@ -64,31 +64,19 @@ switch nargin
         shortGaps_systemTick = 0;
     case 2
         folderPath  = varargin{1};
-        
-        % TM
-        % contents = dir(folderPath);
-        % folders = contents([contents.isdir]);
-        % folderPath = fullfile(folderPath, folders(3).name);  % after . and ..
-
         processFlag = varargin{2};
         shortGaps_systemTick = 0;
     case 3
-        folderPath  = varargin{1};
+        if isempty(varargin{1})
+            folderPath = uigetdir();
+        else
+            folderPath  = varargin{1};
+        end
         processFlag = varargin{2};
-        shortGaps_systemTick = 0;
-        out_folder = varargin{3};
-
-        % if isempty(varargin{1})
-        %     folderPath = uigetdir();
-        % else
-        %     folderPath  = varargin{1};
-        % end
-        % processFlag = varargin{2};
-        % shortGaps_systemTick = varargin{3};
+        shortGaps_systemTick = varargin{3};
 end
 
 % Check if processed file exists
-% outputFileName = fullfile(folderPath,'AllDataTables.mat');
 outputFileName = fullfile(out_folder,'AllDataTables.mat');
 
 if processFlag == 3
