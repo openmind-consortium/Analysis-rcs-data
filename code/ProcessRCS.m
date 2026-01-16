@@ -64,20 +64,33 @@ switch nargin
         shortGaps_systemTick = 0;
     case 2
         folderPath  = varargin{1};
+        
+        % TM
+        % contents = dir(folderPath);
+        % folders = contents([contents.isdir]);
+        % folderPath = fullfile(folderPath, folders(3).name);  % after . and ..
+
         processFlag = varargin{2};
         shortGaps_systemTick = 0;
     case 3
-        if isempty(varargin{1})
-            folderPath = uigetdir();
-        else
-            folderPath  = varargin{1};
-        end
+        folderPath  = varargin{1};
         processFlag = varargin{2};
-        shortGaps_systemTick = varargin{3};
+        shortGaps_systemTick = 0;
+        out_folder = varargin{3};
+
+        % if isempty(varargin{1})
+        %     folderPath = uigetdir();
+        % else
+        %     folderPath  = varargin{1};
+        % end
+        % processFlag = varargin{2};
+        % shortGaps_systemTick = varargin{3};
 end
 
 % Check if processed file exists
-outputFileName = fullfile(folderPath,'AllDataTables.mat');
+% outputFileName = fullfile(folderPath,'AllDataTables.mat');
+outputFileName = fullfile(out_folder,'AllDataTables.mat');
+
 if processFlag == 3
     if isfile(outputFileName)
         disp('Loading previously processed file');
@@ -100,7 +113,8 @@ end
 if processFlag == 1 || processFlag == 2
     % DeviceSettings data
     disp('Collecting Device Settings data')
-    DeviceSettings_fileToLoad = [folderPath filesep 'DeviceSettings.json'];
+    %DeviceSettings_fileToLoad = [folderPath filesep 'DeviceSettings.json'];
+    DeviceSettings_fileToLoad = fullfile(folderPath, 'DeviceSettings.json');
     if isfile(DeviceSettings_fileToLoad)
         [timeDomainSettings, powerSettings, fftSettings, metaData] = createDeviceSettingsTable(folderPath);
     else
@@ -116,7 +130,7 @@ if processFlag == 1 || processFlag == 2
     end
     
     disp('Collecting Stimulation Settings from Stim Log file')
-    StimLog_fileToLoad = [folderPath filesep 'StimLog.json'];
+    StimLog_fileToLoad = fullfile(folderPath, 'StimLog.json');
     if isfile(StimLog_fileToLoad)
         [stimLogSettings] = createStimSettingsTable(folderPath,stimMetaData);
     else
@@ -133,7 +147,7 @@ if processFlag == 1 || processFlag == 2
     %%
     % Event Log
     disp('Collecting Event Information from Event Log file')
-    EventLog_fileToLoad = [folderPath filesep 'EventLog.json'];
+    EventLog_fileToLoad = fullfile(folderPath, 'EventLog.json');
     if isfile(EventLog_fileToLoad)
         [eventLogTable] = createEventLogTable(folderPath);
     else
@@ -143,7 +157,7 @@ if processFlag == 1 || processFlag == 2
     %%
     % TimeDomain data
     disp('Checking for Time Domain Data')
-    TD_fileToLoad = [folderPath filesep 'RawDataTD.json'];
+    TD_fileToLoad = fullfile(folderPath, 'RawDataTD.json');
     if isfile(TD_fileToLoad)
         jsonobj_TD = deserializeJSON(TD_fileToLoad);
         if isfield(jsonobj_TD,'TimeDomainData') && ~isempty(jsonobj_TD.TimeDomainData)
@@ -161,7 +175,7 @@ if processFlag == 1 || processFlag == 2
     %%
     % Accelerometer data
     disp('Checking for Accelerometer Data')
-    Accel_fileToLoad = [folderPath filesep 'RawDataAccel.json'];
+    Accel_fileToLoad = fullfile(folderPath, 'RawDataAccel.json');
     if isfile(Accel_fileToLoad)
         jsonobj_Accel = deserializeJSON(Accel_fileToLoad);
         if isfield(jsonobj_Accel,'AccelData') && ~isempty(jsonobj_Accel.AccelData)
@@ -184,7 +198,7 @@ if processFlag == 1 || processFlag == 2
     %%
     % Power data
     disp('Checking for Power Data')
-    Power_fileToLoad = [folderPath filesep 'RawDataPower.json'];
+    Power_fileToLoad = fullfile(folderPath, 'RawDataPower.json');
     if isfile(Power_fileToLoad)
         disp('Loading Power Data')
         % Checking if power data is empty happens within createPowerTable
@@ -226,7 +240,7 @@ if processFlag == 1 || processFlag == 2
     %%
     % FFT data
     disp('Checking for FFT Data')
-    FFT_fileToLoad = [folderPath filesep 'RawDataFFT.json'];
+    FFT_fileToLoad = fullfile(folderPath, 'RawDataFFT.json');
     if isfile(FFT_fileToLoad)
         jsonobj_FFT = deserializeJSON(FFT_fileToLoad);
         if isfield(jsonobj_FFT,'FftData') && ~isempty(jsonobj_FFT.FftData)
@@ -274,7 +288,7 @@ if processFlag == 1 || processFlag == 2
     %%
     % Adaptive data
     disp('Checking for Adaptive Data')
-    Adaptive_fileToLoad = [folderPath filesep 'AdaptiveLog.json'];
+    Adaptive_fileToLoad = fullfile(folderPath, 'AdaptiveLog.json');
     if isfile(Adaptive_fileToLoad)
         jsonobj_Adaptive = deserializeJSON(Adaptive_fileToLoad);
         if isfield(jsonobj_Adaptive,'AdaptiveUpdate') && ~isempty(jsonobj_Adaptive(1).AdaptiveUpdate)
