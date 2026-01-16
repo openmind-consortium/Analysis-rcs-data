@@ -77,8 +77,7 @@ switch nargin
 end
 
 % Check if processed file exists
-outputFileName = fullfile(out_folder,'AllDataTables.mat');
-
+outputFileName = fullfile(folderPath,'AllDataTables.mat');
 if processFlag == 3
     if isfile(outputFileName)
         disp('Loading previously processed file');
