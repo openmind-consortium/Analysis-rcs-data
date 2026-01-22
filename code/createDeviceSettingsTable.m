@@ -13,6 +13,9 @@ function [TD_SettingsOut, Power_SettingsOut, FFT_SettingsOut, metaData] = create
 % Output: TD_SettingsOut, Power_SettingsOut, FFT_SettingsOut, metaData
 %
 % Requires convertTDcodes.m
+% 
+% 
+% Updated 7/24/22 by Prasad, to add fftStreamChannel to metaData
 %%
 % Load in DeviceSettings.json file
 DeviceSettings = deserializeJSON(fullfile(folderPath, 'DeviceSettings.json'));
@@ -22,8 +25,11 @@ if isstruct(DeviceSettings)
     DeviceSettings = {DeviceSettings};
 end
 %%
+
 % Convert metaData variables into human readable
+if isfield(DeviceSettings{1},'SubjectInfo') %add by Prasad Oct 8 2021 due to some file errors
 metaData = convertMetadataCodes(DeviceSettings{1}.SubjectInfo);
+end
 
 % UTC offset to determine timezone conversion
 metaData.UTCoffset = DeviceSettings{1,1}.UtcOffset;
@@ -142,6 +148,7 @@ while recordCounter <= length(DeviceSettings)
             actionType = sprintf('Start Stream FFT %d',streamStartCounter_FFT);
             recNum = streamStartCounter_FFT;
             [newEntry,fftConfig] = addNewEntry_FFTSettings(actionType,recNum,currentSettings,TDsettings,fftConfig);
+            
             FFT_SettingsTable = addRowToTable(newEntry,FFT_SettingsTable);
             
             streamStartCounter_FFT = streamStartCounter_FFT + 1;
@@ -241,6 +248,8 @@ while recordCounter <= length(DeviceSettings)
             % documentation enum Medtronic.NeuroStim.Olympus.DataTypes.Sensing.SenseStates : byte
             % for more details about binary number coding
             
+            metaData.fftstreamChan = currentSettings.SenseState.fftStreamChannel; %added by Prasad
+
             % Same code for all streams to indicate sense off
             if str2double(senseState) == 0 % streaming off
                 % Create new row in deviceSettingsTable and populate with metadata

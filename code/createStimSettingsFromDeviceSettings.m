@@ -6,7 +6,8 @@ function [stimSettingsOut, stimMetaData] = createStimSettingsFromDeviceSettings(
 %
 % Output: stimSettingsOut table, stimMetaData containing info about
 % groups/programs which were active and which contacts were used for stim
-%
+% 
+% Updated 7/24/22 - Prasad added cycling on/ off duration outut in stimSettingsOut for Active Group
 %%
 stimSettingsOut = table();
 
@@ -84,8 +85,9 @@ end
 %%
 % Set up output table (stimSettingsOut) with initial settings
 entryNumber = 1;
+activegroupnum  = currentSettings.GeneralData.therapyStatusData.activeGroup;
 
-switch currentSettings.GeneralData.therapyStatusData.activeGroup
+switch activegroupnum
     case 0
         activeGroup = 'A';
     case 1
@@ -102,6 +104,14 @@ stimSettingsOut.activeGroup{entryNumber} = activeGroup;
 stimSettingsOut.therapyStatus(entryNumber) = therapyStatus;
 stimSettingsOut.therapyStatusDescription{entryNumber} = convertTherapyStatus(therapyStatus);
 
+% Collect  the cycling stim info (units 0,1,2  = 0.1s, 1s , 10s, so need to add +1 to index units from 1-3)
+cycleunits = [0.1,1,10]; 
+OnUnits = currentSettings.(['TherapyConfigGroup' num2str(activegroupnum)]).cycleOnTime.units + 1;
+OffUnits = currentSettings.(['TherapyConfigGroup' num2str(activegroupnum)]).cycleOffTime.units + 1;
+stimSettingsOut.cycleOnSec(entryNumber)  = currentSettings.(['TherapyConfigGroup' num2str(activegroupnum)]).cycleOnTime.time * cycleunits(OnUnits);
+stimSettingsOut.cycleOffSec(entryNumber)  = currentSettings.(['TherapyConfigGroup' num2str(activegroupnum)]).cycleOffTime.time * cycleunits(OffUnits);
+
+previousSettings = currentSettings;
 previousActiveGroup = activeGroup;
 previousTherapyStatus = therapyStatus;
 %%
@@ -116,7 +126,9 @@ for iRecord = 1:length(DeviceSettings)
     % Check if activeGroup has changed
     if isfield(currentSettings,'GeneralData') && isfield(currentSettings.GeneralData, 'therapyStatusData') &&...
             isfield(currentSettings.GeneralData.therapyStatusData, 'activeGroup')
-        switch currentSettings.GeneralData.therapyStatusData.activeGroup
+       activegroupnum  = currentSettings.GeneralData.therapyStatusData.activeGroup;
+
+        switch activegroupnum
             case 0
                 activeGroup = 'A';
             case 1
@@ -129,6 +141,14 @@ for iRecord = 1:length(DeviceSettings)
         if ~isequal(activeGroup,previousActiveGroup)
             updateActiveGroup = 1;
         end
+
+
+             % Collect  the cycling stim info (units 0,1,2  = 0.1s, 1s , 10s, so need to add +1 to index units from 1-3)
+            OnUnits = previousSettings.(['TherapyConfigGroup' num2str(activegroupnum)]).cycleOnTime.units + 1;
+            OffUnits = previousSettings.(['TherapyConfigGroup' num2str(activegroupnum)]).cycleOffTime.units + 1;
+            cycleOn_new = previousSettings.(['TherapyConfigGroup' num2str(activegroupnum)]).cycleOnTime.time * cycleunits(OnUnits);
+            cycleOff_new = previousSettings.(['TherapyConfigGroup' num2str(activegroupnum)]).cycleOffTime.time * cycleunits(OffUnits);
+      
     end
     
     % Check if therapyStatus has changed (turned on/off)
@@ -136,6 +156,7 @@ for iRecord = 1:length(DeviceSettings)
             isfield(currentSettings.GeneralData.therapyStatusData, 'therapyStatus')
         
         therapyStatus = currentSettings.GeneralData.therapyStatusData.therapyStatus;
+
         if ~isequal(therapyStatus,previousTherapyStatus)
             updateTherapyStatus = 1;
         end
@@ -149,6 +170,9 @@ for iRecord = 1:length(DeviceSettings)
         toAdd.activeGroup = activeGroup;
         toAdd.therapyStatus = therapyStatus;
         toAdd.therapyStatusDescription = convertTherapyStatus(therapyStatus);
+        toAdd.cycleOnSec  = cycleOn_new;
+        toAdd.cycleOffSec  = cycleOff_new;
+
         stimSettingsOut = [stimSettingsOut; struct2table(toAdd)];
         
         clear toAdd
