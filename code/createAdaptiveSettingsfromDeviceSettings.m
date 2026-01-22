@@ -7,7 +7,7 @@ function [DetectorSettings,AdaptiveStimSettings,AdaptiveEmbeddedRuns_StimSetting
 % Output:
 %%
 % Load in DeviceSettings.json file
-DeviceSettings = deserializeJSON([folderPath filesep 'DeviceSettings.json']);
+DeviceSettings = deserializeJSON(fullfile(folderPath, 'DeviceSettings.json'));
 
 %%
 % Fix format - Sometimes device settings is a struct or cell array
